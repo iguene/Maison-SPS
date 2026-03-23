@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maison SPS</title>
+<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #f0f4f8;
+  height: 100vh;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+}
+
+/* ── TRIANGLE DU HAUT ── */
+.triangle-wrap {
+  width: 100%;
+  max-width: 960px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 0;
+}
+.triangle-svg { width: 70%; max-width: 520px; }
+
+/* ── BANDEAU VISION ── */
+.vision-band {
+  width: 100%;
+  max-width: 960px;
+  background: #c0392b;
+  color: white;
+  text-align: center;
+  padding: 10px 24px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+
+/* ── LES 3 PILIERS ── */
+.pillars {
+  width: 100%;
+  max-width: 960px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  flex: 1;
+}
+
+.pillar {
+  background: white;
+  border-radius: 10px;
+  border: 1px solid #dde3ed;
+  display: flex;
+  flex-direction: column;
+  min-height: 280px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.pillar-header {
+  padding: 9px 14px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  text-align: center;
+  border-radius: 10px 10px 0 0;
+}
+.pillar.dev     .pillar-header { background: #2980b9; color: white; }
+.pillar.impact  .pillar-header { background: #27ae60; color: white; }
+.pillar.culture .pillar-header { background: #c0392b; color: white; }
+
+.pillar-body {
+  flex: 1;
+  padding: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-content: flex-start;
+}
+
+/* ── CARTE FICHE PROGRAMME ── */
+.fiche-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  padding: 7px 9px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #1e293b;
+  width: calc(50% - 4px);
+  transition: all 0.15s;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  position: relative;
+}
+.fiche-card:hover {
+  background: #dce6ff;
+  border-color: #3e5de7;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(62,93,231,0.15);
+}
+.fiche-card.selected {
+  background: #3e5de7;
+  color: white;
+  border-color: #2845c1;
+  box-shadow: 0 4px 12px rgba(62,93,231,0.35);
+}
+
+.fiche-name {
+  font-weight: 600;
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+
+.fiche-meta {
+  font-size: 0.62rem;
+  opacity: 0.75;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.statut-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.statut-dot.en-cours { background: #3b82f6; }
+.statut-dot.termine  { background: #10b981; }
+.statut-dot.a-venir  { background: #f59e0b; }
+.statut-dot.a-venir-white { background: rgba(255,255,255,0.6); }
+
+.fiche-progress {
+  height: 3px;
+  background: #e2e8f0;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 2px;
+}
+.fiche-progress-fill {
+  height: 100%;
+  background: #10b981;
+  border-radius: 2px;
+  transition: width 0.4s;
+}
+.fiche-card.selected .fiche-progress       { background: rgba(255,255,255,0.25); }
+.fiche-card.selected .fiche-progress-fill  { background: white; }
+
+/* Priorité badge */
+.prio-badge {
+  position: absolute;
+  top: 5px; right: 6px;
+  font-size: 0.55rem;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+.prio-haute    { background: #fee2e2; color: #ef4444; }
+.prio-moyenne  { background: #fef3c7; color: #f59e0b; }
+.prio-basse    { background: #dbeafe; color: #3b82f6; }
+.fiche-card.selected .prio-badge { background: rgba(255,255,255,0.2); color: white; }
+
+/* ── BANDEAU DU BAS ── */
+.bottom-band {
+  width: 100%;
+  max-width: 960px;
+  background: #2d3748;
+  color: white;
+  text-align: center;
+  padding: 7px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  border-radius: 4px;
+  margin-top: 10px;
+}
+
+/* ── ÉTAT VIDE ── */
+.empty-pillar {
+  color: #94a3b8;
+  font-size: 0.7rem;
+  font-style: italic;
+  padding: 12px;
+  text-align: center;
+  width: 100%;
+}
+
+/* ── LOADING ── */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  color: #64748b;
+  font-size: 0.85rem;
+  gap: 10px;
+}
+.spinner {
+  width: 20px; height: 20px;
+  border: 2px solid #e2e8f0;
+  border-top-color: #3e5de7;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div id="app"><div class="loading"><div class="spinner"></div>Chargement...</div></div>
+
+<script>
+let fiches = [];
+let selectedId = null;
+
+// ── Helpers ──
+function esc(t) {
+  const d = document.createElement('div');
+  d.textContent = String(t || '');
+  return d.innerHTML;
+}
+
+function formatDate(ts) {
+  if (!ts) return '';
+  const d = new Date(ts * 1000);
+  return d.toLocaleDateString('fr-FR', { day:'2-digit', month:'short' });
+}
+
+function getPilierClass(pilier) {
+  if (!pilier) return 'dev';
+  const p = String(pilier).toLowerCase();
+  if (p.includes('impact'))   return 'impact';
+  if (p.includes('culture'))  return 'culture';
+  return 'dev'; // Développement Business par défaut
+}
+
+function getStatutClass(statut) {
+  if (!statut) return 'a-venir';
+  if (String(statut).includes('Terminé') || String(statut).includes('Termine')) return 'termine';
+  if (String(statut).includes('cours'))  return 'en-cours';
+  return 'a-venir';
+}
+
+function getPrioClass(prio) {
+  if (!prio) return '';
+  const p = String(prio).toLowerCase();
+  if (p.includes('haute') || p.includes('critique')) return 'prio-haute';
+  if (p.includes('moyenne')) return 'prio-moyenne';
+  return 'prio-basse';
+}
+
+// ── Rendu des cartes ──
+function renderCards(list) {
+  if (!list.length) return '<div class="empty-pillar">Aucune fiche</div>';
+  return list.map(f => {
+    const avancement = f.Avancement_Global || 0;
+    const statutCls  = getStatutClass(f.Statut);
+    const prioCls    = getPrioClass(f.Priorite);
+    const isSelected = selectedId === f.id;
+    return `
+      <div class="fiche-card ${isSelected ? 'selected' : ''}"
+           onclick="selectFiche(${f.id})"
+           title="${esc(f.Programme)}">
+        ${prioCls ? `<span class="prio-badge ${prioCls}">${esc(f.Priorite)}</span>` : ''}
+        <div class="fiche-name">${esc(f.Programme || 'Sans titre')}</div>
+        <div class="fiche-meta">
+          <span class="statut-dot ${statutCls}"></span>
+          <span>${esc(f.Statut || 'A venir')}</span>
+          ${f.Deadline ? `<span>· ${formatDate(f.Deadline)}</span>` : ''}
+        </div>
+        <div class="fiche-progress">
+          <div class="fiche-progress-fill" style="width:${Math.round(avancement)}%"></div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ── Rendu principal ──
+function render() {
+  const dev     = fiches.filter(f => getPilierClass(f.Pilier) === 'dev');
+  const impact  = fiches.filter(f => getPilierClass(f.Pilier) === 'impact');
+  const culture = fiches.filter(f => getPilierClass(f.Pilier) === 'culture');
+
+  document.getElementById('app').innerHTML = `
+    <div class="triangle-wrap">
+      <svg class="triangle-svg" viewBox="0 0 560 130">
+        <polygon points="280,8 548,122 12,122" fill="#2d3748"/>
+        <text x="280" y="60" text-anchor="middle" fill="white"
+              font-size="24" font-weight="800"
+              font-family="Inter,system-ui,sans-serif">EXCELLENCE</text>
+        <text x="280" y="86" text-anchor="middle" fill="#cbd5e1"
+              font-size="13" font-family="Inter,system-ui,sans-serif">Meilleur ensemble</text>
+      </svg>
+    </div>
+
+    <div class="vision-band">
+      Pionniers d'une industrie de l'emballage médical responsable,
+      nous œuvrons tous ensemble pour la plus grande sécurité des patients
+    </div>
+
+    <div class="pillars">
+      <div class="pillar dev">
+        <div class="pillar-header">Développement Business</div>
+        <div class="pillar-body">${renderCards(dev)}</div>
+      </div>
+      <div class="pillar impact">
+        <div class="pillar-header">Impact</div>
+        <div class="pillar-body">${renderCards(impact)}</div>
+      </div>
+      <div class="pillar culture">
+        <div class="pillar-header">Culture Managériale</div>
+        <div class="pillar-body">${renderCards(culture)}</div>
+      </div>
+    </div>
+
+    <div class="bottom-band">
+      EXCELLENCE — ENTREPRENEURIAT — SOLIDARITÉ — CRÉATION DE VALEUR
+    </div>
+  `;
+}
+
+// ── Interactions ──
+function selectFiche(id) {
+  selectedId = (selectedId === id) ? null : id; // toggle
+  grist.setSelectedRows([id]);
+  render();
+}
+
+// ── Connexion Grist ──
+grist.ready({ requiredAccess: 'full' });
+
+grist.onRecords((records) => {
+  fiches = records;
+  render();
+});
+
+// Sync sélection depuis Grist (si on clique sur une ligne dans une autre vue)
+grist.onRecord((rec) => {
+  if (rec && rec.id && rec.id !== selectedId) {
+    selectedId = rec.id;
+    render();
+  }
+});
+</script>
+</body>
+</html>
