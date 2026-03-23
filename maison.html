@@ -30,7 +30,6 @@ body {
   display: flex;
   flex-direction: column;
   transform-origin: top left;
-  /* Le JS ajuste le scale dynamiquement */
 }
 
 /* ── HEADER ── */
@@ -56,7 +55,11 @@ body {
   line-height: 1.2;
   text-align: center;
 }
-.logo-sub { font-size: 0.6rem; letter-spacing: 1px; color: #2c3e50; }
+.logo-sub {
+  font-size: 0.6rem;
+  letter-spacing: 1px;
+  color: #2c3e50;
+}
 .main-title {
   font-size: 1.55rem;
   font-weight: 700;
@@ -71,7 +74,9 @@ body {
   justify-content: center;
   flex-shrink: 0;
 }
-.triangle-svg { width: 55%; }
+.triangle-svg {
+  width: 100%;
+}
 
 /* ── BANDEAU VISION ── */
 .vision-band {
@@ -79,10 +84,10 @@ body {
   background: #e05d5d;
   color: white;
   text-align: center;
-  padding: 9px 24px;
-  font-size: 0.88rem;
+  padding: 18px 24px;
+  font-size: 1.25rem;
   font-weight: 500;
-  line-height: 1.5;
+  line-height: 1.6;
   flex-shrink: 0;
 }
 
@@ -136,7 +141,7 @@ body {
 .pillar.impact  .pillar-body { background: #d5ecd5; }
 .pillar.culture .pillar-body { background: #f7d6d6; }
 
-/* Flèches latérales décoratives */
+/* ── FLECHES LATERALES ── */
 .arrow-left, .arrow-right {
   position: absolute;
   top: 50%;
@@ -145,14 +150,15 @@ body {
   height: 0;
   opacity: 0.25;
 }
-.arrow-left  { left: 2px;  border-top: 30px solid transparent; border-bottom: 30px solid transparent; }
-.arrow-right { right: 2px; border-top: 30px solid transparent; border-bottom: 30px solid transparent; }
-.pillar.dev     .arrow-left  { border-right: 16px solid #2980b9; }
-.pillar.dev     .arrow-right { border-left:  16px solid #2980b9; }
-.pillar.impact  .arrow-left  { border-right: 16px solid #27ae60; }
-.pillar.impact  .arrow-right { border-left:  16px solid #27ae60; }
-.pillar.culture .arrow-left  { border-right: 16px solid #c0392b; }
-.pillar.culture .arrow-right { border-left:  16px solid #c0392b; }
+.arrow-left  { left: 2px; }
+.arrow-right { right: 2px; }
+
+.pillar.dev     .arrow-left  { border-top: 30px solid transparent; border-bottom: 30px solid transparent; border-right: 16px solid #2980b9; }
+.pillar.dev     .arrow-right { border-top: 30px solid transparent; border-bottom: 30px solid transparent; border-left:  16px solid #2980b9; }
+.pillar.impact  .arrow-left  { border-top: 30px solid transparent; border-bottom: 30px solid transparent; border-right: 16px solid #27ae60; }
+.pillar.impact  .arrow-right { border-top: 30px solid transparent; border-bottom: 30px solid transparent; border-left:  16px solid #27ae60; }
+.pillar.culture .arrow-left  { border-top: 30px solid transparent; border-bottom: 30px solid transparent; border-right: 16px solid #c0392b; }
+.pillar.culture .arrow-right { border-top: 30px solid transparent; border-bottom: 30px solid transparent; border-left:  16px solid #c0392b; }
 
 /* ── WORD CLOUD ── */
 .fiche-card {
@@ -195,8 +201,8 @@ body {
   background: #e05d5d;
   color: white;
   text-align: center;
-  padding: 8px;
-  font-size: 0.78rem;
+  padding: 18px 8px;
+  font-size: 2rem;
   font-weight: 700;
   letter-spacing: 2px;
   flex-shrink: 0;
@@ -204,11 +210,18 @@ body {
 
 /* ── LOADING ── */
 #app-loading {
-  display: flex; align-items: center; justify-content: center;
-  width: 100%; height: 100vh; color: #888; gap: 10px; font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100vh;
+  color: #888;
+  gap: 10px;
+  font-size: 0.9rem;
 }
 .spinner {
-  width: 22px; height: 22px;
+  width: 22px;
+  height: 22px;
   border: 2px solid #ddd;
   border-top-color: #c0392b;
   border-radius: 50%;
@@ -227,7 +240,9 @@ body {
 </head>
 <body>
 
-<div id="app-loading"><div class="spinner"></div>Chargement...</div>
+<div id="app-loading">
+  <div class="spinner"></div>Chargement...
+</div>
 
 <div id="maison" style="display:none">
 
@@ -237,19 +252,19 @@ body {
   </div>
 
   <div class="triangle-wrap">
-    <svg class="triangle-svg" viewBox="0 0 600 150">
+    <svg class="triangle-svg" viewBox="0 0 1400 160">
       <defs>
         <linearGradient id="triGrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%"   stop-color="#5b7fa6"/>
           <stop offset="100%" stop-color="#2c3e50"/>
         </linearGradient>
       </defs>
-      <polygon points="300,6 592,144 8,144" fill="url(#triGrad)"/>
-      <text x="300" y="72" text-anchor="middle" fill="white"
-            font-size="32" font-weight="800"
-            font-family="Segoe UI,sans-serif" letter-spacing="4">EXCELLENCE</text>
-      <text x="300" y="108" text-anchor="middle" fill="#dce6f5"
-            font-size="18" font-family="Segoe UI,sans-serif"
+      <polygon points="700,6 1392,154 8,154" fill="url(#triGrad)"/>
+      <text x="700" y="82" text-anchor="middle" fill="white"
+            font-size="48" font-weight="800"
+            font-family="Segoe UI,sans-serif" letter-spacing="6">EXCELLENCE</text>
+      <text x="700" y="124" text-anchor="middle" fill="#dce6f5"
+            font-size="26" font-family="Segoe UI,sans-serif"
             font-weight="600">Meilleur ensemble</text>
     </svg>
   </div>
@@ -259,7 +274,7 @@ body {
     nous œuvrons tous ensemble pour la plus grande sécurité des patients
   </div>
 
-  <div class="pillars" id="pillars">
+  <div class="pillars">
     <div class="pillar dev">
       <div class="pillar-header">DEVELOPPEMENT BUSINESS</div>
       <div class="pillar-body" id="body-dev">
@@ -301,7 +316,6 @@ function scaleToFit() {
   const scaleY = window.innerHeight / H;
   const scale  = Math.min(scaleX, scaleY);
   el.style.transform = `scale(${scale})`;
-  // Centre si la fenêtre est plus grande
   const offX = Math.max(0, (window.innerWidth  - W * scale) / 2);
   const offY = Math.max(0, (window.innerHeight - H * scale) / 2);
   el.style.marginLeft = offX + 'px';
@@ -343,7 +357,6 @@ function getStatutClass(statut) {
 
 function renderPilier(list, bodyId) {
   const body = document.getElementById(bodyId);
-  // Garder les flèches
   const arrows = body.querySelectorAll('.arrow-left, .arrow-right');
   body.innerHTML = '';
   arrows.forEach(a => body.appendChild(a));
@@ -370,7 +383,6 @@ function render() {
   const dev     = fiches.filter(f => getPilierKey(f.Pilier) === 'dev');
   const impact  = fiches.filter(f => getPilierKey(f.Pilier) === 'impact');
   const culture = fiches.filter(f => getPilierKey(f.Pilier) === 'culture');
-
   renderPilier(dev,     'body-dev');
   renderPilier(impact,  'body-impact');
   renderPilier(culture, 'body-culture');
@@ -382,7 +394,6 @@ function selectFiche(id) {
   render();
 }
 
-// ── Grist ──
 grist.ready({ requiredAccess: 'full' });
 
 grist.onRecords(records => {
