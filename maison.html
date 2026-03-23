@@ -23,29 +23,13 @@ body {
   justify-content: flex-start;
 }
 
+/* ── WRAPPER FIXE 1400x860 ── */
 #maison {
   width: 1400px;
   height: 860px;
   display: flex;
   flex-direction: column;
   transform-origin: top left;
-  position: relative;
-}
-
-/* ── FLECHES GLOBALES gauche et droite ── */
-.global-arrow {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 28px;
-  z-index: 10;
-  pointer-events: none;
-}
-.global-arrow.left  { left: 0; }
-.global-arrow.right { right: 0; }
-.global-arrow svg {
-  width: 100%;
-  height: 100%;
 }
 
 /* ── HEADER ── */
@@ -60,7 +44,7 @@ body {
 }
 .logo {
   position: absolute;
-  left: 40px;
+  left: 12px;
   font-size: 0.9rem;
   font-weight: 900;
   color: #c0392b;
@@ -90,7 +74,9 @@ body {
   justify-content: center;
   flex-shrink: 0;
 }
-.triangle-svg { width: 100%; }
+.triangle-svg {
+  width: 100%;
+}
 
 /* ── BANDEAU VISION ── */
 .vision-band {
@@ -98,33 +84,12 @@ body {
   background: #e05d5d;
   color: white;
   text-align: center;
-  padding: 18px 60px;
+  padding: 18px 24px;
   font-size: 1.25rem;
   font-weight: 500;
   line-height: 1.6;
   flex-shrink: 0;
 }
-
-/* ── ZONE PILIERS + FLECHES ── */
-.pillars-wrap {
-  flex: 1;
-  position: relative;
-  min-height: 0;
-  display: flex;
-}
-
-/* Flèche gauche SVG */
-.side-arrow-left,
-.side-arrow-right {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 32px;
-  z-index: 5;
-  pointer-events: none;
-}
-.side-arrow-left  { left: 0; }
-.side-arrow-right { right: 0; }
 
 /* ── PILIERS ── */
 .pillars {
@@ -132,9 +97,9 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 10px;
-  padding: 8px 40px;
-  min-height: 0;
   flex: 1;
+  padding: 8px 10px;
+  min-height: 0;
 }
 
 .pillar {
@@ -161,7 +126,7 @@ body {
 
 .pillar-body {
   flex: 1;
-  padding: 12px 16px;
+  padding: 12px 22px;
   display: flex;
   flex-wrap: wrap;
   gap: 6px 10px;
@@ -170,10 +135,30 @@ body {
   justify-content: center;
   min-height: 0;
   overflow: hidden;
+  position: relative;
 }
 .pillar.dev     .pillar-body { background: #d6e8f7; }
 .pillar.impact  .pillar-body { background: #d5ecd5; }
 .pillar.culture .pillar-body { background: #f7d6d6; }
+
+/* ── FLECHES LATERALES ── */
+.arrow-left, .arrow-right {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  opacity: 0.25;
+}
+.arrow-left  { left: 2px; }
+.arrow-right { right: 2px; }
+
+.pillar.dev     .arrow-left  { border-top: 30px solid transparent; border-bottom: 30px solid transparent; border-right: 16px solid #2980b9; }
+.pillar.dev     .arrow-right { border-top: 30px solid transparent; border-bottom: 30px solid transparent; border-left:  16px solid #2980b9; }
+.pillar.impact  .arrow-left  { border-top: 30px solid transparent; border-bottom: 30px solid transparent; border-right: 16px solid #27ae60; }
+.pillar.impact  .arrow-right { border-top: 30px solid transparent; border-bottom: 30px solid transparent; border-left:  16px solid #27ae60; }
+.pillar.culture .arrow-left  { border-top: 30px solid transparent; border-bottom: 30px solid transparent; border-right: 16px solid #c0392b; }
+.pillar.culture .arrow-right { border-top: 30px solid transparent; border-bottom: 30px solid transparent; border-left:  16px solid #c0392b; }
 
 /* ── WORD CLOUD ── */
 .fiche-card {
@@ -198,13 +183,17 @@ body {
   color: #3e5de7;
   box-shadow: 0 2px 8px rgba(62,93,231,0.3);
 }
+
+/* Taille selon priorité */
 .fiche-card.prio-critique { font-size: 1.15rem; }
 .fiche-card.prio-haute    { font-size: 0.92rem; }
 .fiche-card.prio-moyenne  { font-size: 0.78rem; }
 .fiche-card.prio-basse    { font-size: 0.65rem; font-weight: 500; opacity: 0.8; }
-.fiche-card.s-en-cours    { color: #1a5276; }
-.fiche-card.s-termine     { color: #1a5c2a; }
-.fiche-card.s-a-venir     { color: #7d6608; }
+
+/* Couleur selon statut */
+.fiche-card.s-en-cours { color: #1a5276; }
+.fiche-card.s-termine  { color: #1a5c2a; }
+.fiche-card.s-a-venir  { color: #7d6608; }
 
 /* ── BANDEAU BAS ── */
 .bottom-band {
@@ -221,11 +210,18 @@ body {
 
 /* ── LOADING ── */
 #app-loading {
-  display: flex; align-items: center; justify-content: center;
-  width: 100%; height: 100vh; color: #888; gap: 10px; font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100vh;
+  color: #888;
+  gap: 10px;
+  font-size: 0.9rem;
 }
 .spinner {
-  width: 22px; height: 22px;
+  width: 22px;
+  height: 22px;
   border: 2px solid #ddd;
   border-top-color: #c0392b;
   border-radius: 50%;
@@ -278,46 +274,28 @@ body {
     nous œuvrons tous ensemble pour la plus grande sécurité des patients
   </div>
 
-  <!-- Zone piliers avec flèches latérales -->
-  <div class="pillars-wrap">
-
-    <!-- Flèche gauche : du haut vers le haut (pointe en haut) -->
-    <div class="side-arrow-left">
-      <svg viewBox="0 0 32 600" preserveAspectRatio="none"
-           xmlns="http://www.w3.org/2000/svg"
-           style="width:32px;height:100%">
-        <!-- Tige -->
-        <rect x="13" y="30" width="6" height="560" fill="#888" rx="2"/>
-        <!-- Pointe -->
-        <polygon points="16,2 28,32 4,32" fill="#888"/>
-      </svg>
-    </div>
-
-    <div class="pillars">
-      <div class="pillar dev">
-        <div class="pillar-header">DEVELOPPEMENT BUSINESS</div>
-        <div class="pillar-body" id="body-dev"></div>
-      </div>
-      <div class="pillar impact">
-        <div class="pillar-header">IMPACT</div>
-        <div class="pillar-body" id="body-impact"></div>
-      </div>
-      <div class="pillar culture">
-        <div class="pillar-header">CULTURE MANAGERIALE</div>
-        <div class="pillar-body" id="body-culture"></div>
+  <div class="pillars">
+    <div class="pillar dev">
+      <div class="pillar-header">DEVELOPPEMENT BUSINESS</div>
+      <div class="pillar-body" id="body-dev">
+        <div class="arrow-left"></div>
+        <div class="arrow-right"></div>
       </div>
     </div>
-
-    <!-- Flèche droite : identique -->
-    <div class="side-arrow-right">
-      <svg viewBox="0 0 32 600" preserveAspectRatio="none"
-           xmlns="http://www.w3.org/2000/svg"
-           style="width:32px;height:100%">
-        <rect x="13" y="30" width="6" height="560" fill="#888" rx="2"/>
-        <polygon points="16,2 28,32 4,32" fill="#888"/>
-      </svg>
+    <div class="pillar impact">
+      <div class="pillar-header">IMPACT</div>
+      <div class="pillar-body" id="body-impact">
+        <div class="arrow-left"></div>
+        <div class="arrow-right"></div>
+      </div>
     </div>
-
+    <div class="pillar culture">
+      <div class="pillar-header">CULTURE MANAGERIALE</div>
+      <div class="pillar-body" id="body-culture">
+        <div class="arrow-left"></div>
+        <div class="arrow-right"></div>
+      </div>
+    </div>
   </div>
 
   <div class="bottom-band">
@@ -329,6 +307,7 @@ body {
 <script>
 let fiches = [];
 let selectedId = null;
+
 const W = 1400, H = 860;
 
 function scaleToFit() {
@@ -342,7 +321,14 @@ function scaleToFit() {
   el.style.marginLeft = offX + 'px';
   el.style.marginTop  = offY + 'px';
 }
+
 window.addEventListener('resize', scaleToFit);
+
+function esc(t) {
+  const d = document.createElement('div');
+  d.textContent = String(t || '');
+  return d.innerHTML;
+}
 
 function getPilierKey(pilier) {
   if (!pilier) return 'dev';
@@ -351,6 +337,7 @@ function getPilierKey(pilier) {
   if (p.includes('culture')) return 'culture';
   return 'dev';
 }
+
 function getPrioClass(prio) {
   if (!prio) return 'prio-moyenne';
   const p = String(prio).toLowerCase();
@@ -359,6 +346,7 @@ function getPrioClass(prio) {
   if (p.includes('moyenne'))  return 'prio-moyenne';
   return 'prio-basse';
 }
+
 function getStatutClass(statut) {
   if (!statut) return 's-a-venir';
   const s = String(statut).toLowerCase();
@@ -369,7 +357,10 @@ function getStatutClass(statut) {
 
 function renderPilier(list, bodyId) {
   const body = document.getElementById(bodyId);
+  const arrows = body.querySelectorAll('.arrow-left, .arrow-right');
   body.innerHTML = '';
+  arrows.forEach(a => body.appendChild(a));
+
   if (!list.length) {
     const em = document.createElement('div');
     em.className = 'empty-pillar';
@@ -377,6 +368,49 @@ function renderPilier(list, bodyId) {
     body.appendChild(em);
     return;
   }
+
   list.forEach(f => {
     const span = document.createElement('span');
-    span.className = `fiche-card ${getPrioClass(f.Priorite)} ${getStatutClass(f.Statut)}
+    span.className = `fiche-card ${getPrioClass(f.Priorite)} ${getStatutClass(f.Statut)} ${selectedId === f.id ? 'selected' : ''}`;
+    span.textContent = f.Programme || 'Sans titre';
+    span.title = `${f.Statut || ''} — ${Math.round(f.Avancement_Global || 0)}%`;
+    span.onclick = () => selectFiche(f.id);
+    body.appendChild(span);
+  });
+}
+
+function render() {
+  const dev     = fiches.filter(f => getPilierKey(f.Pilier) === 'dev');
+  const impact  = fiches.filter(f => getPilierKey(f.Pilier) === 'impact');
+  const culture = fiches.filter(f => getPilierKey(f.Pilier) === 'culture');
+  renderPilier(dev,     'body-dev');
+  renderPilier(impact,  'body-impact');
+  renderPilier(culture, 'body-culture');
+}
+
+function selectFiche(id) {
+  selectedId = (selectedId === id) ? null : id;
+  grist.setSelectedRows([id]);
+  render();
+}
+
+grist.ready({ requiredAccess: 'full' });
+
+grist.onRecords(records => {
+  fiches = records;
+  document.getElementById('app-loading').style.display = 'none';
+  const maison = document.getElementById('maison');
+  maison.style.display = 'flex';
+  scaleToFit();
+  render();
+});
+
+grist.onRecord(rec => {
+  if (rec && rec.id && rec.id !== selectedId) {
+    selectedId = rec.id;
+    render();
+  }
+});
+</script>
+</body>
+</html>
