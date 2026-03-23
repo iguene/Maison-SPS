@@ -7,40 +7,58 @@
 <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   font-family: 'Segoe UI', -apple-system, sans-serif;
   background: #f5f5f5;
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 12px 16px;
+  justify-content: flex-start;
+}
+
+/* ── WRAPPER FIXE 1400x860 ── */
+#maison {
+  width: 1400px;
+  height: 860px;
+  display: flex;
+  flex-direction: column;
+  transform-origin: top left;
+  /* Le JS ajuste le scale dynamiquement */
 }
 
 /* ── HEADER ── */
 .header {
   width: 100%;
-  max-width: 1000px;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  margin-bottom: 4px;
+  padding: 6px 0 2px;
+  flex-shrink: 0;
 }
 .logo {
   position: absolute;
-  left: 0;
-  font-size: 0.75rem;
-  font-weight: 800;
+  left: 12px;
+  font-size: 0.9rem;
+  font-weight: 900;
   color: #c0392b;
-  letter-spacing: 1px;
-  border: 2px solid #c0392b;
-  padding: 3px 8px;
+  letter-spacing: 2px;
+  border: 2.5px solid #c0392b;
+  padding: 4px 10px;
   border-radius: 3px;
+  line-height: 1.2;
+  text-align: center;
 }
-.logo span { color: #2c3e50; }
+.logo-sub { font-size: 0.6rem; letter-spacing: 1px; color: #2c3e50; }
 .main-title {
-  font-size: 1.3rem;
+  font-size: 1.55rem;
   font-weight: 700;
   color: #c0392b;
   text-align: center;
@@ -49,76 +67,53 @@ body {
 /* ── TRIANGLE ── */
 .triangle-wrap {
   width: 100%;
-  max-width: 1000px;
   display: flex;
   justify-content: center;
-  margin-bottom: 0;
+  flex-shrink: 0;
 }
-.triangle-svg { width: 65%; max-width: 500px; }
+.triangle-svg { width: 55%; }
 
 /* ── BANDEAU VISION ── */
 .vision-band {
   width: 100%;
-  max-width: 1000px;
   background: #e05d5d;
   color: white;
   text-align: center;
-  padding: 10px 24px;
-  font-size: 0.82rem;
+  padding: 9px 24px;
+  font-size: 0.88rem;
   font-weight: 500;
   line-height: 1.5;
-  margin-bottom: 8px;
+  flex-shrink: 0;
 }
 
 /* ── PILIERS ── */
 .pillars {
   width: 100%;
-  max-width: 1000px;
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 8px;
+  gap: 10px;
   flex: 1;
+  padding: 8px 10px;
+  min-height: 0;
 }
 
 .pillar {
   display: flex;
   flex-direction: column;
-  min-height: 320px;
-  border-radius: 4px;
+  border-radius: 6px;
   overflow: hidden;
-  position: relative;
+  height: 100%;
 }
-
-/* Flèches latérales */
-.pillar::before,
-.pillar::after {
-  content: '';
-  position: absolute;
-  top: 50px;
-  bottom: 10px;
-  width: 18px;
-  background: rgba(255,255,255,0.5);
-  border-radius: 2px;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.pillar.dev::before    { left: 0;  clip-path: polygon(0 50%, 100% 0, 100% 100%); background: rgba(100,149,200,0.3); }
-.pillar.dev::after     { right: 0; clip-path: polygon(100% 50%, 0 0, 0 100%);    background: rgba(100,149,200,0.3); }
-.pillar.impact::before  { left: 0;  clip-path: polygon(0 50%, 100% 0, 100% 100%); background: rgba(80,160,80,0.3); }
-.pillar.impact::after   { right: 0; clip-path: polygon(100% 50%, 0 0, 0 100%);    background: rgba(80,160,80,0.3); }
-.pillar.culture::before { left: 0;  clip-path: polygon(0 50%, 100% 0, 100% 100%); background: rgba(200,80,80,0.3); }
-.pillar.culture::after  { right: 0; clip-path: polygon(100% 50%, 0 0, 0 100%);    background: rgba(200,80,80,0.3); }
 
 .pillar-header {
-  padding: 8px 14px;
-  font-size: 0.72rem;
+  padding: 7px 14px;
+  font-size: 0.78rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.8px;
   text-align: center;
-  color: #2c3e50;
+  flex-shrink: 0;
+  background: white;
 }
 .pillar.dev     .pillar-header { color: #2980b9; }
 .pillar.impact  .pillar-header { color: #27ae60; }
@@ -126,50 +121,70 @@ body {
 
 .pillar-body {
   flex: 1;
-  padding: 10px 20px;
+  padding: 12px 22px;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 8px;
-  align-content: flex-start;
+  gap: 6px 10px;
+  align-content: center;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
-  border: 1px solid rgba(0,0,0,0.08);
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
 }
 .pillar.dev     .pillar-body { background: #d6e8f7; }
 .pillar.impact  .pillar-body { background: #d5ecd5; }
 .pillar.culture .pillar-body { background: #f7d6d6; }
 
-/* ── CARTES WORD CLOUD ── */
+/* Flèches latérales décoratives */
+.arrow-left, .arrow-right {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  opacity: 0.25;
+}
+.arrow-left  { left: 2px;  border-top: 30px solid transparent; border-bottom: 30px solid transparent; }
+.arrow-right { right: 2px; border-top: 30px solid transparent; border-bottom: 30px solid transparent; }
+.pillar.dev     .arrow-left  { border-right: 16px solid #2980b9; }
+.pillar.dev     .arrow-right { border-left:  16px solid #2980b9; }
+.pillar.impact  .arrow-left  { border-right: 16px solid #27ae60; }
+.pillar.impact  .arrow-right { border-left:  16px solid #27ae60; }
+.pillar.culture .arrow-left  { border-right: 16px solid #c0392b; }
+.pillar.culture .arrow-right { border-left:  16px solid #c0392b; }
+
+/* ── WORD CLOUD ── */
 .fiche-card {
   cursor: pointer;
   font-weight: 600;
   color: #2c3e50;
   transition: all 0.15s;
-  padding: 2px 4px;
+  padding: 2px 5px;
   border-radius: 3px;
   text-align: center;
   line-height: 1.3;
   border: 1px solid transparent;
+  user-select: none;
 }
 .fiche-card:hover {
-  background: rgba(255,255,255,0.7);
+  background: rgba(255,255,255,0.75);
   border-color: rgba(0,0,0,0.2);
 }
 .fiche-card.selected {
-  background: rgba(255,255,255,0.9);
+  background: white;
   border-color: #3e5de7;
   color: #3e5de7;
-  box-shadow: 0 2px 8px rgba(62,93,231,0.25);
+  box-shadow: 0 2px 8px rgba(62,93,231,0.3);
 }
 
-/* Tailles selon priorité — imite le word cloud */
-.fiche-card.prio-critique { font-size: 1.05rem; }
-.fiche-card.prio-haute    { font-size: 0.88rem; }
-.fiche-card.prio-moyenne  { font-size: 0.75rem; }
-.fiche-card.prio-basse    { font-size: 0.65rem; font-weight: 500; opacity: 0.85; }
+/* Taille selon priorité */
+.fiche-card.prio-critique { font-size: 1.15rem; }
+.fiche-card.prio-haute    { font-size: 0.92rem; }
+.fiche-card.prio-moyenne  { font-size: 0.78rem; }
+.fiche-card.prio-basse    { font-size: 0.65rem; font-weight: 500; opacity: 0.8; }
 
-/* Statut via couleur légère */
+/* Couleur selon statut */
 .fiche-card.s-en-cours { color: #1a5276; }
 .fiche-card.s-termine  { color: #1a5c2a; }
 .fiche-card.s-a-venir  { color: #7d6608; }
@@ -177,26 +192,23 @@ body {
 /* ── BANDEAU BAS ── */
 .bottom-band {
   width: 100%;
-  max-width: 1000px;
   background: #e05d5d;
   color: white;
   text-align: center;
   padding: 8px;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 1.5px;
-  border-radius: 0 0 4px 4px;
-  margin-top: 0;
+  letter-spacing: 2px;
+  flex-shrink: 0;
 }
 
 /* ── LOADING ── */
-.loading {
-  display: flex; align-items: center;
-  justify-content: center; height: 80vh;
-  color: #666; gap: 10px; font-size: 0.85rem;
+#app-loading {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; height: 100vh; color: #888; gap: 10px; font-size: 0.9rem;
 }
 .spinner {
-  width: 20px; height: 20px;
+  width: 22px; height: 22px;
   border: 2px solid #ddd;
   border-top-color: #c0392b;
   border-radius: 50%;
@@ -205,24 +217,98 @@ body {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .empty-pillar {
-  color: rgba(0,0,0,0.35);
-  font-size: 0.72rem;
+  color: rgba(0,0,0,0.3);
+  font-size: 0.75rem;
   font-style: italic;
   text-align: center;
   width: 100%;
-  padding: 20px 0;
 }
 </style>
 </head>
 <body>
 
-<div id="app">
-  <div class="loading"><div class="spinner"></div>Chargement...</div>
+<div id="app-loading"><div class="spinner"></div>Chargement...</div>
+
+<div id="maison" style="display:none">
+
+  <div class="header">
+    <div class="logo">SPS<br><span class="logo-sub">MEDICAL</span></div>
+    <div class="main-title">Maison SPS Medical &nbsp;(Vision 3 ans)</div>
+  </div>
+
+  <div class="triangle-wrap">
+    <svg class="triangle-svg" viewBox="0 0 600 150">
+      <defs>
+        <linearGradient id="triGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="#5b7fa6"/>
+          <stop offset="100%" stop-color="#2c3e50"/>
+        </linearGradient>
+      </defs>
+      <polygon points="300,6 592,144 8,144" fill="url(#triGrad)"/>
+      <text x="300" y="72" text-anchor="middle" fill="white"
+            font-size="32" font-weight="800"
+            font-family="Segoe UI,sans-serif" letter-spacing="4">EXCELLENCE</text>
+      <text x="300" y="108" text-anchor="middle" fill="#dce6f5"
+            font-size="18" font-family="Segoe UI,sans-serif"
+            font-weight="600">Meilleur ensemble</text>
+    </svg>
+  </div>
+
+  <div class="vision-band">
+    Pionniers d'une industrie de l'emballage médical responsable,
+    nous œuvrons tous ensemble pour la plus grande sécurité des patients
+  </div>
+
+  <div class="pillars" id="pillars">
+    <div class="pillar dev">
+      <div class="pillar-header">DEVELOPPEMENT BUSINESS</div>
+      <div class="pillar-body" id="body-dev">
+        <div class="arrow-left"></div>
+        <div class="arrow-right"></div>
+      </div>
+    </div>
+    <div class="pillar impact">
+      <div class="pillar-header">IMPACT</div>
+      <div class="pillar-body" id="body-impact">
+        <div class="arrow-left"></div>
+        <div class="arrow-right"></div>
+      </div>
+    </div>
+    <div class="pillar culture">
+      <div class="pillar-header">CULTURE MANAGERIALE</div>
+      <div class="pillar-body" id="body-culture">
+        <div class="arrow-left"></div>
+        <div class="arrow-right"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-band">
+    EXCELLENCE — ENTREPRENEURIAT — SOLIDARITÉ — CRÉATION DE VALEUR
+  </div>
+
 </div>
 
 <script>
 let fiches = [];
 let selectedId = null;
+
+const W = 1400, H = 860;
+
+function scaleToFit() {
+  const el = document.getElementById('maison');
+  const scaleX = window.innerWidth  / W;
+  const scaleY = window.innerHeight / H;
+  const scale  = Math.min(scaleX, scaleY);
+  el.style.transform = `scale(${scale})`;
+  // Centre si la fenêtre est plus grande
+  const offX = Math.max(0, (window.innerWidth  - W * scale) / 2);
+  const offY = Math.max(0, (window.innerHeight - H * scale) / 2);
+  el.style.marginLeft = offX + 'px';
+  el.style.marginTop  = offY + 'px';
+}
+
+window.addEventListener('resize', scaleToFit);
 
 function esc(t) {
   const d = document.createElement('div');
@@ -230,7 +316,7 @@ function esc(t) {
   return d.innerHTML;
 }
 
-function getPilierClass(pilier) {
+function getPilierKey(pilier) {
   if (!pilier) return 'dev';
   const p = String(pilier).toLowerCase();
   if (p.includes('impact'))  return 'impact';
@@ -250,78 +336,44 @@ function getPrioClass(prio) {
 function getStatutClass(statut) {
   if (!statut) return 's-a-venir';
   const s = String(statut).toLowerCase();
-  if (s.includes('cours'))   return 's-en-cours';
-  if (s.includes('termin'))  return 's-termine';
+  if (s.includes('cours'))  return 's-en-cours';
+  if (s.includes('termin')) return 's-termine';
   return 's-a-venir';
 }
 
-function renderCards(list) {
-  if (!list.length) return '<div class="empty-pillar">Aucune fiche programme</div>';
-  return list.map(f => {
-    const prioCls   = getPrioClass(f.Priorite);
-    const statutCls = getStatutClass(f.Statut);
-    const isSelected = selectedId === f.id;
-    return `<span
-      class="fiche-card ${prioCls} ${statutCls} ${isSelected ? 'selected' : ''}"
-      onclick="selectFiche(${f.id})"
-      title="${esc(f.Statut || '')} — Avancement : ${Math.round(f.Avancement_Global || 0)}%"
-    >${esc(f.Programme || 'Sans titre')}</span>`;
-  }).join('');
+function renderPilier(list, bodyId) {
+  const body = document.getElementById(bodyId);
+  // Garder les flèches
+  const arrows = body.querySelectorAll('.arrow-left, .arrow-right');
+  body.innerHTML = '';
+  arrows.forEach(a => body.appendChild(a));
+
+  if (!list.length) {
+    const em = document.createElement('div');
+    em.className = 'empty-pillar';
+    em.textContent = 'Aucune fiche programme';
+    body.appendChild(em);
+    return;
+  }
+
+  list.forEach(f => {
+    const span = document.createElement('span');
+    span.className = `fiche-card ${getPrioClass(f.Priorite)} ${getStatutClass(f.Statut)} ${selectedId === f.id ? 'selected' : ''}`;
+    span.textContent = f.Programme || 'Sans titre';
+    span.title = `${f.Statut || ''} — ${Math.round(f.Avancement_Global || 0)}%`;
+    span.onclick = () => selectFiche(f.id);
+    body.appendChild(span);
+  });
 }
 
 function render() {
-  const dev     = fiches.filter(f => getPilierClass(f.Pilier) === 'dev');
-  const impact  = fiches.filter(f => getPilierClass(f.Pilier) === 'impact');
-  const culture = fiches.filter(f => getPilierClass(f.Pilier) === 'culture');
+  const dev     = fiches.filter(f => getPilierKey(f.Pilier) === 'dev');
+  const impact  = fiches.filter(f => getPilierKey(f.Pilier) === 'impact');
+  const culture = fiches.filter(f => getPilierKey(f.Pilier) === 'culture');
 
-  document.getElementById('app').innerHTML = `
-    <div class="header">
-      <div class="logo">S<span>P</span>S<br><span style="font-size:0.6rem;letter-spacing:0">MEDICAL</span></div>
-      <div class="main-title">Maison SPS Medical (Vision 3 ans)</div>
-    </div>
-
-    <div class="triangle-wrap">
-      <svg class="triangle-svg" viewBox="0 0 500 130">
-        <defs>
-          <linearGradient id="triGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stop-color="#4a6fa5"/>
-            <stop offset="100%" stop-color="#2c3e50"/>
-          </linearGradient>
-        </defs>
-        <polygon points="250,6 492,124 8,124" fill="url(#triGrad)"/>
-        <text x="250" y="62" text-anchor="middle" fill="white"
-              font-size="26" font-weight="800"
-              font-family="Segoe UI,sans-serif" letter-spacing="3">EXCELLENCE</text>
-        <text x="250" y="90" text-anchor="middle" fill="#cbd5e1"
-              font-size="15" font-family="Segoe UI,sans-serif"
-              font-weight="600">Meilleur ensemble</text>
-      </svg>
-    </div>
-
-    <div class="vision-band">
-      Pionniers d'une industrie de l'emballage médical responsable,
-      nous œuvrons tous ensemble pour la plus grande sécurité des patients
-    </div>
-
-    <div class="pillars">
-      <div class="pillar dev">
-        <div class="pillar-header">DEVELOPPEMENT BUSINESS</div>
-        <div class="pillar-body">${renderCards(dev)}</div>
-      </div>
-      <div class="pillar impact">
-        <div class="pillar-header">IMPACT</div>
-        <div class="pillar-body">${renderCards(impact)}</div>
-      </div>
-      <div class="pillar culture">
-        <div class="pillar-header">CULTURE MANAGERIALE</div>
-        <div class="pillar-body">${renderCards(culture)}</div>
-      </div>
-    </div>
-
-    <div class="bottom-band">
-      EXCELLENCE — ENTREPRENEURIAT — SOLIDARITÉ — CRÉATION DE VALEUR
-    </div>
-  `;
+  renderPilier(dev,     'body-dev');
+  renderPilier(impact,  'body-impact');
+  renderPilier(culture, 'body-culture');
 }
 
 function selectFiche(id) {
@@ -330,8 +382,18 @@ function selectFiche(id) {
   render();
 }
 
+// ── Grist ──
 grist.ready({ requiredAccess: 'full' });
-grist.onRecords(records => { fiches = records; render(); });
+
+grist.onRecords(records => {
+  fiches = records;
+  document.getElementById('app-loading').style.display = 'none';
+  const maison = document.getElementById('maison');
+  maison.style.display = 'flex';
+  scaleToFit();
+  render();
+});
+
 grist.onRecord(rec => {
   if (rec && rec.id && rec.id !== selectedId) {
     selectedId = rec.id;
