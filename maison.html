@@ -7,20 +7,13 @@
 <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-
-html, body {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
+html, body { width: 100%; height: 100%; overflow: hidden; }
 body {
   font-family: 'Segoe UI', -apple-system, sans-serif;
   background: #f5f5f5;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
 }
 
 #maison {
@@ -30,22 +23,6 @@ body {
   flex-direction: column;
   transform-origin: top left;
   position: relative;
-}
-
-/* ── FLECHES GLOBALES gauche et droite ── */
-.global-arrow {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 28px;
-  z-index: 10;
-  pointer-events: none;
-}
-.global-arrow.left  { left: 0; }
-.global-arrow.right { right: 0; }
-.global-arrow svg {
-  width: 100%;
-  height: 100%;
 }
 
 /* ── HEADER ── */
@@ -71,26 +48,12 @@ body {
   line-height: 1.2;
   text-align: center;
 }
-.logo-sub {
-  font-size: 0.6rem;
-  letter-spacing: 1px;
-  color: #2c3e50;
-}
-.main-title {
-  font-size: 1.55rem;
-  font-weight: 700;
-  color: #c0392b;
-  text-align: center;
-}
+.logo-sub { font-size: 0.6rem; letter-spacing: 1px; color: #2c3e50; }
+.main-title { font-size: 1.55rem; font-weight: 700; color: #c0392b; text-align: center; }
 
 /* ── TRIANGLE ── */
-.triangle-wrap {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.triangle-svg { width: 100%; }
+.triangle-wrap { width: 100%; display: flex; justify-content: center; flex-shrink: 0; }
+.triangle-svg  { width: 100%; }
 
 /* ── BANDEAU VISION ── */
 .vision-band {
@@ -105,7 +68,7 @@ body {
   flex-shrink: 0;
 }
 
-/* ── ZONE PILIERS + FLECHES ── */
+/* ── ZONE PILIERS ── */
 .pillars-wrap {
   flex: 1;
   position: relative;
@@ -113,12 +76,9 @@ body {
   display: flex;
 }
 
-/* Flèche gauche SVG */
-.side-arrow-left,
-.side-arrow-right {
+.side-arrow-left, .side-arrow-right {
   position: absolute;
-  top: 0;
-  bottom: 0;
+  top: 0; bottom: 0;
   width: 32px;
   z-index: 5;
   pointer-events: none;
@@ -126,7 +86,6 @@ body {
 .side-arrow-left  { left: 0; }
 .side-arrow-right { right: 0; }
 
-/* ── PILIERS ── */
 .pillars {
   width: 100%;
   display: grid;
@@ -164,20 +123,29 @@ body {
   padding: 12px 16px;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 10px;
+  gap: 8px 10px;
   align-content: center;
   align-items: center;
   justify-content: center;
   min-height: 0;
   overflow: hidden;
+  position: relative;
+  transition: background 0.15s;
 }
 .pillar.dev     .pillar-body { background: #d6e8f7; }
 .pillar.impact  .pillar-body { background: #d5ecd5; }
 .pillar.culture .pillar-body { background: #f7d6d6; }
 
-/* ── WORD CLOUD ── */
+/* Survol drag */
+.pillar-body.drag-over {
+  outline: 3px dashed #3e5de7;
+  outline-offset: -3px;
+  background: rgba(62,93,231,0.08) !important;
+}
+
+/* ── CARTES ── */
 .fiche-card {
-  cursor: pointer;
+  cursor: grab;
   font-weight: 600;
   color: #2c3e50;
   transition: all 0.15s;
@@ -197,6 +165,10 @@ body {
   border-color: #3e5de7;
   color: #3e5de7;
   box-shadow: 0 2px 8px rgba(62,93,231,0.3);
+}
+.fiche-card.dragging {
+  opacity: 0.35;
+  cursor: grabbing;
 }
 .fiche-card.prio-critique { font-size: 1.15rem; }
 .fiche-card.prio-haute    { font-size: 0.92rem; }
@@ -219,6 +191,25 @@ body {
   flex-shrink: 0;
 }
 
+/* ── TOAST confirmation ── */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #2c3e50;
+  color: white;
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  z-index: 999;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
 /* ── LOADING ── */
 #app-loading {
   display: flex; align-items: center; justify-content: center;
@@ -232,7 +223,6 @@ body {
   animation: spin 0.7s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-
 .empty-pillar {
   color: rgba(0,0,0,0.3);
   font-size: 0.75rem;
@@ -244,9 +234,8 @@ body {
 </head>
 <body>
 
-<div id="app-loading">
-  <div class="spinner"></div>Chargement...
-</div>
+<div id="app-loading"><div class="spinner"></div>Chargement...</div>
+<div class="toast" id="toast"></div>
 
 <div id="maison" style="display:none">
 
@@ -268,8 +257,7 @@ body {
             font-size="48" font-weight="800"
             font-family="Segoe UI,sans-serif" letter-spacing="6">EXCELLENCE</text>
       <text x="700" y="124" text-anchor="middle" fill="#dce6f5"
-            font-size="26" font-family="Segoe UI,sans-serif"
-            font-weight="600">Meilleur ensemble</text>
+            font-size="26" font-family="Segoe UI,sans-serif" font-weight="600">Meilleur ensemble</text>
     </svg>
   </div>
 
@@ -278,17 +266,11 @@ body {
     nous œuvrons tous ensemble pour la plus grande sécurité des patients
   </div>
 
-  <!-- Zone piliers avec flèches latérales -->
   <div class="pillars-wrap">
-
-    <!-- Flèche gauche : du haut vers le haut (pointe en haut) -->
     <div class="side-arrow-left">
       <svg viewBox="0 0 32 600" preserveAspectRatio="none"
-           xmlns="http://www.w3.org/2000/svg"
            style="width:32px;height:100%">
-        <!-- Tige -->
         <rect x="13" y="30" width="6" height="560" fill="#888" rx="2"/>
-        <!-- Pointe -->
         <polygon points="16,2 28,32 4,32" fill="#888"/>
       </svg>
     </div>
@@ -296,124 +278,26 @@ body {
     <div class="pillars">
       <div class="pillar dev">
         <div class="pillar-header">DEVELOPPEMENT BUSINESS</div>
-        <div class="pillar-body" id="body-dev"></div>
+        <div class="pillar-body" id="body-dev" data-pilier="Développement Business"></div>
       </div>
       <div class="pillar impact">
         <div class="pillar-header">IMPACT</div>
-        <div class="pillar-body" id="body-impact"></div>
+        <div class="pillar-body" id="body-impact" data-pilier="Impact"></div>
       </div>
       <div class="pillar culture">
         <div class="pillar-header">CULTURE MANAGERIALE</div>
-        <div class="pillar-body" id="body-culture"></div>
+        <div class="pillar-body" id="body-culture" data-pilier="Culture Managériale"></div>
       </div>
     </div>
 
-    <!-- Flèche droite : identique -->
     <div class="side-arrow-right">
       <svg viewBox="0 0 32 600" preserveAspectRatio="none"
-           xmlns="http://www.w3.org/2000/svg"
            style="width:32px;height:100%">
         <rect x="13" y="30" width="6" height="560" fill="#888" rx="2"/>
         <polygon points="16,2 28,32 4,32" fill="#888"/>
       </svg>
     </div>
-
   </div>
 
   <div class="bottom-band">
-    EXCELLENCE — ENTREPRENEURIAT — SOLIDARITÉ — CRÉATION DE VALEUR
-  </div>
-
-</div>
-
-<script>
-let fiches = [];
-let selectedId = null;
-const W = 1400, H = 860;
-
-function scaleToFit() {
-  const el = document.getElementById('maison');
-  const scaleX = window.innerWidth  / W;
-  const scaleY = window.innerHeight / H;
-  const scale  = Math.min(scaleX, scaleY);
-  el.style.transform = `scale(${scale})`;
-  const offX = Math.max(0, (window.innerWidth  - W * scale) / 2);
-  const offY = Math.max(0, (window.innerHeight - H * scale) / 2);
-  el.style.marginLeft = offX + 'px';
-  el.style.marginTop  = offY + 'px';
-}
-window.addEventListener('resize', scaleToFit);
-
-function getPilierKey(pilier) {
-  if (!pilier) return 'dev';
-  const p = String(pilier).toLowerCase();
-  if (p.includes('impact'))  return 'impact';
-  if (p.includes('culture')) return 'culture';
-  return 'dev';
-}
-function getPrioClass(prio) {
-  if (!prio) return 'prio-moyenne';
-  const p = String(prio).toLowerCase();
-  if (p.includes('critique')) return 'prio-critique';
-  if (p.includes('haute'))    return 'prio-haute';
-  if (p.includes('moyenne'))  return 'prio-moyenne';
-  return 'prio-basse';
-}
-function getStatutClass(statut) {
-  if (!statut) return 's-a-venir';
-  const s = String(statut).toLowerCase();
-  if (s.includes('cours'))  return 's-en-cours';
-  if (s.includes('termin')) return 's-termine';
-  return 's-a-venir';
-}
-
-function renderPilier(list, bodyId) {
-  const body = document.getElementById(bodyId);
-  body.innerHTML = '';
-  if (!list.length) {
-    const em = document.createElement('div');
-    em.className = 'empty-pillar';
-    em.textContent = 'Aucune fiche programme';
-    body.appendChild(em);
-    return;
-  }
-  list.forEach(f => {
-    const span = document.createElement('span');
-    span.className = `fiche-card ${getPrioClass(f.Priorite)} ${getStatutClass(f.Statut)} ${selectedId === f.id ? 'selected' : ''}`;
-    span.textContent = f.Programme || 'Sans titre';
-    span.title = `${f.Statut || ''} — ${Math.round(f.Avancement_Global || 0)}%`;
-    span.onclick = () => selectFiche(f.id);
-    body.appendChild(span);
-  });
-}
-
-function render() {
-  renderPilier(fiches.filter(f => getPilierKey(f.Pilier) === 'dev'),     'body-dev');
-  renderPilier(fiches.filter(f => getPilierKey(f.Pilier) === 'impact'),  'body-impact');
-  renderPilier(fiches.filter(f => getPilierKey(f.Pilier) === 'culture'), 'body-culture');
-}
-
-function selectFiche(id) {
-  selectedId = (selectedId === id) ? null : id;
-  grist.setSelectedRows([id]);
-  render();
-}
-
-grist.ready({ requiredAccess: 'full' });
-grist.onRecords(records => {
-  fiches = records;
-  document.getElementById('app-loading').style.display = 'none';
-  const maison = document.getElementById('maison');
-  maison.style.display = 'flex';
-  scaleToFit();
-  render();
-});
-grist.onRecord(rec => {
-  if (rec && rec.id && rec.id !== selectedId) {
-    selectedId = rec.id;
-    render();
-  }
-});
-</script>
-</body>
-</html>
+    EXCELLENCE — ENTREPRENEURIAT — SOLIDARITÉ — CRÉATIO
