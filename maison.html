@@ -119,7 +119,7 @@ body {
 /* ── CANVAS LIBRE PAR PILIER ── */
 .pillar-body {
   flex: 1;
-  position: relative;  /* ← clé : positionnement absolu des cartes */
+  position: relative;
   overflow: hidden;
   cursor: default;
 }
@@ -127,7 +127,6 @@ body {
 .pillar.impact  .pillar-body { background: #d5ecd5; }
 .pillar.culture .pillar-body { background: #f7d6d6; }
 
-/* Message si pilier vide */
 .empty-hint {
   position: absolute;
   top: 50%; left: 50%;
@@ -139,9 +138,9 @@ body {
   text-align: center;
 }
 
-/* ── CARTES POSITIONNÉES LIBREMENT ── */
+/* ── CARTES ── */
 .fiche-card {
-  position: absolute;   /* ← positionnement libre via left/top */
+  position: absolute;
   cursor: grab;
   font-weight: 600;
   color: #2c3e50;
@@ -150,7 +149,7 @@ body {
   border: 1px solid transparent;
   user-select: none;
   white-space: nowrap;
-  transition: box-shadow 0.1s, border-color 0.1s;
+  transition: box-shadow 0.1s, border-color 0.1s, background 0.1s;
   background: rgba(255,255,255,0.5);
   line-height: 1.3;
 }
@@ -184,6 +183,30 @@ body {
 .fiche-card.s-en-cours { color: #1a5276; }
 .fiche-card.s-termine  { color: #1a5c2a; }
 .fiche-card.s-a-venir  { color: #7d6608; }
+
+/* Indicateur double-clic */
+.fiche-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  background: rgba(62,93,231,0);
+  transition: background 0.15s;
+}
+.fiche-card:active::after {
+  background: rgba(62,93,231,0.08);
+}
+
+/* ── TOOLTIP double-clic ── */
+.dbl-hint {
+  position: absolute;
+  bottom: 6px;
+  right: 8px;
+  font-size: 0.6rem;
+  color: rgba(0,0,0,0.3);
+  pointer-events: none;
+  font-style: italic;
+}
 
 /* ── BANDEAU BAS ── */
 .bottom-band {
@@ -276,15 +299,21 @@ body {
     <div class="pillars">
       <div class="pillar dev">
         <div class="pillar-header">DEVELOPPEMENT BUSINESS</div>
-        <div class="pillar-body" id="body-dev"></div>
+        <div class="pillar-body" id="body-dev">
+          <span class="dbl-hint">Double-clic pour ouvrir</span>
+        </div>
       </div>
       <div class="pillar impact">
         <div class="pillar-header">IMPACT</div>
-        <div class="pillar-body" id="body-impact"></div>
+        <div class="pillar-body" id="body-impact">
+          <span class="dbl-hint">Double-clic pour ouvrir</span>
+        </div>
       </div>
       <div class="pillar culture">
         <div class="pillar-header">CULTURE MANAGERIALE</div>
-        <div class="pillar-body" id="body-culture"></div>
+        <div class="pillar-body" id="body-culture">
+          <span class="dbl-hint">Double-clic pour ouvrir</span>
+        </div>
       </div>
     </div>
 
@@ -304,6 +333,9 @@ body {
 <script>
 let fiches = [];
 let selectedId = null;
+let dragState  = null;
+let saveTimer  = null;
+let toastTimer = null;
 const W = 1400, H = 860;
 
 // ── Scale ──
@@ -317,7 +349,6 @@ function scaleToFit() {
 window.addEventListener('resize', scaleToFit);
 
 // ── Toast ──
-let toastTimer;
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -350,41 +381,36 @@ function getStatutClass(statut) {
   return 's-a-venir';
 }
 
-// Position par défaut si pas encore définie : grille automatique
+// Position par défaut en grille
 function getDefaultPos(index, total, bodyEl) {
-  const cols = Math.ceil(Math.sqrt(total));
-  const col  = index % cols;
-  const row  = Math.floor(index / cols);
-  const bw   = bodyEl.clientWidth  || 300;
-  const bh   = bodyEl.clientHeight || 300;
-  const cellW = bw / cols;
-  const cellH = bh / Math.ceil(total / cols);
+  const cols  = Math.ceil(Math.sqrt(total));
+  const rows  = Math.ceil(total / cols);
+  const col   = index % cols;
+  const row   = Math.floor(index / cols);
+  const bw    = bodyEl.clientWidth  || 300;
+  const bh    = bodyEl.clientHeight || 300;
   return {
-    x: Math.round(col * cellW + cellW * 0.5),
-    y: Math.round(row * cellH + cellH * 0.5)
+    x: Math.round((col + 0.5) * (bw / cols)),
+    y: Math.round((row + 0.5) * (bh / rows))
   };
 }
 
-// ── Drag intra-pilier (positionnement libre) ──
-let dragState = null; // { id, startMouseX, startMouseY, startCardLeft, startCardTop, el, bodyEl, scale }
-
+// ── Drag intra-pilier ──
 function startDrag(e, fiche, cardEl, bodyEl) {
   e.preventDefault();
-  // Récupère le scale courant
   const maison = document.getElementById('maison');
   const matrix = new DOMMatrix(getComputedStyle(maison).transform);
   const scale  = matrix.a || 1;
-
   dragState = {
-    id:           fiche.id,
-    startMouseX:  e.clientX,
-    startMouseY:  e.clientY,
+    id:            fiche.id,
+    startMouseX:   e.clientX,
+    startMouseY:   e.clientY,
     startCardLeft: parseFloat(cardEl.style.left),
     startCardTop:  parseFloat(cardEl.style.top),
-    el:           cardEl,
-    bodyEl:       bodyEl,
-    scale:        scale,
-    moved:        false,
+    el:            cardEl,
+    bodyEl:        bodyEl,
+    scale:         scale,
+    moved:         false,
   };
   cardEl.classList.add('dragging-card');
   document.addEventListener('mousemove', onDragMove);
@@ -395,48 +421,34 @@ function onDragMove(e) {
   if (!dragState) return;
   const dx = (e.clientX - dragState.startMouseX) / dragState.scale;
   const dy = (e.clientY - dragState.startMouseY) / dragState.scale;
-
-  if (Math.abs(dx) > 2 || Math.abs(dy) > 2) dragState.moved = true;
-
-  const bw = dragState.bodyEl.clientWidth;
-  const bh = dragState.bodyEl.clientHeight;
-  const cw = dragState.el.offsetWidth;
-  const ch = dragState.el.offsetHeight;
-
-  // Contraindre dans le pilier
-  const newLeft = Math.max(0, Math.min(bw - cw, dragState.startCardLeft + dx));
-  const newTop  = Math.max(0, Math.min(bh - ch, dragState.startCardTop  + dy));
-
+  if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragState.moved = true;
+  const bw  = dragState.bodyEl.clientWidth;
+  const bh  = dragState.bodyEl.clientHeight;
+  const cw  = dragState.el.offsetWidth;
+  const ch  = dragState.el.offsetHeight;
+  const newLeft = Math.max(cw/2, Math.min(bw - cw/2, dragState.startCardLeft + dx));
+  const newTop  = Math.max(ch/2, Math.min(bh - ch/2, dragState.startCardTop  + dy));
   dragState.el.style.left = newLeft + 'px';
   dragState.el.style.top  = newTop  + 'px';
 }
 
-let saveTimer = null;
-function onDragEnd(e) {
+function onDragEnd() {
   if (!dragState) return;
   document.removeEventListener('mousemove', onDragMove);
   document.removeEventListener('mouseup',   onDragEnd);
-
   dragState.el.classList.remove('dragging-card');
 
   if (dragState.moved) {
     const newLeft = parseFloat(dragState.el.style.left);
     const newTop  = parseFloat(dragState.el.style.top);
-    const bw = dragState.bodyEl.clientWidth  || 1;
-    const bh = dragState.bodyEl.clientHeight || 1;
-
-    // Stocke en % pour être responsive
+    const bw  = dragState.bodyEl.clientWidth  || 1;
+    const bh  = dragState.bodyEl.clientHeight || 1;
     const pctX = Math.round((newLeft / bw) * 1000) / 10;
     const pctY = Math.round((newTop  / bh) * 1000) / 10;
 
-    // Mise à jour locale
     const fiche = fiches.find(f => f.id === dragState.id);
-    if (fiche) {
-      fiche.Position_X = pctX;
-      fiche.Position_Y = pctY;
-    }
+    if (fiche) { fiche.Position_X = pctX; fiche.Position_Y = pctY; }
 
-    // Sauvegarde Grist (debounce 400ms)
     const id = dragState.id;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
@@ -446,14 +458,13 @@ function onDragEnd(e) {
         .catch(() => showToast('⚠ Erreur de sauvegarde'));
     }, 400);
   } else {
-    // Simple clic : sélection
+    // Simple clic → sélection
     selectFiche(dragState.id);
   }
-
   dragState = null;
 }
 
-// ── Rendu d'un pilier ──
+// ── Rendu pilier ──
 function renderPilier(list, bodyId) {
   const body = document.getElementById(bodyId);
   body.innerHTML = '';
@@ -478,9 +489,9 @@ function renderPilier(list, bodyId) {
       selectedId === f.id ? 'selected' : ''
     ].join(' ');
     span.textContent = f.Programme || 'Sans titre';
-    span.title = `${f.Statut || ''} — ${Math.round(f.Avancement_Global || 0)}% — Glisser pour repositionner`;
+    span.title = `${f.Statut || ''} — ${Math.round(f.Avancement_Global || 0)}%\nGlisser pour repositionner\nDouble-clic pour ouvrir la fiche`;
 
-    // Position : en % sauvegardés, sinon grille auto
+    // Position
     let left, top;
     if (f.Position_X != null && f.Position_X > 0) {
       left = Math.round((f.Position_X / 100) * bw);
@@ -490,13 +501,22 @@ function renderPilier(list, bodyId) {
       left = pos.x;
       top  = pos.y;
     }
-
-    span.style.left = left + 'px';
-    span.style.top  = top  + 'px';
-    // Centré sur le point
+    span.style.left      = left + 'px';
+    span.style.top       = top  + 'px';
     span.style.transform = 'translate(-50%, -50%)';
 
+    // Drag (mousedown)
     span.addEventListener('mousedown', e => startDrag(e, f, span, body));
+
+    // Double-clic → ouvre la fiche (sélection Grist)
+    span.addEventListener('dblclick', e => {
+      e.stopPropagation();
+      selectedId = f.id;
+      grist.setSelectedRows([f.id]);
+      showToast(`📄 Fiche "${f.Programme}" sélectionnée`);
+      render();
+    });
+
     body.appendChild(span);
   });
 }
@@ -509,7 +529,7 @@ function render() {
 
 function selectFiche(id) {
   selectedId = (selectedId === id) ? null : id;
-  grist.setSelectedRows([id]);
+  if (selectedId) grist.setSelectedRows([selectedId]);
   render();
 }
 
@@ -522,7 +542,6 @@ grist.onRecords(records => {
   const maison = document.getElementById('maison');
   maison.style.display = 'flex';
   scaleToFit();
-  // Attendre que le DOM soit rendu pour avoir les bonnes dimensions
   setTimeout(render, 50);
 });
 
