@@ -8,299 +8,293 @@
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: #f0f4f8;
-  height: 100vh;
-  overflow: auto;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  background: #f5f5f5;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 16px;
+  padding: 12px 16px;
 }
 
-/* ── TRIANGLE DU HAUT ── */
+/* ── HEADER ── */
+.header {
+  width: 100%;
+  max-width: 1000px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  margin-bottom: 4px;
+}
+.logo {
+  position: absolute;
+  left: 0;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #c0392b;
+  letter-spacing: 1px;
+  border: 2px solid #c0392b;
+  padding: 3px 8px;
+  border-radius: 3px;
+}
+.logo span { color: #2c3e50; }
+.main-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #c0392b;
+  text-align: center;
+}
+
+/* ── TRIANGLE ── */
 .triangle-wrap {
   width: 100%;
-  max-width: 960px;
+  max-width: 1000px;
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  justify-content: center;
   margin-bottom: 0;
 }
-.triangle-svg { width: 70%; max-width: 520px; }
+.triangle-svg { width: 65%; max-width: 500px; }
 
 /* ── BANDEAU VISION ── */
 .vision-band {
   width: 100%;
-  max-width: 960px;
-  background: #c0392b;
+  max-width: 1000px;
+  background: #e05d5d;
   color: white;
   text-align: center;
   padding: 10px 24px;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   font-weight: 500;
   line-height: 1.5;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
-/* ── LES 3 PILIERS ── */
+/* ── PILIERS ── */
 .pillars {
   width: 100%;
-  max-width: 960px;
+  max-width: 1000px;
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 10px;
+  gap: 8px;
   flex: 1;
 }
 
 .pillar {
-  background: white;
-  border-radius: 10px;
-  border: 1px solid #dde3ed;
   display: flex;
   flex-direction: column;
-  min-height: 280px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  min-height: 320px;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
 }
 
+/* Flèches latérales */
+.pillar::before,
+.pillar::after {
+  content: '';
+  position: absolute;
+  top: 50px;
+  bottom: 10px;
+  width: 18px;
+  background: rgba(255,255,255,0.5);
+  border-radius: 2px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pillar.dev::before    { left: 0;  clip-path: polygon(0 50%, 100% 0, 100% 100%); background: rgba(100,149,200,0.3); }
+.pillar.dev::after     { right: 0; clip-path: polygon(100% 50%, 0 0, 0 100%);    background: rgba(100,149,200,0.3); }
+.pillar.impact::before  { left: 0;  clip-path: polygon(0 50%, 100% 0, 100% 100%); background: rgba(80,160,80,0.3); }
+.pillar.impact::after   { right: 0; clip-path: polygon(100% 50%, 0 0, 0 100%);    background: rgba(80,160,80,0.3); }
+.pillar.culture::before { left: 0;  clip-path: polygon(0 50%, 100% 0, 100% 100%); background: rgba(200,80,80,0.3); }
+.pillar.culture::after  { right: 0; clip-path: polygon(100% 50%, 0 0, 0 100%);    background: rgba(200,80,80,0.3); }
+
 .pillar-header {
-  padding: 9px 14px;
-  font-size: 0.7rem;
+  padding: 8px 14px;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.8px;
   text-align: center;
-  border-radius: 10px 10px 0 0;
+  color: #2c3e50;
 }
-.pillar.dev     .pillar-header { background: #2980b9; color: white; }
-.pillar.impact  .pillar-header { background: #27ae60; color: white; }
-.pillar.culture .pillar-header { background: #c0392b; color: white; }
+.pillar.dev     .pillar-header { color: #2980b9; }
+.pillar.impact  .pillar-header { color: #27ae60; }
+.pillar.culture .pillar-header { color: #c0392b; }
 
 .pillar-body {
   flex: 1;
-  padding: 10px;
+  padding: 10px 20px;
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
+  gap: 6px 8px;
   align-content: flex-start;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid rgba(0,0,0,0.08);
 }
+.pillar.dev     .pillar-body { background: #d6e8f7; }
+.pillar.impact  .pillar-body { background: #d5ecd5; }
+.pillar.culture .pillar-body { background: #f7d6d6; }
 
-/* ── CARTE FICHE PROGRAMME ── */
+/* ── CARTES WORD CLOUD ── */
 .fiche-card {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 7px;
-  padding: 7px 9px;
   cursor: pointer;
-  font-size: 0.7rem;
-  font-weight: 500;
-  color: #1e293b;
-  width: calc(50% - 4px);
+  font-weight: 600;
+  color: #2c3e50;
   transition: all 0.15s;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  position: relative;
+  padding: 2px 4px;
+  border-radius: 3px;
+  text-align: center;
+  line-height: 1.3;
+  border: 1px solid transparent;
 }
 .fiche-card:hover {
-  background: #dce6ff;
-  border-color: #3e5de7;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(62,93,231,0.15);
+  background: rgba(255,255,255,0.7);
+  border-color: rgba(0,0,0,0.2);
 }
 .fiche-card.selected {
-  background: #3e5de7;
-  color: white;
-  border-color: #2845c1;
-  box-shadow: 0 4px 12px rgba(62,93,231,0.35);
+  background: rgba(255,255,255,0.9);
+  border-color: #3e5de7;
+  color: #3e5de7;
+  box-shadow: 0 2px 8px rgba(62,93,231,0.25);
 }
 
-.fiche-name {
-  font-weight: 600;
-  font-size: 0.72rem;
-  line-height: 1.3;
-}
+/* Tailles selon priorité — imite le word cloud */
+.fiche-card.prio-critique { font-size: 1.05rem; }
+.fiche-card.prio-haute    { font-size: 0.88rem; }
+.fiche-card.prio-moyenne  { font-size: 0.75rem; }
+.fiche-card.prio-basse    { font-size: 0.65rem; font-weight: 500; opacity: 0.85; }
 
-.fiche-meta {
-  font-size: 0.62rem;
-  opacity: 0.75;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
+/* Statut via couleur légère */
+.fiche-card.s-en-cours { color: #1a5276; }
+.fiche-card.s-termine  { color: #1a5c2a; }
+.fiche-card.s-a-venir  { color: #7d6608; }
 
-.statut-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  display: inline-block;
-  flex-shrink: 0;
-}
-.statut-dot.en-cours { background: #3b82f6; }
-.statut-dot.termine  { background: #10b981; }
-.statut-dot.a-venir  { background: #f59e0b; }
-.statut-dot.a-venir-white { background: rgba(255,255,255,0.6); }
-
-.fiche-progress {
-  height: 3px;
-  background: #e2e8f0;
-  border-radius: 2px;
-  overflow: hidden;
-  margin-top: 2px;
-}
-.fiche-progress-fill {
-  height: 100%;
-  background: #10b981;
-  border-radius: 2px;
-  transition: width 0.4s;
-}
-.fiche-card.selected .fiche-progress       { background: rgba(255,255,255,0.25); }
-.fiche-card.selected .fiche-progress-fill  { background: white; }
-
-/* Priorité badge */
-.prio-badge {
-  position: absolute;
-  top: 5px; right: 6px;
-  font-size: 0.55rem;
-  font-weight: 700;
-  padding: 1px 4px;
-  border-radius: 3px;
-  text-transform: uppercase;
-}
-.prio-haute    { background: #fee2e2; color: #ef4444; }
-.prio-moyenne  { background: #fef3c7; color: #f59e0b; }
-.prio-basse    { background: #dbeafe; color: #3b82f6; }
-.fiche-card.selected .prio-badge { background: rgba(255,255,255,0.2); color: white; }
-
-/* ── BANDEAU DU BAS ── */
+/* ── BANDEAU BAS ── */
 .bottom-band {
   width: 100%;
-  max-width: 960px;
-  background: #2d3748;
+  max-width: 1000px;
+  background: #e05d5d;
   color: white;
   text-align: center;
-  padding: 7px;
-  font-size: 0.65rem;
+  padding: 8px;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 1.5px;
-  border-radius: 4px;
-  margin-top: 10px;
-}
-
-/* ── ÉTAT VIDE ── */
-.empty-pillar {
-  color: #94a3b8;
-  font-size: 0.7rem;
-  font-style: italic;
-  padding: 12px;
-  text-align: center;
-  width: 100%;
+  border-radius: 0 0 4px 4px;
+  margin-top: 0;
 }
 
 /* ── LOADING ── */
 .loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-  color: #64748b;
-  font-size: 0.85rem;
-  gap: 10px;
+  display: flex; align-items: center;
+  justify-content: center; height: 80vh;
+  color: #666; gap: 10px; font-size: 0.85rem;
 }
 .spinner {
   width: 20px; height: 20px;
-  border: 2px solid #e2e8f0;
-  border-top-color: #3e5de7;
+  border: 2px solid #ddd;
+  border-top-color: #c0392b;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+.empty-pillar {
+  color: rgba(0,0,0,0.35);
+  font-size: 0.72rem;
+  font-style: italic;
+  text-align: center;
+  width: 100%;
+  padding: 20px 0;
+}
 </style>
 </head>
 <body>
 
-<div id="app"><div class="loading"><div class="spinner"></div>Chargement...</div></div>
+<div id="app">
+  <div class="loading"><div class="spinner"></div>Chargement...</div>
+</div>
 
 <script>
 let fiches = [];
 let selectedId = null;
 
-// ── Helpers ──
 function esc(t) {
   const d = document.createElement('div');
   d.textContent = String(t || '');
   return d.innerHTML;
 }
 
-function formatDate(ts) {
-  if (!ts) return '';
-  const d = new Date(ts * 1000);
-  return d.toLocaleDateString('fr-FR', { day:'2-digit', month:'short' });
-}
-
 function getPilierClass(pilier) {
   if (!pilier) return 'dev';
   const p = String(pilier).toLowerCase();
-  if (p.includes('impact'))   return 'impact';
-  if (p.includes('culture'))  return 'culture';
-  return 'dev'; // Développement Business par défaut
-}
-
-function getStatutClass(statut) {
-  if (!statut) return 'a-venir';
-  if (String(statut).includes('Terminé') || String(statut).includes('Termine')) return 'termine';
-  if (String(statut).includes('cours'))  return 'en-cours';
-  return 'a-venir';
+  if (p.includes('impact'))  return 'impact';
+  if (p.includes('culture')) return 'culture';
+  return 'dev';
 }
 
 function getPrioClass(prio) {
-  if (!prio) return '';
+  if (!prio) return 'prio-moyenne';
   const p = String(prio).toLowerCase();
-  if (p.includes('haute') || p.includes('critique')) return 'prio-haute';
-  if (p.includes('moyenne')) return 'prio-moyenne';
+  if (p.includes('critique')) return 'prio-critique';
+  if (p.includes('haute'))    return 'prio-haute';
+  if (p.includes('moyenne'))  return 'prio-moyenne';
   return 'prio-basse';
 }
 
-// ── Rendu des cartes ──
+function getStatutClass(statut) {
+  if (!statut) return 's-a-venir';
+  const s = String(statut).toLowerCase();
+  if (s.includes('cours'))   return 's-en-cours';
+  if (s.includes('termin'))  return 's-termine';
+  return 's-a-venir';
+}
+
 function renderCards(list) {
-  if (!list.length) return '<div class="empty-pillar">Aucune fiche</div>';
+  if (!list.length) return '<div class="empty-pillar">Aucune fiche programme</div>';
   return list.map(f => {
-    const avancement = f.Avancement_Global || 0;
-    const statutCls  = getStatutClass(f.Statut);
-    const prioCls    = getPrioClass(f.Priorite);
+    const prioCls   = getPrioClass(f.Priorite);
+    const statutCls = getStatutClass(f.Statut);
     const isSelected = selectedId === f.id;
-    return `
-      <div class="fiche-card ${isSelected ? 'selected' : ''}"
-           onclick="selectFiche(${f.id})"
-           title="${esc(f.Programme)}">
-        ${prioCls ? `<span class="prio-badge ${prioCls}">${esc(f.Priorite)}</span>` : ''}
-        <div class="fiche-name">${esc(f.Programme || 'Sans titre')}</div>
-        <div class="fiche-meta">
-          <span class="statut-dot ${statutCls}"></span>
-          <span>${esc(f.Statut || 'A venir')}</span>
-          ${f.Deadline ? `<span>· ${formatDate(f.Deadline)}</span>` : ''}
-        </div>
-        <div class="fiche-progress">
-          <div class="fiche-progress-fill" style="width:${Math.round(avancement)}%"></div>
-        </div>
-      </div>`;
+    return `<span
+      class="fiche-card ${prioCls} ${statutCls} ${isSelected ? 'selected' : ''}"
+      onclick="selectFiche(${f.id})"
+      title="${esc(f.Statut || '')} — Avancement : ${Math.round(f.Avancement_Global || 0)}%"
+    >${esc(f.Programme || 'Sans titre')}</span>`;
   }).join('');
 }
 
-// ── Rendu principal ──
 function render() {
   const dev     = fiches.filter(f => getPilierClass(f.Pilier) === 'dev');
   const impact  = fiches.filter(f => getPilierClass(f.Pilier) === 'impact');
   const culture = fiches.filter(f => getPilierClass(f.Pilier) === 'culture');
 
   document.getElementById('app').innerHTML = `
+    <div class="header">
+      <div class="logo">S<span>P</span>S<br><span style="font-size:0.6rem;letter-spacing:0">MEDICAL</span></div>
+      <div class="main-title">Maison SPS Medical (Vision 3 ans)</div>
+    </div>
+
     <div class="triangle-wrap">
-      <svg class="triangle-svg" viewBox="0 0 560 130">
-        <polygon points="280,8 548,122 12,122" fill="#2d3748"/>
-        <text x="280" y="60" text-anchor="middle" fill="white"
-              font-size="24" font-weight="800"
-              font-family="Inter,system-ui,sans-serif">EXCELLENCE</text>
-        <text x="280" y="86" text-anchor="middle" fill="#cbd5e1"
-              font-size="13" font-family="Inter,system-ui,sans-serif">Meilleur ensemble</text>
+      <svg class="triangle-svg" viewBox="0 0 500 130">
+        <defs>
+          <linearGradient id="triGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stop-color="#4a6fa5"/>
+            <stop offset="100%" stop-color="#2c3e50"/>
+          </linearGradient>
+        </defs>
+        <polygon points="250,6 492,124 8,124" fill="url(#triGrad)"/>
+        <text x="250" y="62" text-anchor="middle" fill="white"
+              font-size="26" font-weight="800"
+              font-family="Segoe UI,sans-serif" letter-spacing="3">EXCELLENCE</text>
+        <text x="250" y="90" text-anchor="middle" fill="#cbd5e1"
+              font-size="15" font-family="Segoe UI,sans-serif"
+              font-weight="600">Meilleur ensemble</text>
       </svg>
     </div>
 
@@ -311,15 +305,15 @@ function render() {
 
     <div class="pillars">
       <div class="pillar dev">
-        <div class="pillar-header">Développement Business</div>
+        <div class="pillar-header">DEVELOPPEMENT BUSINESS</div>
         <div class="pillar-body">${renderCards(dev)}</div>
       </div>
       <div class="pillar impact">
-        <div class="pillar-header">Impact</div>
+        <div class="pillar-header">IMPACT</div>
         <div class="pillar-body">${renderCards(impact)}</div>
       </div>
       <div class="pillar culture">
-        <div class="pillar-header">Culture Managériale</div>
+        <div class="pillar-header">CULTURE MANAGERIALE</div>
         <div class="pillar-body">${renderCards(culture)}</div>
       </div>
     </div>
@@ -330,23 +324,15 @@ function render() {
   `;
 }
 
-// ── Interactions ──
 function selectFiche(id) {
-  selectedId = (selectedId === id) ? null : id; // toggle
+  selectedId = (selectedId === id) ? null : id;
   grist.setSelectedRows([id]);
   render();
 }
 
-// ── Connexion Grist ──
 grist.ready({ requiredAccess: 'full' });
-
-grist.onRecords((records) => {
-  fiches = records;
-  render();
-});
-
-// Sync sélection depuis Grist (si on clique sur une ligne dans une autre vue)
-grist.onRecord((rec) => {
+grist.onRecords(records => { fiches = records; render(); });
+grist.onRecord(rec => {
   if (rec && rec.id && rec.id !== selectedId) {
     selectedId = rec.id;
     render();
