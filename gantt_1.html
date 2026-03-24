@@ -732,6 +732,8 @@ body { background:#ffffff; }
 let allActions = [];          // raw from Grist
 let programs   = [];          // niveau 1 (projects)
 let tasksByProg= {};          // progId → [tasks]
+let membersRows = [];         // table Membres
+let programSheetRows = [];    // table Fiches Programmes
 let collapsed  = {};          // progId → bool
 let filterStatus  = '';
 let filterProgram = '';
@@ -1340,6 +1342,115 @@ function normalizeRefValue(val) {
   return Number.isFinite(n) ? n : val;
 }
 
+function refIdOf(val) {
+  if (Array.isArray(val)) return val[1] ?? null;
+  if (typeof val === 'number') return val;
+  const n = Number(val);
+  return Number.isFinite(n) ? n : null;
+}
+
+function refLabelOf(val) {
+  if (Array.isArray(val)) return val[0] || '';
+  return val == null ? '' : String(val);
+}
+
+function memberName(row) {
+  return String(row.Nom || row.name || row.Name || '').trim();
+}
+
+function programSheetName(row) {
+  return String(row.Programme || row.Libelle || row.Nom || '').trim();
+}
+
+function linkedProgramIdForAction(action) {
+  const direct = refIdOf(action.Initiative_ID);
+  if (direct != null) return direct;
+  const directLabel = refLabelOf(action.Initiative_ID);
+  if (directLabel) {
+    const found = programSheetRows.find(r => programSheetName(r) === directLabel);
+    if (found) return found.id;
+  }
+  const parentId = refIdOf(action.Action_Parent);
+  if (parentId != null) {
+    const parent = allActions.find(a => String(a.id) === String(parentId));
+    if (parent) return linkedProgramIdForAction(parent);
+  }
+  return null;
+}
+
+function linkedProgramLabelForAction(action) {
+  const pid = linkedProgramIdForAction(action);
+  if (pid != null) {
+    const row = programSheetRows.find(r => String(r.id) === String(pid));
+    if (row) return programSheetName(row);
+  }
+  const directLabel = refLabelOf(action.Initiative_ID);
+  if (directLabel) return directLabel;
+  const parentId = refIdOf(action.Action_Parent);
+  if (parentId != null) {
+    const parent = allActions.find(a => String(a.id) === String(parentId));
+    if (parent) return linkedProgramLabelForAction(parent);
+  }
+  return '';
+}
+
+function getParentProjectOptions(selectedProgramId='') {
+  return programs.filter(p => {
+    if (!selectedProgramId) return true;
+    return String(linkedProgramIdForAction(p) || '') === String(selectedProgramId);
+  });
+}
+
+function getTaskPredecessorOptions(parentId, excludeId=null) {
+  if (!parentId) return [];
+  return (tasksByProg[parentId] || []).filter(t => String(t.id) !== String(excludeId));
+}
+
+function syncCreateLinkedFields() {
+  const progSel = document.getElementById('panelInitiative');
+  const parentSel = document.getElementById('panelParent');
+  const predSel = document.getElementById('panelPrev');
+  if (!progSel || !parentSel || !predSel) return;
+
+  const selectedProgramId = progSel.value || '';
+  const currentParent = parentSel.value || '';
+  const parentOptions = getParentProjectOptions(selectedProgramId);
+  parentSel.innerHTML = '<option value="">—</option>' + parentOptions.map(p => {
+    const selected = String(p.id) === String(currentParent) ? 'selected' : '';
+    const label = esc(p.Libelle || p.Programme_Nom || ('Projet ' + p.id));
+    return `<option value="${p.id}" ${selected}>${label}</option>`;
+  }).join('');
+
+  if (currentParent && !parentOptions.some(p => String(p.id) === String(currentParent))) {
+    parentSel.value = '';
+  }
+
+  const selectedParentId = parentSel.value || '';
+  const currentPrev = predSel.value || '';
+  const predOptions = getTaskPredecessorOptions(selectedParentId);
+  predSel.innerHTML = '<option value="">—</option>' + predOptions.map(t => {
+    const selected = String(t.id) === String(currentPrev) ? 'selected' : '';
+    return `<option value="${t.id}" ${selected}>${esc(t.Libelle || ('Tâche ' + t.id))}</option>`;
+  }).join('');
+
+  if (currentPrev && !predOptions.some(t => String(t.id) === String(currentPrev))) {
+    predSel.value = '';
+  }
+}
+
+function syncEditTaskPredecessors(excludeId=null) {
+  const parentSel = document.getElementById('panelParent');
+  const predSel = document.getElementById('panelPrev');
+  if (!parentSel || !predSel) return;
+  const currentPrev = predSel.value || '';
+  const options = getTaskPredecessorOptions(parentSel.value || '', excludeId);
+  predSel.innerHTML = '<option value="">—</option>' + options.map(t => {
+    const selected = String(t.id) === String(currentPrev) ? 'selected' : '';
+    return `<option value="${t.id}" ${selected}>${esc(t.Libelle || ('Tâche ' + t.id))}</option>`;
+  }).join('');
+  if (currentPrev && !options.some(t => String(t.id) === String(currentPrev))) predSel.value = '';
+}
+
 function resolvePilotFieldForSave(obj, pilotLabel) {
   const clean = (pilotLabel || '').trim();
   const currentRefId = pilotRefIdOf(obj);
@@ -1423,8 +1534,8 @@ function renderSidePanel() {
     meta.innerHTML = '<span>Création</span>';
     const defaultParent = filterProgram || (programs[0] ? programs[0].id : '');
     body.innerHTML = formHtml({
-      Libelle:'', Statut:'A faire', PDCA:0, Description:'', Pilote_Nom:'',
-      Date_Demarrage:'', Date_Fin:'', Action_Parent: defaultParent, Niveau:'2 - Tâche'
+      Libelle:'', Statut:'A faire', PDCA:0, Description:'', Pilote:null, Initiative_ID:'',
+      Tache_precedente:null, Date_Demarrage:'', Date_Fin:'', Action_Parent: defaultParent, Niveau:'2 - Tâche'
     }, 'create');
     return;
   }
@@ -1448,12 +1559,33 @@ function renderSidePanel() {
 function formHtml(item, mode) {
   const isCreate = mode === 'create';
   const isProg = mode === 'prog';
-  const parentVal = Array.isArray(item.Action_Parent) ? item.Action_Parent[1] : (item.Action_Parent || '');
-  const projectOptions = ['<option value="">—</option>'].concat(programs.map(p => {
+  const parentVal = refIdOf(item.Action_Parent) || '';
+  const prevVal = refIdOf(item.Tache_precedente || item['Tache_précédente']) || '';
+  const initiativeVal = linkedProgramIdForAction(item) || '';
+
+  const initiativeOptions = ['<option value="">—</option>'].concat(programSheetRows.map(r => {
+    const selected = String(r.id) === String(initiativeVal) ? 'selected' : '';
+    return `<option value="${r.id}" ${selected}>${esc(programSheetName(r) || ('Programme ' + r.id))}</option>`;
+  })).join('');
+
+  const parentProjects = getParentProjectOptions(initiativeVal);
+  const projectOptions = ['<option value="">—</option>'].concat(parentProjects.map(p => {
     const selected = String(p.id) === String(parentVal) ? 'selected' : '';
-    const label = esc(p.Libelle || p.Programme_Nom || ('Programme '+p.id));
+    const label = esc(p.Libelle || p.Programme_Nom || ('Projet ' + p.id));
     return `<option value="${p.id}" ${selected}>${label}</option>`;
   })).join('');
+
+  const predecessorOptions = ['<option value="">—</option>'].concat(getTaskPredecessorOptions(parentVal, item.id).map(t => {
+    const selected = String(t.id) === String(prevVal) ? 'selected' : '';
+    return `<option value="${t.id}" ${selected}>${esc(t.Libelle || ('Tâche ' + t.id))}</option>`;
+  })).join('');
+
+  const pilotCurrentId = pilotRefIdOf(item);
+  const pilotOptions = ['<option value="">—</option>'].concat(membersRows.map(m => {
+    const selected = String(m.id) === String(pilotCurrentId) ? 'selected' : '';
+    return `<option value="${m.id}" ${selected}>${esc(memberName(m) || ('Membre ' + m.id))}</option>`;
+  })).join('');
+
   return `
     <div class="form-row">
       <label class="form-label">Libellé</label>
@@ -1484,17 +1616,33 @@ function formHtml(item, mode) {
     ${!isProg ? `
     <div class="form-grid-2">
       <div class="form-row">
+        <label class="form-label">Programme lié</label>
+        <select class="form-select" id="panelInitiative" onchange="syncCreateLinkedFields()">${initiativeOptions}</select>
+      </div>
+      <div class="form-row">
         <label class="form-label">Projet parent</label>
-        <select class="form-select" id="panelParent">${projectOptions}</select>
+        <select class="form-select" id="panelParent" onchange="${isCreate ? 'syncCreateLinkedFields()' : `syncEditTaskPredecessors(${item.id})`}">${projectOptions}</select>
+      </div>
+    </div>
+    <div class="form-grid-2">
+      <div class="form-row">
+        <label class="form-label">Tâche précédente</label>
+        <select class="form-select" id="panelPrev">${predecessorOptions}</select>
       </div>
       <div class="form-row">
         <label class="form-label">Pilote</label>
-        <input class="form-input" id="panelPilot" value="${esc(pilotNameOf(item))}" />
+        <select class="form-select" id="panelPilot">${pilotOptions}</select>
       </div>
     </div>` : `
-    <div class="form-row">
-      <label class="form-label">Pilote</label>
-      <input class="form-input" id="panelPilot" value="${esc(pilotNameOf(item))}" />
+    <div class="form-grid-2">
+      <div class="form-row">
+        <label class="form-label">Programme lié</label>
+        <select class="form-select" id="panelInitiative">${initiativeOptions}</select>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Pilote</label>
+        <select class="form-select" id="panelPilot">${pilotOptions}</select>
+      </div>
     </div>`}
     <div class="form-row">
       <label class="form-label">Description</label>
@@ -1515,16 +1663,22 @@ async function saveSelectedFromPanel(id, mode) {
   obj.Date_Demarrage = fromInputDate(document.getElementById('panelDateStart').value);
   obj.Date_Fin = fromInputDate(document.getElementById('panelDateEnd').value);
   obj.Description = document.getElementById('panelDescription').value;
-  const pilotVal = document.getElementById('panelPilot').value.trim();
-  obj._pilotEditName = pilotVal;
+  obj._pilotEditId = normalizeRefValue(document.getElementById('panelPilot')?.value || '');
+  obj._initiativeEditId = normalizeRefValue(document.getElementById('panelInitiative')?.value || '');
   if (mode !== 'prog') {
     obj.Action_Parent = normalizeRefValue(document.getElementById('panelParent').value);
+    obj.Tache_precedente = normalizeRefValue(document.getElementById('panelPrev')?.value || '');
   }
   render();
   await saveFullRecord(obj);
 }
 
 async function createTaskFromPanel() {
+  const initiativeId = normalizeRefValue(document.getElementById('panelInitiative')?.value || '');
+  const parentId = normalizeRefValue(document.getElementById('panelParent').value);
+  const prevId = normalizeRefValue(document.getElementById('panelPrev')?.value || '');
+  const pilotId = normalizeRefValue(document.getElementById('panelPilot')?.value || '');
+
   const payload = {
     Libelle: document.getElementById('panelLibelle').value.trim() || 'Nouvelle tâche',
     Niveau: '2 - Tâche',
@@ -1533,12 +1687,11 @@ async function createTaskFromPanel() {
     Date_Demarrage: fromInputDate(document.getElementById('panelDateStart').value),
     Date_Fin: fromInputDate(document.getElementById('panelDateEnd').value),
     Description: document.getElementById('panelDescription').value,
-    Action_Parent: normalizeRefValue(document.getElementById('panelParent').value),
+    Action_Parent: parentId,
+    Tache_precedente: prevId,
+    Initiative_ID: initiativeId,
+    Pilote: pilotId,
   };
-  const pilotField = resolvePilotFieldForSave(payload, document.getElementById('panelPilot').value.trim());
-  if (pilotField && !pilotField.unresolved) {
-    payload[pilotField.field] = pilotField.value;
-  }
   if (!gristReady) return;
   try {
     setSavePill('saving');
@@ -1566,17 +1719,16 @@ async function saveFullRecord(obj) {
   };
   if ('Niveau' in obj) fields.Niveau = obj.Niveau;
   if ('Action_Parent' in obj) fields.Action_Parent = normalizeRefValue(obj.Action_Parent);
-
-  const pilotField = resolvePilotFieldForSave(obj, obj._pilotEditName ?? pilotNameOf(obj));
-  if (pilotField && !pilotField.unresolved) {
-    fields[pilotField.field] = pilotField.value;
-  }
+  if ('Tache_precedente' in obj || 'Tache_précédente' in obj) fields.Tache_precedente = normalizeRefValue(obj.Tache_precedente || obj['Tache_précédente']);
+  if (obj._initiativeEditId != null || 'Initiative_ID' in obj) fields.Initiative_ID = normalizeRefValue(obj._initiativeEditId ?? refIdOf(obj.Initiative_ID));
+  if (obj._pilotEditId != null || 'Pilote' in obj) fields.Pilote = normalizeRefValue(obj._pilotEditId ?? pilotRefIdOf(obj));
 
   try {
     setSavePill('saving');
     suppressNextRecordRefresh = true;
     await grist.docApi.applyUserActions([[ 'UpdateRecord', 'Actions', obj.id, fields ]]);
-    delete obj._pilotEditName;
+    delete obj._pilotEditId;
+    delete obj._initiativeEditId;
     await refreshFromGrist();
     setSavePill('saved');
     setTimeout(()=>setSavePill(''),2500);
@@ -1951,6 +2103,16 @@ let suppressNextRecordRefresh = false;
 async function refreshFromGrist() {
   const raw = await grist.docApi.fetchTable('Actions');
   allActions = convertColumnar(raw);
+  try {
+    membersRows = convertColumnar(await grist.docApi.fetchTable('Membres'));
+  } catch (e) {
+    membersRows = [];
+  }
+  try {
+    programSheetRows = convertColumnar(await grist.docApi.fetchTable('Fiches Programmes'));
+  } catch (e) {
+    programSheetRows = [];
+  }
   buildProgramStructure(allActions);
   if (!hasAutoFittedView) fitTimelineToAll();
   render();
@@ -1987,6 +2149,9 @@ async function initGrist() {
 function loadDemo() {
   const today = new Date();
   const d  = n => Math.floor(addDays(today,n).getTime()/MS_DAY);
+
+  membersRows = [{id:1,Nom:'Emilie RIV.'},{id:2,Nom:'Claire PRIN'},{id:3,Nom:'Emmanuelle B.'}];
+  programSheetRows = [{id:1,Programme:'Satisfaction client'},{id:2,Programme:'Réduction des coûts'},{id:3,Programme:'Formation équipe'}];
 
   allActions = [
     // Programme 1
