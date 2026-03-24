@@ -599,6 +599,8 @@ body { background:#ffffff; }
     <button class="zoom-btn" data-zoom="week" onclick="setZoom('week')">Semaine</button>
     <button class="zoom-btn active" data-zoom="month" onclick="setZoom('month')">Mois</button>
     <button class="zoom-btn" data-zoom="quarter" onclick="setZoom('quarter')">Trimestre</button>
+    <button class="zoom-btn" data-zoom="halfyear" onclick="setZoom('halfyear')">6 mois</button>
+    <button class="zoom-btn" data-zoom="year" onclick="setZoom('year')">1 an</button>
   </div>
   <!-- FILTERS -->
   <div class="filter-group">
@@ -658,6 +660,7 @@ let selectedId = null;
 
 let zoom = 'month';
 let viewStart;               // Date (first day shown)
+let hasAutoFittedView = false;
 
 const PALETTE = [
   '#4f7cff','#7c4dff','#00bcd4','#e91e8c','#ff6b35',
@@ -669,9 +672,11 @@ let progColors = {};
    ZOOM CONFIG
 ════════════════════════════════════════════ */
 const ZOOM_CFG = {
-  week:    { cellW: 48,  days: 21,  navDays: 7  },
-  month:   { cellW: 30,  days: 60,  navDays: 14 },
-  quarter: { cellW: 12,  days: 120, navDays: 30 },
+  week:     { cellW: 48, days: 21,  navDays: 7  },
+  month:    { cellW: 30, days: 60,  navDays: 14 },
+  quarter:  { cellW: 12, days: 120, navDays: 30 },
+  halfyear: { cellW: 8,  days: 183, navDays: 45 },
+  year:     { cellW: 4,  days: 365, navDays: 90 },
 };
 
 function cellWidth()  { return ZOOM_CFG[zoom].cellW; }
@@ -772,7 +777,7 @@ function buildProgramStructure(rawActions) {
   });
 
   populateProgFilter();
-  initViewStart();
+  if (!hasAutoFittedView) initViewStart();
 }
 
 function populateProgFilter() {
@@ -803,15 +808,42 @@ function getFilteredTasks(progId) {
 /* ════════════════════════════════════════════
    VIEW START
 ════════════════════════════════════════════ */
-function initViewStart() {
-  // Find earliest date across all actions
-  let earliest = new Date();
+function getTimelineBounds() {
+  let earliest = null;
+  let latest = null;
   allActions.forEach(a => {
-    const d = gristTs(a.Date_Demarrage);
-    if (d && d < earliest) earliest = d;
+    const s = gristTs(a.Date_Demarrage);
+    const e = gristTs(a.Date_Fin);
+    if (s && (!earliest || s < earliest)) earliest = s;
+    if (e && (!latest || e > latest)) latest = e;
   });
+  if (!earliest && !latest) {
+    const today = new Date();
+    return { earliest: today, latest: addDays(today, 30) };
+  }
+  if (!earliest) earliest = latest;
+  if (!latest) latest = earliest;
+  return { earliest, latest };
+}
+
+function fitTimelineToAll() {
+  const { earliest, latest } = getTimelineBounds();
+  const totalDays = Math.max(daysDiff(earliest, latest) + 1, 1);
+  const withMargin = totalDays + 14;
+
+  if (withMargin <= ZOOM_CFG.week.days) zoom = 'week';
+  else if (withMargin <= ZOOM_CFG.month.days) zoom = 'month';
+  else if (withMargin <= ZOOM_CFG.quarter.days) zoom = 'quarter';
+  else if (withMargin <= ZOOM_CFG.halfyear.days) zoom = 'halfyear';
+  else zoom = 'year';
+
+  document.querySelectorAll('.zoom-btn').forEach(b => b.classList.toggle('active', b.dataset.zoom===zoom));
   viewStart = startOfMonth(addDays(earliest, -7));
   updatePeriodLabel();
+}
+
+function initViewStart() {
+  fitTimelineToAll();
 }
 
 function navigate(dir) {
@@ -1083,6 +1115,17 @@ function render() {
 
   // Sync vertical scroll
   syncScroll();
+
+  if (!hasAutoFittedView) {
+    requestAnimationFrame(() => {
+      const scrollEl = document.getElementById('ganttScroll');
+      const leftEl = document.getElementById('ganttLeft');
+      scrollEl.scrollTop = 0;
+      leftEl.scrollTop = 0;
+      scrollEl.scrollLeft = 0;
+    });
+    hasAutoFittedView = true;
+  }
 }
 
 /* ════════════════════════════════════════════
@@ -1524,6 +1567,7 @@ async function refreshFromGrist() {
   const raw = await grist.docApi.fetchTable('Actions');
   allActions = convertColumnar(raw);
   buildProgramStructure(allActions);
+  if (!hasAutoFittedView) fitTimelineToAll();
   render();
 }
 
