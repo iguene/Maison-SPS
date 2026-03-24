@@ -1647,7 +1647,7 @@ function formHtml(item, mode) {
 
   const initiativeChoices = getInitiativeChoices();
   const initiativeOptions = ['<option value="">Sélectionner…</option>'].concat(initiativeChoices.map(r => {
-    const selected = String(r.id) === String(initiativeVal) ? 'selected' : '';
+    const selected = String(r.Programme_Nom) === String(initiativeVal) ? 'selected' : '';
     return `<option value="${r.id}" ${selected}>${esc(r.label || ('Programme ' + r.id))}</option>`;
   })).join('');
 
@@ -1700,7 +1700,7 @@ function formHtml(item, mode) {
     <div class="form-grid-2">
       <div class="form-row">
         <label class="form-label">Programme lié (Programme_Nom)</label>
-        <select class="form-select" id="panelInitiative" onchange="syncCreateLinkedFields()">${p.Programme_Nom}</select>
+        <select class="form-select" id="panelInitiative" onchange="syncCreateLinkedFields()">${initiativeOptions}</select>
       </div>
       <div class="form-row">
         <label class="form-label">Projet parent (Action_Parent)</label>
