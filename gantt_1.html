@@ -571,6 +571,63 @@ body { background:#ffffff; }
 .legend-item { display:flex; align-items:center; gap:5px; font-size:10.5px; color:var(--text3); }
 .legend-dot  { width:8px; height:8px; border-radius:50%; }
 .legend-bar  { width:18px; height:5px; border-radius:2px; }
+
+
+/* RIGHT PANEL + ACTION BUTTONS */
+.btn-primary {
+  padding: 7px 12px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-primary:hover { filter: brightness(1.03); }
+.btn-secondary {
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.btn-secondary:hover { background: var(--surface3); }
+.gantt-main { display:flex; flex:1; min-height:0; }
+.side-panel {
+  width: 0;
+  border-left: 1px solid transparent;
+  background: var(--surface);
+  overflow: hidden;
+  transition: width .18s ease, border-color .18s ease;
+  flex-shrink: 0;
+}
+.side-panel.open { width: 360px; border-color: var(--border); }
+.side-panel-inner { width: 360px; height: 100%; display:flex; flex-direction:column; }
+.panel-head {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.panel-title { font-weight:700; font-size:14px; }
+.panel-close { background:none; border:none; font-size:18px; cursor:pointer; color:var(--text3); }
+.panel-body { padding: 14px 16px 18px; overflow:auto; display:flex; flex-direction:column; gap:12px; }
+.form-row { display:flex; flex-direction:column; gap:6px; }
+.form-grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+.form-label { font-size:11px; color:var(--text3); font-weight:600; text-transform:uppercase; letter-spacing:.5px; }
+.form-input, .form-select, .form-textarea {
+  width:100%; border:1px solid var(--border); background:var(--surface); color:var(--text);
+  border-radius: var(--radius-sm); padding: 9px 10px; font: inherit; outline:none;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); }
+.form-textarea { min-height: 90px; resize: vertical; }
+.panel-meta { font-size:12px; color:var(--text3); display:flex; gap:10px; flex-wrap:wrap; }
+.panel-actions { margin-top:auto; display:flex; gap:8px; padding-top:4px; }
+.panel-empty { color:var(--text3); font-size:12px; line-height:1.5; }
+
 </style>
 </head>
 <body>
@@ -615,7 +672,13 @@ body { background:#ffffff; }
     <select class="filter-select" id="filterProg" onchange="applyFilters()">
       <option value="">Tous</option>
     </select>
+    <span class="filter-label" style="margin-left:6px">Pilote</span>
+    <select class="filter-select" id="filterPilot" onchange="applyFilters()">
+      <option value="">Tous</option>
+    </select>
   </div>
+  <button class="btn-secondary" onclick="fitAndRender()" title="Afficher tout le planning">Ajuster</button>
+  <button class="btn-primary" onclick="openCreateTaskPanel()">+ Tâche</button>
   <!-- SAVE -->
   <div class="save-area">
     <button class="btn-undo" id="undoBtn" onclick="undoChanges()">↺ Annuler</button>
@@ -632,11 +695,27 @@ body { background:#ffffff; }
       <div class="day-row"   id="dayRow"></div>
     </div>
   </div>
-  <div class="gantt-body">
-    <div class="gantt-left" id="ganttLeft"></div>
-    <div class="gantt-scroll" id="ganttScroll">
-      <div class="gantt-grid" id="ganttGrid"></div>
+  <div class="gantt-main">
+    <div class="gantt-body">
+      <div class="gantt-left" id="ganttLeft"></div>
+      <div class="gantt-scroll" id="ganttScroll">
+        <div class="gantt-grid" id="ganttGrid"></div>
+      </div>
     </div>
+    <aside class="side-panel" id="sidePanel">
+      <div class="side-panel-inner">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title" id="panelTitle">Détails</div>
+            <div class="panel-meta" id="panelMeta"></div>
+          </div>
+          <button class="panel-close" onclick="closePanel()">×</button>
+        </div>
+        <div class="panel-body" id="panelBody">
+          <div class="panel-empty">Sélectionne un élément du Gantt ou clique sur + Tâche pour créer une nouvelle tâche.</div>
+        </div>
+      </div>
+    </aside>
   </div>
 </div>
 
@@ -656,7 +735,9 @@ let tasksByProg= {};          // progId → [tasks]
 let collapsed  = {};          // progId → bool
 let filterStatus  = '';
 let filterProgram = '';
+let filterPilot = '';
 let selectedId = null;
+let panelMode = 'view';
 
 let zoom = 'month';
 let viewStart;               // Date (first day shown)
@@ -777,6 +858,7 @@ function buildProgramStructure(rawActions) {
   });
 
   populateProgFilter();
+  populatePilotFilter();
   if (!hasAutoFittedView) initViewStart();
 }
 
@@ -789,6 +871,20 @@ function populateProgFilter() {
     opt.textContent = p.Libelle || p.Programme_Nom || ('Programme '+p.id);
     sel.appendChild(opt);
   });
+  sel.value = filterProgram;
+}
+
+function populatePilotFilter() {
+  const sel = document.getElementById('filterPilot');
+  const pilots = [...new Set(allActions.map(a => pilotNameOf(a)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fr'));
+  sel.innerHTML = '<option value="">Tous</option>';
+  pilots.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  });
+  sel.value = filterPilot;
 }
 
 function getFilteredPrograms() {
@@ -801,6 +897,7 @@ function getFilteredTasks(progId) {
   const tks = tasksByProg[progId]||[];
   return tks.filter(t => {
     if (filterStatus && t.Statut !== filterStatus) return false;
+    if (filterPilot && pilotNameOf(t) !== filterPilot) return false;
     return true;
   });
 }
@@ -986,7 +1083,7 @@ function render() {
 
     // ── PROGRAM ROW (left) ──
     const pLeft = document.createElement('div');
-    pLeft.className = 'prog-row';
+    pLeft.className = 'prog-row'+(selectedId===prog.id?' selected':'');
     pLeft.style.setProperty('--prog-color', color);
     pLeft.style.borderLeft = '3px solid '+color;
     const pName = prog.Libelle || prog.Programme_Nom || 'Programme '+prog.id;
@@ -996,7 +1093,7 @@ function render() {
       <span class="prog-name">${esc(pName)}</span>
       <span class="prog-count">${tks.length}</span>
     `;
-    pLeft.onclick = () => { selectedId=prog.id; render(); };
+    pLeft.onclick = () => { panelMode='view'; selectedId=prog.id; render(); };
     leftEl.appendChild(pLeft);
 
     // ── PROGRAM GRID ROW ──
@@ -1015,6 +1112,7 @@ function render() {
       bar.setAttribute('data-id',prog.id);
       bar.setAttribute('data-start',pDates.start.getTime());
       bar.setAttribute('data-end',pDates.end.getTime());
+      bar.onclick = (e) => { e.stopPropagation(); panelMode='view'; selectedId=prog.id; renderSidePanel(); render(); };
       setupTooltip(bar, {
         name: pName,
         rows: [
@@ -1048,7 +1146,7 @@ function render() {
         <span class="task-left-name">${esc(tName)}</span>
         <span class="task-left-dates">${tStart?fmtSh(tStart):''}</span>
       `;
-      tLeft.onclick = () => { selectedId=task.id; render(); };
+      tLeft.onclick = () => { panelMode='view'; selectedId=task.id; render(); };
       leftEl.appendChild(tLeft);
 
       // Grid row
@@ -1075,6 +1173,7 @@ function render() {
           <span class="task-bar-label">${esc(tName)}</span>
           <div class="resize-handle right" data-type="task" data-id="${task.id}" data-side="right"></div>
         `;
+        bar.onclick = (e) => { e.stopPropagation(); panelMode='view'; selectedId=task.id; renderSidePanel(); render(); };
         setupTooltip(bar, {
           name: tName,
           rows:[
@@ -1126,6 +1225,7 @@ function render() {
     });
     hasAutoFittedView = true;
   }
+  renderSidePanel();
 }
 
 /* ════════════════════════════════════════════
@@ -1203,6 +1303,224 @@ function statusColor(s) {
   return '#8b92a8';
 }
 
+function pilotNameOf(item) {
+  if (!item) return '';
+  if (Array.isArray(item.Pilote_Nom)) return item.Pilote_Nom[0] || '';
+  if (item.Pilote_Nom) return String(item.Pilote_Nom);
+  if (Array.isArray(item.Pilote)) return item.Pilote[0] || String(item.Pilote[1]||'');
+  return item.Pilote ? String(item.Pilote) : '';
+}
+
+function selectedItem() {
+  if (selectedId == null) return null;
+  const prog = programs.find(p => String(p.id) === String(selectedId));
+  if (prog) return { type:'prog', item: prog };
+  const task = findTask(selectedId);
+  if (task) return { type:'task', item: task };
+  return null;
+}
+
+function toInputDate(val) {
+  const d = gristTs(val);
+  if (!d) return '';
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+function fromInputDate(val) {
+  if (!val) return null;
+  const d = new Date(val + 'T00:00:00');
+  return toGristTs(d);
+}
+
+function fitAndRender() {
+  fitTimelineToAll();
+  render();
+}
+
+function closePanel() {
+  panelMode = 'view';
+  selectedId = null;
+  renderSidePanel();
+  render();
+}
+
+function openCreateTaskPanel() {
+  panelMode = 'create';
+  selectedId = null;
+  renderSidePanel();
+}
+
+function renderSidePanel() {
+  const panel = document.getElementById('sidePanel');
+  const title = document.getElementById('panelTitle');
+  const meta  = document.getElementById('panelMeta');
+  const body  = document.getElementById('panelBody');
+
+  if (panelMode === 'create') {
+    panel.classList.add('open');
+    title.textContent = 'Nouvelle tâche';
+    meta.innerHTML = '<span>Création</span>';
+    const defaultParent = filterProgram || (programs[0] ? programs[0].id : '');
+    body.innerHTML = formHtml({
+      Libelle:'', Statut:'A faire', PDCA:0, Description:'', Pilote_Nom:'',
+      Date_Demarrage:'', Date_Fin:'', Action_Parent: defaultParent, Niveau:'2 - Tâche'
+    }, 'create');
+    return;
+  }
+
+  const sel = selectedItem();
+  if (!sel) {
+    panel.classList.remove('open');
+    title.textContent = 'Détails';
+    meta.innerHTML = '';
+    body.innerHTML = '<div class="panel-empty">Sélectionne un élément du Gantt ou clique sur + Tâche pour créer une nouvelle tâche.</div>';
+    return;
+  }
+
+  panel.classList.add('open');
+  const item = sel.item;
+  title.textContent = sel.type === 'prog' ? 'Programme' : 'Tâche';
+  meta.innerHTML = `<span>ID ${item.id}</span><span>${esc(sel.type === 'prog' ? 'Projet' : 'Action')}</span>`;
+  body.innerHTML = formHtml(item, sel.type);
+}
+
+function formHtml(item, mode) {
+  const isCreate = mode === 'create';
+  const isProg = mode === 'prog';
+  const parentVal = Array.isArray(item.Action_Parent) ? item.Action_Parent[1] : (item.Action_Parent || '');
+  const projectOptions = ['<option value="">—</option>'].concat(programs.map(p => {
+    const selected = String(p.id) === String(parentVal) ? 'selected' : '';
+    const label = esc(p.Libelle || p.Programme_Nom || ('Programme '+p.id));
+    return `<option value="${p.id}" ${selected}>${label}</option>`;
+  })).join('');
+  return `
+    <div class="form-row">
+      <label class="form-label">Libellé</label>
+      <input class="form-input" id="panelLibelle" value="${esc(item.Libelle || '')}" />
+    </div>
+    <div class="form-grid-2">
+      <div class="form-row">
+        <label class="form-label">Statut</label>
+        <select class="form-select" id="panelStatut">
+          ${['A faire','En Cours','Terminé'].map(v=>`<option value="${v}" ${(item.Statut||'')===v?'selected':''}>${v}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Avancement %</label>
+        <input class="form-input" id="panelPDCA" type="number" min="0" max="100" value="${item.PDCA ?? 0}" />
+      </div>
+    </div>
+    <div class="form-grid-2">
+      <div class="form-row">
+        <label class="form-label">Début</label>
+        <input class="form-input" id="panelDateStart" type="date" value="${toInputDate(item.Date_Demarrage)}" />
+      </div>
+      <div class="form-row">
+        <label class="form-label">Fin</label>
+        <input class="form-input" id="panelDateEnd" type="date" value="${toInputDate(item.Date_Fin)}" />
+      </div>
+    </div>
+    ${!isProg ? `
+    <div class="form-grid-2">
+      <div class="form-row">
+        <label class="form-label">Projet parent</label>
+        <select class="form-select" id="panelParent">${projectOptions}</select>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Pilote</label>
+        <input class="form-input" id="panelPilot" value="${esc(pilotNameOf(item))}" />
+      </div>
+    </div>` : `
+    <div class="form-row">
+      <label class="form-label">Pilote</label>
+      <input class="form-input" id="panelPilot" value="${esc(pilotNameOf(item))}" />
+    </div>`}
+    <div class="form-row">
+      <label class="form-label">Description</label>
+      <textarea class="form-textarea" id="panelDescription">${esc(item.Description || '')}</textarea>
+    </div>
+    <div class="panel-actions">
+      <button class="btn-primary" onclick="${isCreate ? 'createTaskFromPanel()' : `saveSelectedFromPanel(${item.id}, '${mode}')`}">${isCreate ? 'Créer la tâche' : 'Enregistrer'}</button>
+      <button class="btn-secondary" onclick="closePanel()">Fermer</button>
+    </div>`;
+}
+
+async function saveSelectedFromPanel(id, mode) {
+  const obj = mode === 'prog' ? programs.find(p => String(p.id) === String(id)) : findTask(id);
+  if (!obj) return;
+  obj.Libelle = document.getElementById('panelLibelle').value.trim();
+  obj.Statut = document.getElementById('panelStatut').value;
+  obj.PDCA = Number(document.getElementById('panelPDCA').value || 0);
+  obj.Date_Demarrage = fromInputDate(document.getElementById('panelDateStart').value);
+  obj.Date_Fin = fromInputDate(document.getElementById('panelDateEnd').value);
+  obj.Description = document.getElementById('panelDescription').value;
+  const pilotVal = document.getElementById('panelPilot').value.trim();
+  if ('Pilote_Nom' in obj || !('Pilote' in obj)) obj.Pilote_Nom = pilotVal;
+  else obj.Pilote = pilotVal;
+  if (mode !== 'prog') {
+    obj.Action_Parent = document.getElementById('panelParent').value || null;
+  }
+  render();
+  await saveFullRecord(obj);
+}
+
+async function createTaskFromPanel() {
+  const payload = {
+    Libelle: document.getElementById('panelLibelle').value.trim() || 'Nouvelle tâche',
+    Niveau: '2 - Tâche',
+    Statut: document.getElementById('panelStatut').value,
+    PDCA: Number(document.getElementById('panelPDCA').value || 0),
+    Date_Demarrage: fromInputDate(document.getElementById('panelDateStart').value),
+    Date_Fin: fromInputDate(document.getElementById('panelDateEnd').value),
+    Description: document.getElementById('panelDescription').value,
+    Action_Parent: document.getElementById('panelParent').value || null,
+    Pilote_Nom: document.getElementById('panelPilot').value.trim(),
+  };
+  if (!gristReady) return;
+  try {
+    setSavePill('saving');
+    suppressNextRecordRefresh = true;
+    await grist.docApi.applyUserActions([[ 'AddRecord', 'Actions', null, payload ]]);
+    panelMode = 'view';
+    await refreshFromGrist();
+    setSavePill('saved');
+    setTimeout(()=>setSavePill(''),2500);
+  } catch (err) {
+    console.error('Create task error', err);
+    setSavePill('error');
+  }
+}
+
+async function saveFullRecord(obj) {
+  if (!gristReady) return;
+  const fields = {
+    Libelle: obj.Libelle || '',
+    Statut: obj.Statut || '',
+    PDCA: Number(obj.PDCA || 0),
+    Date_Demarrage: obj.Date_Demarrage,
+    Date_Fin: obj.Date_Fin,
+    Description: obj.Description || '',
+  };
+  if ('Niveau' in obj) fields.Niveau = obj.Niveau;
+  if ('Action_Parent' in obj) fields.Action_Parent = obj.Action_Parent || null;
+  if ('Pilote_Nom' in obj || !('Pilote' in obj)) fields.Pilote_Nom = pilotNameOf(obj);
+  if ('Pilote' in obj) fields.Pilote = pilotNameOf(obj);
+  try {
+    setSavePill('saving');
+    suppressNextRecordRefresh = true;
+    await grist.docApi.applyUserActions([[ 'UpdateRecord', 'Actions', obj.id, fields ]]);
+    await refreshFromGrist();
+    setSavePill('saved');
+    setTimeout(()=>setSavePill(''),2500);
+  } catch (err) {
+    console.error('Panel save error', err);
+    setSavePill('error');
+  }
+}
+
 function toggleCollapse(progId, e) {
   if (e) e.stopPropagation();
   collapsed[progId] = !collapsed[progId];
@@ -1212,6 +1530,7 @@ function toggleCollapse(progId, e) {
 function applyFilters() {
   filterStatus  = document.getElementById('filterStatus').value;
   filterProgram = document.getElementById('filterProg').value;
+  filterPilot   = document.getElementById('filterPilot').value;
   render();
 }
 
