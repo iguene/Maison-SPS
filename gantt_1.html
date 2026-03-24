@@ -1338,20 +1338,36 @@ function pilotRefIdOf(item) {
 
 function normalizeRefValue(val) {
   if (val == null || val === '') return null;
+  if (typeof val === 'object' && !Array.isArray(val)) {
+    if ('id' in val) return normalizeRefValue(val.id);
+    if ('rowId' in val) return normalizeRefValue(val.rowId);
+  }
   const n = Number(val);
   return Number.isFinite(n) ? n : val;
 }
 
 function refIdOf(val) {
+  if (val == null || val === '') return null;
   if (Array.isArray(val)) return val[1] ?? null;
+  if (typeof val === 'object') {
+    if ('id' in val) return normalizeRefValue(val.id);
+    if ('rowId' in val) return normalizeRefValue(val.rowId);
+    if ('recordId' in val) return normalizeRefValue(val.recordId);
+  }
   if (typeof val === 'number') return val;
   const n = Number(val);
   return Number.isFinite(n) ? n : null;
 }
 
 function refLabelOf(val) {
+  if (val == null || val === '') return '';
   if (Array.isArray(val)) return val[0] || '';
-  return val == null ? '' : String(val);
+  if (typeof val === 'object') {
+    if ('label' in val) return String(val.label || '');
+    if ('displayValue' in val) return String(val.displayValue || '');
+    if ('name' in val) return String(val.name || '');
+  }
+  return String(val);
 }
 
 function memberName(row) {
@@ -1360,6 +1376,39 @@ function memberName(row) {
 
 function programSheetName(row) {
   return String(row.Programme || row.Libelle || row.Nom || '').trim();
+}
+
+function directInitiativeIdOf(action) {
+  return refIdOf(action?.Initiative_ID);
+}
+
+function directInitiativeLabelOf(action) {
+  return refLabelOf(action?.Initiative_ID).trim();
+}
+
+function getInitiativeChoices() {
+  const seen = new Map();
+
+  // 1) Priorité aux vraies valeurs déjà présentes dans la colonne Initiative_ID de la table Actions.
+  allActions.forEach(a => {
+    const id = directInitiativeIdOf(a);
+    const label = directInitiativeLabelOf(a) || linkedProgramLabelForAction(a) || '';
+    if (id != null && !seen.has(String(id))) {
+      seen.set(String(id), { id, label: label || `Programme ${id}` });
+    }
+  });
+
+  // 2) Complément depuis Fiches Programmes pour ne pas perdre les références possibles.
+  programSheetRows.forEach(r => {
+    const id = normalizeRefValue(r.id);
+    if (id == null) return;
+    const key = String(id);
+    const label = programSheetName(r) || `Programme ${id}`;
+    if (!seen.has(key)) seen.set(key, { id, label });
+    else if (!seen.get(key).label && label) seen.get(key).label = label;
+  });
+
+  return Array.from(seen.values()).sort((a,b)=> String(a.label).localeCompare(String(b.label), 'fr'));
 }
 
 function linkedProgramIdForAction(action) {
@@ -1397,7 +1446,8 @@ function linkedProgramLabelForAction(action) {
 function getParentProjectOptions(selectedProgramId='') {
   return programs.filter(p => {
     if (!selectedProgramId) return true;
-    return String(linkedProgramIdForAction(p) || '') === String(selectedProgramId);
+    const projectInitiativeId = directInitiativeIdOf(p) || linkedProgramIdForAction(p) || '';
+    return String(projectInitiativeId) === String(selectedProgramId);
   });
 }
 
@@ -1423,6 +1473,9 @@ function syncCreateLinkedFields() {
 
   if (currentParent && !parentOptions.some(p => String(p.id) === String(currentParent))) {
     parentSel.value = '';
+  }
+  if (!parentSel.value && parentOptions.length === 1) {
+    parentSel.value = String(parentOptions[0].id);
   }
 
   const selectedParentId = parentSel.value || '';
@@ -1537,7 +1590,8 @@ function renderSidePanel() {
     const selectedProg = selected?.type === 'prog' ? selected.item : null;
     const selectedTask = selected?.type === 'task' ? selected.item : null;
     const defaultParent = selectedProg?.id || refIdOf(selectedTask?.Action_Parent) || filterProgram || (programs[0] ? programs[0].id : '');
-    const defaultInitiative = selectedProg ? linkedProgramIdForAction(selectedProg) : (selectedTask ? linkedProgramIdForAction(selectedTask) : (defaultParent ? linkedProgramIdForAction(programs.find(p => String(p.id) === String(defaultParent)) || {}) : ''));
+    const defaultParentObj = programs.find(p => String(p.id) === String(defaultParent)) || {};
+    const defaultInitiative = selectedProg ? (directInitiativeIdOf(selectedProg) || linkedProgramIdForAction(selectedProg)) : (selectedTask ? (directInitiativeIdOf(selectedTask) || linkedProgramIdForAction(selectedTask)) : (defaultParent ? (directInitiativeIdOf(defaultParentObj) || linkedProgramIdForAction(defaultParentObj)) : ''));
 
     body.innerHTML = formHtml({
       Libelle:'', Statut:'A faire', PDCA:0, Description:'', Pilote:null, Initiative_ID: defaultInitiative || '',
@@ -1570,9 +1624,10 @@ function formHtml(item, mode) {
   const prevVal = refIdOf(item.Tache_precedente || item['Tache_précédente']) || '';
   const initiativeVal = linkedProgramIdForAction(item) || '';
 
-  const initiativeOptions = ['<option value="">Sélectionner…</option>'].concat(programSheetRows.map(r => {
+  const initiativeChoices = getInitiativeChoices();
+  const initiativeOptions = ['<option value="">Sélectionner…</option>'].concat(initiativeChoices.map(r => {
     const selected = String(r.id) === String(initiativeVal) ? 'selected' : '';
-    return `<option value="${r.id}" ${selected}>${esc(programSheetName(r) || ('Programme ' + r.id))}</option>`;
+    return `<option value="${r.id}" ${selected}>${esc(r.label || ('Programme ' + r.id))}</option>`;
   })).join('');
 
   const parentProjects = getParentProjectOptions(initiativeVal);
