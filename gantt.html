@@ -248,20 +248,24 @@ function getED(f, field) {
    ACCESSEURS CHAMPS
 ══════════════════════════════════════ */
 function getParentId(f) {
-  if (Array.isArray(f.Action_Parent) && f.Action_Parent[0]) return f.Action_Parent[0];
-  if (typeof f.Action_Parent === 'number' && f.Action_Parent > 0) return f.Action_Parent;
+  const v = f.Action_Parent;
+  if (Array.isArray(v)) return (v[0] && typeof v[0]==='number' && v[0]>0) ? v[0] : null;
+  if (typeof v === 'number' && v > 0) return v;
   return null;
 }
+
 function getPrecId(f) {
-  // Supporte "Tache_précédente" (avec accent) et "Tache_Precedente"
-  const val = f['Tache_précédente'] ?? f['Tache_Precedente'] ?? null;
-  if (Array.isArray(val) && val[0]) return val[0];
-  if (typeof val === 'number' && val > 0) return val;
+  const v = f['Tache_précédente'] ?? f['Tache_Precedente'] ?? null;
+  if (Array.isArray(v)) return (v[0] && typeof v[0]==='number' && v[0]>0) ? v[0] : null;
+  if (typeof v === 'number' && v > 0) return v;
   return null;
 }
+
 function isProjet(f) {
-  return String(f.Niveau||'').toLowerCase().includes('projet') || String(f.Niveau||'').includes('1 -');
+  const n = String(f.Niveau || '').trim();
+  return n === '1 - Projet' || n.toLowerCase().startsWith('1');
 }
+
 
 /* ══════════════════════════════════════
    DATES CHAPEAU PROGRAMME
@@ -308,6 +312,8 @@ function buildDisplayRows(fiches) {
   programmes.forEach(prog => {
     // Chercher dans allFiches (pas filtered) pour avoir toutes les tâches du programme
     const tasks = allFiches.filter(f => getParentId(f) === prog.id && !isProjet(f));
+    // Ajoute un log debug temporaire pour vérifier :
+    console.log('Programme', prog.id, prog.Libelle, '→ tâches trouvées:', tasks.map(t=>t.Libelle));
     const sorted = sortBySequence(tasks);
     rows.push({ type:'prog', f:prog, tasks:sorted });
     sorted.forEach(t => rows.push({ type:'task', f:t, progId:prog.id, prog }));
