@@ -15,7 +15,6 @@ body {
   align-items: flex-start;
 }
 
-/* ── WRAPPER 1400x860 ── */
 #gantt-wrap {
   width: 1400px;
   height: 860px;
@@ -47,12 +46,7 @@ body {
   flex-shrink: 0;
 }
 .logo-sm span { font-size: 0.6rem; color: #2c3e50; display: block; }
-.page-title {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: #1e293b;
-  flex: 1;
-}
+.page-title { font-size: 1.1rem; font-weight: 700; color: #1e293b; flex: 1; }
 .nav-btns { display: flex; gap: 10px; }
 .nav-btn {
   padding: 7px 28px;
@@ -65,25 +59,21 @@ body {
   transition: opacity 0.15s;
 }
 .nav-btn:hover { opacity: 0.85; }
-.nav-btn.maison   { background: #1a6b6b; color: white; }
-.nav-btn.fiche    { background: #2980b9; color: white; }
+.nav-btn.maison { background: #1a6b6b; color: white; }
+.nav-btn.fiche  { background: #2980b9; color: white; }
 
 /* ── FILTRES ── */
 .filters-bar {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 20px;
+  padding: 7px 20px;
   background: #f8fafc;
   border-bottom: 1px solid #e2e8f0;
   flex-shrink: 0;
 }
-.filters-bar label {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: #475569;
-}
-.filters-bar select, .filters-bar input {
+.filters-bar label { font-size: 0.78rem; font-weight: 600; color: #475569; }
+.filters-bar select {
   padding: 4px 8px;
   border: 1px solid #cbd5e1;
   border-radius: 4px;
@@ -94,7 +84,7 @@ body {
 }
 .zoom-btns { display: flex; gap: 4px; margin-left: auto; }
 .zoom-btn {
-  padding: 4px 12px;
+  padding: 4px 14px;
   font-size: 0.75rem;
   font-weight: 600;
   border: 1px solid #cbd5e1;
@@ -107,7 +97,7 @@ body {
 }
 .zoom-btn:hover, .zoom-btn.active { background: #2c3e50; color: white; border-color: #2c3e50; }
 
-/* ── ZONE GANTT ── */
+/* ── CONTENEUR GANTT ── */
 .gantt-container {
   flex: 1;
   display: flex;
@@ -115,9 +105,9 @@ body {
   min-height: 0;
 }
 
-/* ── PANNEAU GAUCHE (liste) ── */
+/* ── LISTE GAUCHE ── */
 .task-list {
-  width: 320px;
+  width: 340px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -126,12 +116,11 @@ body {
 }
 .task-list-header {
   display: grid;
-  grid-template-columns: 1fr 80px 80px;
+  grid-template-columns: 1fr 76px 76px;
   background: #2c3e50;
   color: white;
   font-size: 0.72rem;
   font-weight: 700;
-  padding: 0;
   flex-shrink: 0;
   height: 52px;
 }
@@ -144,20 +133,16 @@ body {
   text-align: center;
   line-height: 1.3;
 }
-.task-list-body {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
+.task-list-body { flex: 1; overflow-y: auto; overflow-x: hidden; }
 .task-row {
   display: grid;
-  grid-template-columns: 1fr 80px 80px;
+  grid-template-columns: 1fr 76px 76px;
   border-bottom: 1px solid #f1f5f9;
   cursor: pointer;
   transition: background 0.1s;
   min-height: 36px;
 }
-.task-row:hover   { background: #f0f9ff; }
+.task-row:hover    { background: #f0f9ff; }
 .task-row.selected { background: #dbeafe; }
 .task-row div {
   display: flex;
@@ -175,9 +160,12 @@ body {
   text-overflow: ellipsis;
   overflow: hidden;
 }
-.task-date { justify-content: center !important; font-size: 0.7rem !important; color: #64748b !important; }
-
-/* Pilier badge dans la liste */
+.task-date {
+  justify-content: center !important;
+  font-size: 0.68rem !important;
+  color: #64748b !important;
+  white-space: nowrap;
+}
 .pilier-dot {
   width: 8px; height: 8px;
   border-radius: 50%;
@@ -185,7 +173,7 @@ body {
   flex-shrink: 0;
 }
 
-/* ── PANNEAU DROIT (barres) ── */
+/* ── BARRES DROITE ── */
 .gantt-chart {
   flex: 1;
   display: flex;
@@ -193,13 +181,10 @@ body {
   overflow: hidden;
   position: relative;
 }
-
-/* Header dates */
 .gantt-header {
   flex-shrink: 0;
   background: #2c3e50;
   overflow: hidden;
-  position: relative;
 }
 .gantt-header-months {
   display: flex;
@@ -218,10 +203,7 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
-.gantt-header-weeks {
-  display: flex;
-  height: 26px;
-}
+.gantt-header-weeks { display: flex; height: 26px; }
 .gantt-header-week {
   flex-shrink: 0;
   display: flex;
@@ -231,27 +213,18 @@ body {
   color: rgba(255,255,255,0.7);
   border-right: 1px solid rgba(255,255,255,0.1);
 }
-
-/* Corps barres */
-.gantt-body {
-  flex: 1;
-  overflow: auto;
-  position: relative;
-}
-.gantt-rows {
-  position: absolute;
-  top: 0; left: 0;
-  min-width: 100%;
-}
+.gantt-body { flex: 1; overflow: auto; position: relative; }
+.gantt-rows { position: absolute; top: 0; left: 0; min-width: 100%; }
 .gantt-row {
-  position: relative;
-  height: 36px;
+  position: absolute;
+  left: 0; right: 0;
   border-bottom: 1px solid #f1f5f9;
+  height: 36px;
 }
-.gantt-row:hover { background: rgba(0,0,0,0.02); }
+.gantt-row:hover    { background: rgba(0,0,0,0.015); }
 .gantt-row.selected { background: rgba(59,130,246,0.06); }
 
-/* Lignes verticales (mois/semaines) */
+/* ── LIGNES VERTICALES ── */
 .gantt-vline {
   position: absolute;
   top: 0; bottom: 0;
@@ -261,7 +234,7 @@ body {
 }
 .gantt-vline.month { background: #cbd5e1; }
 
-/* Ligne aujourd'hui */
+/* ── LIGNE AUJOURD'HUI ── */
 .today-line {
   position: absolute;
   top: 0; bottom: 0;
@@ -273,22 +246,23 @@ body {
 .today-line::before {
   content: "Aujourd'hui";
   position: absolute;
-  top: -18px;
+  top: 4px;
   left: 4px;
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   color: #ef4444;
-  font-weight: 600;
+  font-weight: 700;
   white-space: nowrap;
+  background: white;
+  padding: 0 3px;
+  border-radius: 2px;
 }
 
-/* Barre Gantt */
+/* ── BARRE GANTT ── */
 .gantt-bar {
   position: absolute;
-  top: 6px;
-  height: 24px;
   border-radius: 4px;
   cursor: pointer;
-  transition: opacity 0.15s, filter 0.15s;
+  transition: filter 0.15s;
   display: flex;
   align-items: center;
   padding: 0 6px;
@@ -297,27 +271,25 @@ body {
   z-index: 2;
   min-width: 4px;
 }
-.gantt-bar:hover { filter: brightness(1.1); opacity: 0.9; }
-.gantt-bar.selected { filter: brightness(1.05); box-shadow: 0 0 0 2px #3b82f6; }
+.gantt-bar:hover  { filter: brightness(1.12); }
+.gantt-bar.selected { box-shadow: 0 0 0 2px #3b82f6; filter: brightness(1.05); }
 .gantt-bar-label {
-  font-size: 0.68rem;
-  font-weight: 600;
+  font-size: 0.67rem;
+  font-weight: 700;
   color: white;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.35);
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-/* Barre de progression */
 .gantt-bar-progress {
   position: absolute;
   left: 0; top: 0; bottom: 0;
   border-radius: 4px;
-  background: rgba(0,0,0,0.15);
+  background: rgba(0,0,0,0.18);
   pointer-events: none;
 }
 
-/* Légende piliers */
+/* ── LÉGENDE ── */
 .legend {
   display: flex;
   align-items: center;
@@ -326,6 +298,7 @@ body {
   background: white;
   border-top: 1px solid #e2e8f0;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 .legend-item {
   display: flex;
@@ -335,22 +308,17 @@ body {
   color: #475569;
   font-weight: 600;
 }
-.legend-dot {
-  width: 12px; height: 12px;
-  border-radius: 3px;
-}
-
-/* Statut badge */
+.legend-dot { width: 12px; height: 12px; border-radius: 3px; }
 .statut-badge {
   display: inline-block;
-  padding: 1px 6px;
+  padding: 1px 8px;
   border-radius: 10px;
   font-size: 0.65rem;
   font-weight: 600;
 }
 .s-en-cours { background: #dbeafe; color: #1d4ed8; }
 .s-termine  { background: #dcfce7; color: #15803d; }
-.s-a-venir  { background: #fef9c3; color: #854d0e; }
+.s-a-faire  { background: #fef9c3; color: #854d0e; }
 
 /* ── LOADING ── */
 #loading {
@@ -366,13 +334,6 @@ body {
   animation: spin 0.7s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-
-/* ── EMPTY ── */
-.no-date-msg {
-  display: flex; align-items: center; justify-content: center;
-  height: 100%; color: #94a3b8; font-size: 0.85rem; font-style: italic;
-  text-align: center; flex-direction: column; gap: 8px;
-}
 </style>
 </head>
 <body>
@@ -393,27 +354,18 @@ body {
 
   <!-- FILTRES -->
   <div class="filters-bar">
-    <label>Pilier :</label>
+    <label>Niveau :</label>
     <select id="filter-pilier" onchange="applyFilters()">
       <option value="">Tous</option>
-      <option value="dev">Développement Business</option>
-      <option value="impact">Impact</option>
-      <option value="culture">Culture Managériale</option>
+      <option value="projet">1 - Projet</option>
+      <option value="tache">2 - Tâche</option>
     </select>
     <label>Statut :</label>
     <select id="filter-statut" onchange="applyFilters()">
       <option value="">Tous</option>
-      <option value="En cours">En cours</option>
+      <option value="En Cours">En Cours</option>
       <option value="Terminé">Terminé</option>
-      <option value="A venir">A venir</option>
-    </select>
-    <label>Priorité :</label>
-    <select id="filter-prio" onchange="applyFilters()">
-      <option value="">Toutes</option>
-      <option value="Critique">Critique</option>
-      <option value="Haute">Haute</option>
-      <option value="Moyenne">Moyenne</option>
-      <option value="Basse">Basse</option>
+      <option value="A faire">A faire</option>
     </select>
     <div class="zoom-btns">
       <button class="zoom-btn" onclick="setZoom('semaine')" id="z-semaine">Semaine</button>
@@ -424,18 +376,14 @@ body {
 
   <!-- GANTT -->
   <div class="gantt-container">
-
-    <!-- Liste gauche -->
     <div class="task-list">
       <div class="task-list-header">
-        <div>Programme</div>
+        <div>Libellé</div>
         <div>Début</div>
         <div>Fin</div>
       </div>
       <div class="task-list-body" id="task-list-body"></div>
     </div>
-
-    <!-- Barres droite -->
     <div class="gantt-chart">
       <div class="gantt-header" id="gantt-header">
         <div class="gantt-header-months" id="header-months"></div>
@@ -445,46 +393,46 @@ body {
         <div class="gantt-rows" id="gantt-rows"></div>
       </div>
     </div>
-
   </div>
 
   <!-- LÉGENDE -->
   <div class="legend">
-    <span style="font-size:0.72rem;font-weight:700;color:#475569;margin-right:4px">Piliers :</span>
-    <div class="legend-item"><div class="legend-dot" style="background:#2980b9"></div>Développement Business</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#27ae60"></div>Impact</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#c0392b"></div>Culture Managériale</div>
-    <span style="margin-left:16px;font-size:0.72rem;font-weight:700;color:#475569">Statuts :</span>
-    <span class="statut-badge s-en-cours">En cours</span>
+    <span style="font-size:0.72rem;font-weight:700;color:#475569">Niveau :</span>
+    <div class="legend-item"><div class="legend-dot" style="background:#2980b9"></div>1 - Projet</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#27ae60"></div>2 - Tâche</div>
+    <span style="margin-left:12px;font-size:0.72rem;font-weight:700;color:#475569">Statuts :</span>
+    <span class="statut-badge s-en-cours">En Cours</span>
     <span class="statut-badge s-termine">Terminé</span>
-    <span class="statut-badge s-a-venir">A venir</span>
-    <span style="margin-left:auto;font-size:0.7rem;color:#94a3b8;font-style:italic">
-      La bande sombre sur chaque barre = avancement global
+    <span class="statut-badge s-a-faire">A faire</span>
+    <span style="margin-left:auto;font-size:0.68rem;color:#94a3b8;font-style:italic">
+      Bande sombre = avancement (PDCA) · Flèche pointillée = lien parent → tâche
     </span>
   </div>
 
 </div>
 
 <script>
+const W = 1400, H = 860;
 let allFiches  = [];
 let filtered   = [];
 let selectedId = null;
-let zoom       = 'mois'; // 'semaine' | 'mois' | 'trimestre'
-const W = 1400, H = 860;
+let zoom       = 'mois';
 
-// ── Couleurs piliers ──
-const PILIER_COLORS = {
-  dev:     '#2980b9',
-  impact:  '#27ae60',
-  culture: '#c0392b',
+const NIVEAU_COLORS = {
+  projet:  '#2980b9',
+  tache:   '#27ae60',
+  default: '#8e44ad',
 };
-function getPilierKey(p) {
-  if (!p) return 'dev';
-  const s = String(p).toLowerCase();
-  if (s.includes('impact'))  return 'impact';
-  if (s.includes('culture')) return 'culture';
-  return 'dev';
+
+function getNiveauKey(niveau) {
+  if (!niveau) return 'default';
+  const n = String(niveau).toLowerCase();
+  if (n.includes('projet')) return 'projet';
+  if (n.includes('tache') || n.includes('tâche') || n.includes('2')) return 'tache';
+  return 'default';
 }
+function getNiveauColor(niveau) { return NIVEAU_COLORS[getNiveauKey(niveau)]; }
+function isTache(f) { return getNiveauKey(f.Niveau) === 'tache'; }
 
 // ── Scale ──
 function scaleToFit() {
@@ -499,7 +447,18 @@ window.addEventListener('resize', scaleToFit);
 // ── Dates ──
 function parseDate(val) {
   if (!val) return null;
-  if (typeof val === 'number') return new Date(val * 1000); // timestamp Grist
+  if (typeof val === 'number') return new Date(val * 1000);
+  if (typeof val === 'string') {
+    // DD-MM-YYYY
+    if (val.match(/^\d{2}-\d{2}-\d{4}$/)) {
+      const [d, m, y] = val.split('-');
+      return new Date(+y, +m - 1, +d);
+    }
+    // YYYY-MM-DD
+    if (val.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      return new Date(val);
+    }
+  }
   const d = new Date(val);
   return isNaN(d) ? null : d;
 }
@@ -508,136 +467,121 @@ function fmtDate(d) {
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
 }
 function fmtMonth(d) {
-  return d.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' }).replace(' ', '\u00a0');
+  return d.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' });
+}
+function getWeekNum(d) {
+  const onejan = new Date(d.getFullYear(), 0, 1);
+  return Math.ceil((((d - onejan) / 86400000) + onejan.getDay() + 1) / 7);
 }
 
-// ── Calcul plage globale ──
+// ── Plage dates ──
 function getRange(fiches) {
   let min = null, max = null;
   fiches.forEach(f => {
-    const d = parseDate(f.Date_Debut), e = parseDate(f.Date_Fin);
+    const d = parseDate(f.Date_Demarrage);
+    const e = parseDate(f.Date_Fin);
     if (d && (!min || d < min)) min = d;
     if (e && (!max || e > max)) max = e;
   });
-  if (!min) min = new Date();
+  if (!min) { min = new Date(); min.setDate(1); }
   if (!max) { max = new Date(min); max.setFullYear(max.getFullYear() + 1); }
-  // Padding 1 mois de chaque côté
   min = new Date(min); min.setMonth(min.getMonth() - 1); min.setDate(1);
   max = new Date(max); max.setMonth(max.getMonth() + 2); max.setDate(1);
   return { min, max };
 }
 
-// ── Largeur d'une unité selon le zoom ──
-const UNIT_PX = { semaine: 40, mois: 60, trimestre: 80 };
-
-function daysBetween(a, b) {
-  return (b - a) / 86400000;
-}
+// ── Coordonnées X ──
+const UNIT_PX = { semaine: 42, mois: 62, trimestre: 120 };
+function daysBetween(a, b) { return (b - a) / 86400000; }
 function dateToX(date, rangeMin) {
   const days = daysBetween(rangeMin, date);
-  const u    = UNIT_PX[zoom];
+  const u = UNIT_PX[zoom];
   if (zoom === 'semaine')   return days * (u / 7);
   if (zoom === 'mois')      return days * (u / 30);
   if (zoom === 'trimestre') return days * (u / 90);
   return days;
 }
 
-// ── Render header ──
+// ── Header dates ──
 function renderHeader(range) {
-  const months  = document.getElementById('header-months');
-  const weeks   = document.getElementById('header-weeks');
+  const months = document.getElementById('header-months');
+  const weeks  = document.getElementById('header-weeks');
   months.innerHTML = '';
   weeks.innerHTML  = '';
 
-  const cur = new Date(range.min);
-  const end = range.max;
-
   if (zoom === 'trimestre') {
-    // Trimestres
-    while (cur < end) {
+    const cur = new Date(range.min);
+    while (cur < range.max) {
       const qStart = new Date(cur);
       const q = Math.floor(cur.getMonth() / 3);
       cur.setMonth((q + 1) * 3); cur.setDate(1);
-      const qEnd = cur < end ? new Date(cur) : new Date(end);
+      const qEnd = cur < range.max ? new Date(cur) : new Date(range.max);
       const w = dateToX(qEnd, range.min) - dateToX(qStart, range.min);
       const div = document.createElement('div');
       div.className = 'gantt-header-month';
       div.style.width = w + 'px';
-      div.textContent = `T${q+1} ${qStart.getFullYear()}`;
+      div.textContent = `T${q + 1} ${qStart.getFullYear()}`;
       months.appendChild(div);
     }
     return;
   }
 
-  // Mois dans la rangée du haut
+  // Rangée mois
   const cur2 = new Date(range.min);
-  while (cur2 < end) {
+  while (cur2 < range.max) {
     const mStart = new Date(cur2);
     cur2.setMonth(cur2.getMonth() + 1); cur2.setDate(1);
-    const mEnd = cur2 < end ? new Date(cur2) : new Date(end);
+    const mEnd = cur2 < range.max ? new Date(cur2) : new Date(range.max);
     const w = dateToX(mEnd, range.min) - dateToX(mStart, range.min);
     const div = document.createElement('div');
     div.className = 'gantt-header-month';
     div.style.width = w + 'px';
-    div.textContent = fmtMonth(mStart);
+    div.textContent = fmtMonth(mStart).toUpperCase();
     months.appendChild(div);
   }
 
-  // Semaines dans la rangée du bas
-  if (zoom === 'semaine' || zoom === 'mois') {
-    const cur3 = new Date(range.min);
-    // Aligne au lundi
-    const day = cur3.getDay();
-    cur3.setDate(cur3.getDate() - (day === 0 ? 6 : day - 1));
-    while (cur3 < end) {
-      const wStart = new Date(cur3);
-      cur3.setDate(cur3.getDate() + 7);
-      const wEnd = cur3 < end ? new Date(cur3) : new Date(end);
-      const x1 = Math.max(0, dateToX(wStart, range.min));
-      const x2 = dateToX(wEnd, range.min);
-      const w  = x2 - x1;
-      if (w < 1) continue;
-      const div = document.createElement('div');
-      div.className = 'gantt-header-week';
-      div.style.width = w + 'px';
-      if (zoom === 'semaine') {
-        div.textContent = `S${getWeekNum(wStart)}`;
-      } else {
-        div.textContent = wStart.getDate();
-      }
-      weeks.appendChild(div);
-    }
+  // Rangée semaines / jours
+  const cur3 = new Date(range.min);
+  const day0 = cur3.getDay();
+  cur3.setDate(cur3.getDate() - (day0 === 0 ? 6 : day0 - 1));
+  while (cur3 < range.max) {
+    const wStart = new Date(cur3);
+    cur3.setDate(cur3.getDate() + 7);
+    const wEnd = cur3 < range.max ? new Date(cur3) : new Date(range.max);
+    const x1 = Math.max(0, dateToX(wStart, range.min));
+    const x2 = dateToX(wEnd, range.min);
+    const w  = x2 - x1;
+    if (w < 1) continue;
+    const div = document.createElement('div');
+    div.className = 'gantt-header-week';
+    div.style.width = w + 'px';
+    div.textContent = zoom === 'semaine' ? `S${getWeekNum(wStart)}` : wStart.getDate();
+    weeks.appendChild(div);
   }
 }
 
-function getWeekNum(d) {
-  const onejan = new Date(d.getFullYear(), 0, 1);
-  return Math.ceil((((d - onejan) / 86400000) + onejan.getDay() + 1) / 7);
-}
-
-// ── Render lignes verticales ──
-function renderVLines(range, totalW, totalH) {
+// ── Lignes verticales ──
+function renderVLines(range, totalH) {
   const rows = document.getElementById('gantt-rows');
-  // Supprime anciens vlines
-  rows.querySelectorAll('.gantt-vline').forEach(e => e.remove());
+  rows.querySelectorAll('.gantt-vline, .today-line').forEach(e => e.remove());
   const cur = new Date(range.min);
   while (cur < range.max) {
     const x = dateToX(cur, range.min);
     const line = document.createElement('div');
     line.className = 'gantt-vline' + (cur.getDate() === 1 ? ' month' : '');
-    line.style.left = x + 'px';
+    line.style.left   = x + 'px';
     line.style.height = totalH + 'px';
     rows.appendChild(line);
     if (zoom === 'trimestre') cur.setMonth(cur.getMonth() + 3);
     else if (zoom === 'mois') cur.setMonth(cur.getMonth() + 1);
     else cur.setDate(cur.getDate() + 7);
   }
-  // Ligne aujourd'hui
+  // Aujourd'hui
   const todayX = dateToX(new Date(), range.min);
-  if (todayX > 0 && todayX < totalW) {
+  if (todayX > 0) {
     const tl = document.createElement('div');
     tl.className = 'today-line';
-    tl.style.left = todayX + 'px';
+    tl.style.left   = todayX + 'px';
     tl.style.height = totalH + 'px';
     rows.appendChild(tl);
   }
@@ -645,124 +589,180 @@ function renderVLines(range, totalW, totalH) {
 
 // ── Render principal ──
 function render() {
-  const hasDates = filtered.some(f => parseDate(f.Date_Debut) && parseDate(f.Date_Fin));
+  const ROW_H    = 36;
+  const hasDates = filtered.some(f => parseDate(f.Date_Demarrage) && parseDate(f.Date_Fin));
 
   // Liste gauche
   const listBody = document.getElementById('task-list-body');
   listBody.innerHTML = '';
   filtered.forEach(f => {
-    const pk    = getPilierKey(f.Pilier);
-    const color = PILIER_COLORS[pk];
-    const row   = document.createElement('div');
-    row.className = 'task-row' + (selectedId === f.id ? ' selected' : '');
-    row.innerHTML = `
-      <div class="task-name">
-        <div class="pilier-dot" style="background:${color}"></div>
-        ${esc(f.Programme || '—')}
+    const color    = getNiveauColor(f.Niveau);
+    const estTache = isTache(f);
+    const row      = document.createElement('div');
+    row.className  = 'task-row' + (selectedId === f.id ? ' selected' : '');
+    row.innerHTML  = `
+      <div class="task-name" style="padding-left:${estTache ? 20 : 8}px">
+        <div class="pilier-dot" style="background:${color};${estTache ? 'width:6px;height:6px;border-radius:2px' : ''}"></div>
+        <span style="color:${estTache ? '#475569' : '#1e293b'};font-weight:${estTache ? 500 : 700}">
+          ${estTache ? '└&nbsp;' : ''}${esc(f.Libelle || '—')}
+        </span>
       </div>
-      <div class="task-date">${fmtDate(parseDate(f.Date_Debut))}</div>
+      <div class="task-date">${fmtDate(parseDate(f.Date_Demarrage))}</div>
       <div class="task-date">${fmtDate(parseDate(f.Date_Fin))}</div>
     `;
     row.onclick = () => selectFiche(f.id);
     listBody.appendChild(row);
   });
 
+  // Pas de dates
   if (!hasDates) {
-    // Pas de dates → message
     document.getElementById('gantt-rows').innerHTML = `
-      <div class="no-date-msg" style="padding:40px">
-        <div style="font-size:2rem">📅</div>
-        <div>Aucune date renseignée dans les fiches programmes.</div>
-        <div style="font-size:0.75rem">Ajoutez les colonnes <strong>Date_Debut</strong> et <strong>Date_Fin</strong> dans votre table Grist.</div>
+      <div style="display:flex;align-items:center;justify-content:center;height:250px;
+                  flex-direction:column;gap:12px;color:#94a3b8;font-size:0.85rem;font-style:italic">
+        <div style="font-size:2.5rem">📅</div>
+        <div>Aucune date renseignée dans les actions.</div>
+        <div style="font-size:0.75rem">
+          Renseignez <strong style="color:#475569">Date_Demarrage</strong>
+          et <strong style="color:#475569">Date_Fin</strong> dans la table Actions.
+        </div>
       </div>`;
+    document.getElementById('header-months').innerHTML = '';
+    document.getElementById('header-weeks').innerHTML  = '';
     return;
   }
 
   const range  = getRange(filtered);
   const totalW = dateToX(range.max, range.min);
-  const totalH = filtered.length * 36;
+  const totalH = filtered.length * ROW_H;
 
-  // Header
   renderHeader(range);
   document.getElementById('gantt-header').style.width = totalW + 'px';
 
-  // Corps
   const ganttRows = document.getElementById('gantt-rows');
   ganttRows.style.width  = totalW + 'px';
   ganttRows.style.height = totalH + 'px';
-
-  // Vider les barres (garder les vlines)
   ganttRows.querySelectorAll('.gantt-row').forEach(e => e.remove());
 
+  // Map id → index pour les flèches
+  const idxMap = {};
+  filtered.forEach((f, i) => { idxMap[f.id] = i; });
+
+  // SVG flèches
+  let svg = document.getElementById('gantt-arrows');
+  if (svg) svg.remove();
+  svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.id = 'gantt-arrows';
+  svg.style.cssText = `position:absolute;top:0;left:0;width:${totalW}px;height:${totalH}px;pointer-events:none;z-index:3;overflow:visible`;
+
+  // Defs marqueurs flèches
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  Object.values(NIVEAU_COLORS).forEach(c => {
+    const cid = c.replace('#', '');
+    const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+    marker.setAttribute('id',          'arr-' + cid);
+    marker.setAttribute('markerWidth',  '7');
+    marker.setAttribute('markerHeight', '7');
+    marker.setAttribute('refX',         '6');
+    marker.setAttribute('refY',         '3.5');
+    marker.setAttribute('orient',       'auto');
+    const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    poly.setAttribute('points', '0 0, 7 3.5, 0 7');
+    poly.setAttribute('fill', c);
+    marker.appendChild(poly);
+    defs.appendChild(marker);
+  });
+  svg.appendChild(defs);
+
+  // Barres + flèches
   filtered.forEach((f, idx) => {
-    const dStart = parseDate(f.Date_Debut);
-    const dEnd   = parseDate(f.Date_Fin);
-    const pk     = getPilierKey(f.Pilier);
-    const color  = PILIER_COLORS[pk];
-    const avct   = Math.min(100, Math.max(0, f.Avancement_Global || 0));
+    const dStart   = parseDate(f.Date_Demarrage);
+    const dEnd     = parseDate(f.Date_Fin);
+    const color    = getNiveauColor(f.Niveau);
+    const avct     = Math.min(100, Math.max(0, f.PDCA || 0));
+    const estTache = isTache(f);
 
     const row = document.createElement('div');
     row.className = 'gantt-row' + (selectedId === f.id ? ' selected' : '');
-    row.style.top = (idx * 36) + 'px';
-    row.style.left = '0';
-    row.style.right = '0';
-    row.style.position = 'absolute';
+    row.style.top    = idx * ROW_H + 'px';
+    row.style.height = ROW_H + 'px';
     row.onclick = () => selectFiche(f.id);
 
     if (dStart && dEnd) {
-      const x1 = Math.max(0, dateToX(dStart, range.min));
-      const x2 = Math.max(x1 + 4, dateToX(dEnd, range.min));
-      const bw = x2 - x1;
+      const x1  = Math.max(0, dateToX(dStart, range.min));
+      const x2  = Math.max(x1 + 4, dateToX(dEnd, range.min));
+      const bw  = x2 - x1;
+      const bh  = estTache ? 18 : 24;
+      const top = (ROW_H - bh) / 2;
 
       const bar = document.createElement('div');
       bar.className = 'gantt-bar' + (selectedId === f.id ? ' selected' : '');
-      bar.style.left       = x1 + 'px';
-      bar.style.width      = bw + 'px';
-      bar.style.background = color;
-      bar.title = `${f.Programme} | ${fmtDate(dStart)} → ${fmtDate(dEnd)} | ${avct}%`;
+      bar.style.cssText = `left:${x1}px;width:${bw}px;top:${top}px;height:${bh}px;background:${color};opacity:${estTache ? 0.78 : 1}`;
+      bar.title = `${f.Libelle || ''}  |  ${fmtDate(dStart)} → ${fmtDate(dEnd)}  |  ${avct}%  |  ${f.Statut || ''}`;
 
-      // Barre de progression
+      // Progression
       const prog = document.createElement('div');
       prog.className = 'gantt-bar-progress';
       prog.style.width = avct + '%';
       bar.appendChild(prog);
 
       // Label
-      if (bw > 30) {
+      if (bw > 28) {
         const lbl = document.createElement('div');
-        lbl.className = 'gantt-bar-label';
-        lbl.textContent = f.Programme || '';
+        lbl.className  = 'gantt-bar-label';
+        lbl.textContent = f.Libelle || '';
         bar.appendChild(lbl);
       }
-
       row.appendChild(bar);
+
+      // Flèche dépendance parent → enfant
+      if (f.Action_Parent) {
+        let parentId = null;
+        if (Array.isArray(f.Action_Parent)) parentId = f.Action_Parent[0];
+        else if (typeof f.Action_Parent === 'number') parentId = f.Action_Parent;
+        const parentIdx = parentId !== null ? idxMap[parentId] : undefined;
+        if (parentIdx !== undefined) {
+          const pf   = filtered[parentIdx];
+          const pEnd = parseDate(pf.Date_Fin);
+          if (pEnd) {
+            const px  = dateToX(pEnd,  range.min);
+            const py  = parentIdx * ROW_H + ROW_H / 2;
+            const cy  = idx       * ROW_H + ROW_H / 2;
+            const mid = (px + x1) / 2;
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d',             `M ${px} ${py} C ${mid} ${py}, ${mid} ${cy}, ${x1} ${cy}`);
+            path.setAttribute('stroke',        color);
+            path.setAttribute('stroke-width',  '1.5');
+            path.setAttribute('fill',          'none');
+            path.setAttribute('stroke-dasharray', '4,3');
+            path.setAttribute('marker-end',    `url(#arr-${color.replace('#','')})`);
+            svg.appendChild(path);
+          }
+        }
+      }
     }
     ganttRows.appendChild(row);
   });
 
-  renderVLines(range, totalW, totalH);
-
-  // Sync scroll liste / barres
+  ganttRows.appendChild(svg);
+  renderVLines(range, totalH);
   syncScroll();
 }
 
-// ── Sync scroll vertical ──
+// ── Sync scroll ──
 function syncScroll() {
-  const listBody  = document.getElementById('task-list-body');
-  const ganttBody = document.getElementById('gantt-body');
-  listBody.onscroll = () => { ganttBody.scrollTop = listBody.scrollTop; };
-  ganttBody.onscroll = () => { listBody.scrollTop = ganttBody.scrollTop; };
+  const lb = document.getElementById('task-list-body');
+  const gb = document.getElementById('gantt-body');
+  lb.onscroll = () => { gb.scrollTop = lb.scrollTop; };
+  gb.onscroll = () => { lb.scrollTop = gb.scrollTop; };
 }
 
 // ── Filtres ──
 function applyFilters() {
-  const pilier = document.getElementById('filter-pilier').value;
+  const niveau = document.getElementById('filter-pilier').value;
   const statut = document.getElementById('filter-statut').value;
-  const prio   = document.getElementById('filter-prio').value;
   filtered = allFiches.filter(f => {
-    if (pilier && getPilierKey(f.Pilier) !== pilier) return false;
-    if (statut && !String(f.Statut || '').toLowerCase().includes(statut.toLowerCase())) return false;
-    if (prio   && !String(f.Priorite || '').toLowerCase().includes(prio.toLowerCase())) return false;
+    if (niveau && !String(f.Niveau || '').toLowerCase().includes(niveau)) return false;
+    if (statut && String(f.Statut || '').toLowerCase() !== statut.toLowerCase()) return false;
     return true;
   });
   render();
@@ -771,7 +771,7 @@ function applyFilters() {
 // ── Zoom ──
 function setZoom(z) {
   zoom = z;
-  ['semaine','mois','trimestre'].forEach(id => {
+  ['semaine', 'mois', 'trimestre'].forEach(id => {
     document.getElementById('z-' + id).classList.toggle('active', id === z);
   });
   render();
@@ -780,15 +780,15 @@ function setZoom(z) {
 // ── Sélection ──
 function selectFiche(id) {
   selectedId = (selectedId === id) ? null : id;
-  if (selectedId) grist.setSelectedRows([selectedId]);
+  try { if (selectedId) grist.setSelectedRows([selectedId]); } catch(e) {}
   render();
 }
 
 // ── Navigation ──
-function goMaison()  { try { grist.setSelectedRows([]); } catch(e) {} }
-function goFiche()   { try { grist.setSelectedRows([selectedId]); } catch(e) {} }
+function goMaison() { try { grist.setSelectedRows([]); } catch(e) {} }
+function goFiche()  { try { if (selectedId) grist.setSelectedRows([selectedId]); } catch(e) {} }
 
-// ── Helpers ──
+// ── Escape HTML ──
 function esc(t) {
   const d = document.createElement('div');
   d.textContent = String(t || '');
@@ -796,15 +796,12 @@ function esc(t) {
 }
 
 // ── Données démo ──
-const today = new Date();
 const DEMO = [
-  { id:1, Programme:'Satisfaction Clients', Pilier:'Développement Business', Date_Debut: new Date(today.getFullYear(), 0, 1),  Date_Fin: new Date(today.getFullYear(), 5, 30),  Statut:'En cours', Priorite:'Haute',    Avancement_Global: 45 },
-  { id:2, Programme:'AMD',                  Pilier:'Développement Business', Date_Debut: new Date(today.getFullYear(), 2, 1),  Date_Fin: new Date(today.getFullYear(), 8, 30),  Statut:'En cours', Priorite:'Critique', Avancement_Global: 20 },
-  { id:3, Programme:'Réduction déchets',    Pilier:'Impact',                 Date_Debut: new Date(today.getFullYear(), 0, 1),  Date_Fin: new Date(today.getFullYear(), 11, 31), Statut:'En cours', Priorite:'Haute',    Avancement_Global: 60 },
-  { id:4, Programme:'Décarbonation',        Pilier:'Impact',                 Date_Debut: new Date(today.getFullYear(), 3, 1),  Date_Fin: new Date(today.getFullYear()+1, 2, 31),Statut:'A venir',  Priorite:'Moyenne',  Avancement_Global: 0  },
-  { id:5, Programme:'Formation équipes',    Pilier:'Culture Managériale',    Date_Debut: new Date(today.getFullYear(), 1, 1),  Date_Fin: new Date(today.getFullYear(), 6, 30),  Statut:'En cours', Priorite:'Haute',    Avancement_Global: 35 },
-  { id:6, Programme:'GED',                  Pilier:'Culture Managériale',    Date_Debut: new Date(today.getFullYear(), 0, 1),  Date_Fin: new Date(today.getFullYear(), 9, 31),  Statut:'En cours', Priorite:'Moyenne',  Avancement_Global: 55 },
-  { id:7, Programme:'SAP',                  Pilier:'Culture Managériale',    Date_Debut: new Date(today.getFullYear(), 5, 1),  Date_Fin: new Date(today.getFullYear()+1, 5, 30),Statut:'A venir',  Priorite:'Critique', Avancement_Global: 0  },
+  { id:1, Libelle:'Former les assembleurs', Niveau:'1 - Projet', Action_Parent:null, Date_Demarrage:'01-01-2026', Date_Fin:'31-12-2026', Statut:'En Cours', PDCA:30 },
+  { id:2, Libelle:'Préparer le support',    Niveau:'2 - Tâche',  Action_Parent:[1],  Date_Demarrage:'01-01-2026', Date_Fin:'28-02-2026', Statut:'Terminé',  PDCA:100 },
+  { id:3, Libelle:'Envoyer convocations',   Niveau:'2 - Tâche',  Action_Parent:[1],  Date_Demarrage:'01-03-2026', Date_Fin:'30-04-2026', Statut:'En Cours', PDCA:40 },
+  { id:4, Libelle:'Envoyer compte-rendu',   Niveau:'1 - Projet', Action_Parent:null, Date_Demarrage:'01-03-2026', Date_Fin:'30-06-2026', Statut:'A faire',  PDCA:0 },
+  { id:5, Libelle:'Préparer le contenu',    Niveau:'2 - Tâche',  Action_Parent:[4],  Date_Demarrage:'01-03-2026', Date_Fin:'30-04-2026', Statut:'A faire',  PDCA:0 },
 ];
 
 // ── Init ──
