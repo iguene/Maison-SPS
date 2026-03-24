@@ -846,7 +846,7 @@ function buildProgramStructure(rawActions) {
 
   tasks.forEach(t => {
     // Action_Parent is a ref to another action (the project)
-    const parentId = Array.isArray(t.Action_Parent) ? t.Action_Parent[1] : (t.Action_Parent || null);
+    const parentId = refIdOf(t.Action_Parent) || null;
     if (parentId && tasksByProg[parentId] !== undefined) {
       tasksByProg[parentId].push(t);
     } else if (parentId) {
@@ -871,7 +871,7 @@ function buildProgramStructure(rawActions) {
     // Resolve predecessor refs
     tks.forEach(t => {
       const prevRaw = t.Tache_precedente || t['Tache_précédente'] || t.Tache_prev || null;
-      t._prevId = Array.isArray(prevRaw) ? prevRaw[1] : (prevRaw||null);
+      t._prevId = refIdOf(prevRaw) || null;
     });
   });
 
@@ -1379,7 +1379,15 @@ function programSheetName(row) {
 }
 
 function directInitiativeIdOf(action) {
-  return refIdOf(action?.Initiative_ID);
+  if (!action) return null;
+  const direct = refIdOf(action.Initiative_ID);
+  if (direct != null) return direct;
+  const raw = action.Initiative_ID;
+  if (typeof raw === 'string' && raw.trim()) {
+    const n = Number(raw);
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
 }
 
 function directInitiativeLabelOf(action) {
@@ -1389,37 +1397,32 @@ function directInitiativeLabelOf(action) {
 function getInitiativeChoices() {
   const seen = new Map();
 
-  // 1) Priorité aux vraies valeurs déjà présentes dans la colonne Initiative_ID de la table Actions.
+  // 1) Valeurs réellement présentes dans la colonne Initiative_ID de la table Actions
   allActions.forEach(a => {
     const id = directInitiativeIdOf(a);
-    const label = directInitiativeLabelOf(a) || linkedProgramLabelForAction(a) || '';
-    if (id != null && !seen.has(String(id))) {
-      seen.set(String(id), { id, label: label || `Programme ${id}` });
-    }
+    if (id == null) return;
+    const key = String(id);
+    const linkedRow = programSheetRows.find(r => String(normalizeRefValue(r.id)) === key);
+    const label = (linkedRow && programSheetName(linkedRow)) || directInitiativeLabelOf(a) || `Programme ${id}`;
+    if (!seen.has(key)) seen.set(key, { id, label });
   });
 
-  // 2) Complément depuis Fiches Programmes pour ne pas perdre les références possibles.
+  // 2) Complément depuis Fiches Programmes pour garder les références possibles
   programSheetRows.forEach(r => {
     const id = normalizeRefValue(r.id);
     if (id == null) return;
     const key = String(id);
     const label = programSheetName(r) || `Programme ${id}`;
     if (!seen.has(key)) seen.set(key, { id, label });
-    else if (!seen.get(key).label && label) seen.get(key).label = label;
   });
 
   return Array.from(seen.values()).sort((a,b)=> String(a.label).localeCompare(String(b.label), 'fr'));
 }
 
 function linkedProgramIdForAction(action) {
-  const direct = refIdOf(action.Initiative_ID);
+  const direct = directInitiativeIdOf(action);
   if (direct != null) return direct;
-  const directLabel = refLabelOf(action.Initiative_ID);
-  if (directLabel) {
-    const found = programSheetRows.find(r => programSheetName(r) === directLabel);
-    if (found) return found.id;
-  }
-  const parentId = refIdOf(action.Action_Parent);
+  const parentId = refIdOf(action && action.Action_Parent);
   if (parentId != null) {
     const parent = allActions.find(a => String(a.id) === String(parentId));
     if (parent) return linkedProgramIdForAction(parent);
@@ -1430,12 +1433,12 @@ function linkedProgramIdForAction(action) {
 function linkedProgramLabelForAction(action) {
   const pid = linkedProgramIdForAction(action);
   if (pid != null) {
-    const row = programSheetRows.find(r => String(r.id) === String(pid));
+    const row = programSheetRows.find(r => String(normalizeRefValue(r.id)) === String(pid));
     if (row) return programSheetName(row);
   }
-  const directLabel = refLabelOf(action.Initiative_ID);
-  if (directLabel) return directLabel;
-  const parentId = refIdOf(action.Action_Parent);
+  const directLabel = refLabelOf(action && action.Initiative_ID);
+  if (directLabel && !/^\d+$/.test(directLabel)) return directLabel;
+  const parentId = refIdOf(action && action.Action_Parent);
   if (parentId != null) {
     const parent = allActions.find(a => String(a.id) === String(parentId));
     if (parent) return linkedProgramLabelForAction(parent);
@@ -1446,9 +1449,9 @@ function linkedProgramLabelForAction(action) {
 function getParentProjectOptions(selectedProgramId='') {
   return programs.filter(p => {
     if (!selectedProgramId) return true;
-    const projectInitiativeId = directInitiativeIdOf(p) || linkedProgramIdForAction(p) || '';
-    return String(projectInitiativeId) === String(selectedProgramId);
-  });
+    const projectInitiativeId = directInitiativeIdOf(p);
+    return String(projectInitiativeId || '') === String(selectedProgramId);
+  }).sort((a,b)=> String(a.Libelle||'').localeCompare(String(b.Libelle||''), 'fr'));
 }
 
 function getTaskPredecessorOptions(parentId, excludeId=null) {
@@ -1622,7 +1625,7 @@ function formHtml(item, mode) {
   const isProg = mode === 'prog';
   const parentVal = refIdOf(item.Action_Parent) || '';
   const prevVal = refIdOf(item.Tache_precedente || item['Tache_précédente']) || '';
-  const initiativeVal = linkedProgramIdForAction(item) || '';
+  const initiativeVal = directInitiativeIdOf(item) || linkedProgramIdForAction(item) || '';
 
   const initiativeChoices = getInitiativeChoices();
   const initiativeOptions = ['<option value="">Sélectionner…</option>'].concat(initiativeChoices.map(r => {
@@ -1729,7 +1732,7 @@ async function saveSelectedFromPanel(id, mode) {
   obj._initiativeEditId = normalizeRefValue(document.getElementById('panelInitiative')?.value || '');
   if (mode !== 'prog') {
     obj.Action_Parent = normalizeRefValue(document.getElementById('panelParent').value);
-    obj.Tache_precedente = normalizeRefValue(document.getElementById('panelPrev')?.value || '');
+    obj['Tache_précédente'] = normalizeRefValue(document.getElementById('panelPrev')?.value || '');
   }
   render();
   await saveFullRecord(obj);
@@ -1755,7 +1758,7 @@ async function createTaskFromPanel() {
     Date_Fin: fromInputDate(document.getElementById('panelDateEnd').value),
     Description: document.getElementById('panelDescription').value,
     Action_Parent: parentId,
-    Tache_precedente: prevId,
+    'Tache_précédente': prevId,
     Initiative_ID: initiativeId,
     Pilote: pilotId,
   };
@@ -1786,7 +1789,7 @@ async function saveFullRecord(obj) {
   };
   if ('Niveau' in obj) fields.Niveau = obj.Niveau;
   if ('Action_Parent' in obj) fields.Action_Parent = normalizeRefValue(obj.Action_Parent);
-  if ('Tache_precedente' in obj || 'Tache_précédente' in obj) fields.Tache_precedente = normalizeRefValue(obj.Tache_precedente || obj['Tache_précédente']);
+  if ('Tache_precedente' in obj || 'Tache_précédente' in obj) fields['Tache_précédente'] = normalizeRefValue(obj.Tache_precedente || obj['Tache_précédente']);
   if (obj._initiativeEditId != null || 'Initiative_ID' in obj) fields.Initiative_ID = normalizeRefValue(obj._initiativeEditId ?? refIdOf(obj.Initiative_ID));
   if (obj._pilotEditId != null || 'Pilote' in obj) fields.Pilote = normalizeRefValue(obj._pilotEditId ?? pilotRefIdOf(obj));
 
