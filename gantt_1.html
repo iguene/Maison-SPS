@@ -1415,7 +1415,7 @@ function syncCreateLinkedFields() {
   const selectedProgramId = progSel.value || '';
   const currentParent = parentSel.value || '';
   const parentOptions = getParentProjectOptions(selectedProgramId);
-  parentSel.innerHTML = '<option value="">—</option>' + parentOptions.map(p => {
+  parentSel.innerHTML = '<option value="">Sélectionner…</option>' + parentOptions.map(p => {
     const selected = String(p.id) === String(currentParent) ? 'selected' : '';
     const label = esc(p.Libelle || p.Programme_Nom || ('Projet ' + p.id));
     return `<option value="${p.id}" ${selected}>${label}</option>`;
@@ -1428,7 +1428,7 @@ function syncCreateLinkedFields() {
   const selectedParentId = parentSel.value || '';
   const currentPrev = predSel.value || '';
   const predOptions = getTaskPredecessorOptions(selectedParentId);
-  predSel.innerHTML = '<option value="">—</option>' + predOptions.map(t => {
+  predSel.innerHTML = '<option value="">Aucune</option>' + predOptions.map(t => {
     const selected = String(t.id) === String(currentPrev) ? 'selected' : '';
     return `<option value="${t.id}" ${selected}>${esc(t.Libelle || ('Tâche ' + t.id))}</option>`;
   }).join('');
@@ -1444,7 +1444,7 @@ function syncEditTaskPredecessors(excludeId=null) {
   if (!parentSel || !predSel) return;
   const currentPrev = predSel.value || '';
   const options = getTaskPredecessorOptions(parentSel.value || '', excludeId);
-  predSel.innerHTML = '<option value="">—</option>' + options.map(t => {
+  predSel.innerHTML = '<option value="">Aucune</option>' + options.map(t => {
     const selected = String(t.id) === String(currentPrev) ? 'selected' : '';
     return `<option value="${t.id}" ${selected}>${esc(t.Libelle || ('Tâche ' + t.id))}</option>`;
   }).join('');
@@ -1532,11 +1532,18 @@ function renderSidePanel() {
     panel.classList.add('open');
     title.textContent = 'Nouvelle tâche';
     meta.innerHTML = '<span>Création</span>';
-    const defaultParent = filterProgram || (programs[0] ? programs[0].id : '');
+
+    const selected = selectedItem();
+    const selectedProg = selected?.type === 'prog' ? selected.item : null;
+    const selectedTask = selected?.type === 'task' ? selected.item : null;
+    const defaultParent = selectedProg?.id || refIdOf(selectedTask?.Action_Parent) || filterProgram || (programs[0] ? programs[0].id : '');
+    const defaultInitiative = selectedProg ? linkedProgramIdForAction(selectedProg) : (selectedTask ? linkedProgramIdForAction(selectedTask) : (defaultParent ? linkedProgramIdForAction(programs.find(p => String(p.id) === String(defaultParent)) || {}) : ''));
+
     body.innerHTML = formHtml({
-      Libelle:'', Statut:'A faire', PDCA:0, Description:'', Pilote:null, Initiative_ID:'',
-      Tache_precedente:null, Date_Demarrage:'', Date_Fin:'', Action_Parent: defaultParent, Niveau:'2 - Tâche'
+      Libelle:'', Statut:'A faire', PDCA:0, Description:'', Pilote:null, Initiative_ID: defaultInitiative || '',
+      Tache_precedente: selectedTask?.id || null, Date_Demarrage:'', Date_Fin:'', Action_Parent: defaultParent, Niveau:'2 - Tâche'
     }, 'create');
+    if (typeof syncCreateLinkedFields === 'function') setTimeout(syncCreateLinkedFields, 0);
     return;
   }
 
@@ -1563,25 +1570,25 @@ function formHtml(item, mode) {
   const prevVal = refIdOf(item.Tache_precedente || item['Tache_précédente']) || '';
   const initiativeVal = linkedProgramIdForAction(item) || '';
 
-  const initiativeOptions = ['<option value="">—</option>'].concat(programSheetRows.map(r => {
+  const initiativeOptions = ['<option value="">Sélectionner…</option>'].concat(programSheetRows.map(r => {
     const selected = String(r.id) === String(initiativeVal) ? 'selected' : '';
     return `<option value="${r.id}" ${selected}>${esc(programSheetName(r) || ('Programme ' + r.id))}</option>`;
   })).join('');
 
   const parentProjects = getParentProjectOptions(initiativeVal);
-  const projectOptions = ['<option value="">—</option>'].concat(parentProjects.map(p => {
+  const projectOptions = ['<option value="">Sélectionner…</option>'].concat(parentProjects.map(p => {
     const selected = String(p.id) === String(parentVal) ? 'selected' : '';
     const label = esc(p.Libelle || p.Programme_Nom || ('Projet ' + p.id));
     return `<option value="${p.id}" ${selected}>${label}</option>`;
   })).join('');
 
-  const predecessorOptions = ['<option value="">—</option>'].concat(getTaskPredecessorOptions(parentVal, item.id).map(t => {
+  const predecessorOptions = ['<option value="">Aucune</option>'].concat(getTaskPredecessorOptions(parentVal, item.id).map(t => {
     const selected = String(t.id) === String(prevVal) ? 'selected' : '';
     return `<option value="${t.id}" ${selected}>${esc(t.Libelle || ('Tâche ' + t.id))}</option>`;
   })).join('');
 
   const pilotCurrentId = pilotRefIdOf(item);
-  const pilotOptions = ['<option value="">—</option>'].concat(membersRows.map(m => {
+  const pilotOptions = ['<option value="">Sélectionner…</option>'].concat(membersRows.map(m => {
     const selected = String(m.id) === String(pilotCurrentId) ? 'selected' : '';
     return `<option value="${m.id}" ${selected}>${esc(memberName(m) || ('Membre ' + m.id))}</option>`;
   })).join('');
@@ -1616,31 +1623,31 @@ function formHtml(item, mode) {
     ${!isProg ? `
     <div class="form-grid-2">
       <div class="form-row">
-        <label class="form-label">Programme lié</label>
+        <label class="form-label">Programme lié (Initiative_ID)</label>
         <select class="form-select" id="panelInitiative" onchange="syncCreateLinkedFields()">${initiativeOptions}</select>
       </div>
       <div class="form-row">
-        <label class="form-label">Projet parent</label>
+        <label class="form-label">Projet parent (Action_Parent)</label>
         <select class="form-select" id="panelParent" onchange="${isCreate ? 'syncCreateLinkedFields()' : `syncEditTaskPredecessors(${item.id})`}">${projectOptions}</select>
       </div>
     </div>
     <div class="form-grid-2">
       <div class="form-row">
-        <label class="form-label">Tâche précédente</label>
+        <label class="form-label">Tâche précédente (Tache_précédente)</label>
         <select class="form-select" id="panelPrev">${predecessorOptions}</select>
       </div>
       <div class="form-row">
-        <label class="form-label">Pilote</label>
+        <label class="form-label">Pilote (réf. Membres)</label>
         <select class="form-select" id="panelPilot">${pilotOptions}</select>
       </div>
     </div>` : `
     <div class="form-grid-2">
       <div class="form-row">
-        <label class="form-label">Programme lié</label>
+        <label class="form-label">Programme lié (Initiative_ID)</label>
         <select class="form-select" id="panelInitiative">${initiativeOptions}</select>
       </div>
       <div class="form-row">
-        <label class="form-label">Pilote</label>
+        <label class="form-label">Pilote (réf. Membres)</label>
         <select class="form-select" id="panelPilot">${pilotOptions}</select>
       </div>
     </div>`}
@@ -1674,10 +1681,15 @@ async function saveSelectedFromPanel(id, mode) {
 }
 
 async function createTaskFromPanel() {
-  const initiativeId = normalizeRefValue(document.getElementById('panelInitiative')?.value || '');
+  let initiativeId = normalizeRefValue(document.getElementById('panelInitiative')?.value || '');
   const parentId = normalizeRefValue(document.getElementById('panelParent').value);
   const prevId = normalizeRefValue(document.getElementById('panelPrev')?.value || '');
   const pilotId = normalizeRefValue(document.getElementById('panelPilot')?.value || '');
+
+  if (!initiativeId && parentId) {
+    const parent = programs.find(p => String(p.id) === String(parentId)) || allActions.find(a => String(a.id) === String(parentId));
+    initiativeId = normalizeRefValue(linkedProgramIdForAction(parent || {}));
+  }
 
   const payload = {
     Libelle: document.getElementById('panelLibelle').value.trim() || 'Nouvelle tâche',
@@ -1696,7 +1708,7 @@ async function createTaskFromPanel() {
   try {
     setSavePill('saving');
     suppressNextRecordRefresh = true;
-    await grist.docApi.applyUserActions([[ 'AddRecord', 'Actions', null, payload ]]);
+    await grist.docApi.applyUserActions([[ 'AddRecord', currentActionsTable(), null, payload ]]);
     panelMode = 'view';
     await refreshFromGrist();
     setSavePill('saved');
@@ -1726,7 +1738,7 @@ async function saveFullRecord(obj) {
   try {
     setSavePill('saving');
     suppressNextRecordRefresh = true;
-    await grist.docApi.applyUserActions([[ 'UpdateRecord', 'Actions', obj.id, fields ]]);
+    await grist.docApi.applyUserActions([[ 'UpdateRecord', currentActionsTable(), obj.id, fields ]]);
     delete obj._pilotEditId;
     delete obj._initiativeEditId;
     await refreshFromGrist();
@@ -2084,6 +2096,10 @@ function findTask(id) {
    GRIST INTEGRATION
 ════════════════════════════════════════════ */
 let gristReady = false;
+const ACTIONS_TABLE_CANDIDATES = ['Actions'];
+const MEMBERS_TABLE_CANDIDATES = ['Membres', 'Table1'];
+const PROGRAMS_TABLE_CANDIDATES = ['Fiches Programmes'];
+let resolvedTableNames = { Actions:'Actions', Membres:null, Programmes:null };
 
 function convertColumnar(data) {
   if (!data) return [];
@@ -2100,19 +2116,37 @@ function convertColumnar(data) {
 
 let suppressNextRecordRefresh = false;
 
+async function fetchFirstAvailableTable(candidates) {
+  let lastErr = null;
+  for (const name of candidates) {
+    try {
+      const raw = await grist.docApi.fetchTable(name);
+      return { name, rows: convertColumnar(raw) };
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  if (lastErr) console.warn('Table introuvable parmi', candidates, lastErr);
+  return { name: null, rows: [] };
+}
+
+function currentActionsTable() {
+  return resolvedTableNames.Actions || ACTIONS_TABLE_CANDIDATES[0];
+}
+
 async function refreshFromGrist() {
-  const raw = await grist.docApi.fetchTable('Actions');
-  allActions = convertColumnar(raw);
-  try {
-    membersRows = convertColumnar(await grist.docApi.fetchTable('Membres'));
-  } catch (e) {
-    membersRows = [];
-  }
-  try {
-    programSheetRows = convertColumnar(await grist.docApi.fetchTable('Fiches Programmes'));
-  } catch (e) {
-    programSheetRows = [];
-  }
+  const actionsResult = await fetchFirstAvailableTable(ACTIONS_TABLE_CANDIDATES);
+  resolvedTableNames.Actions = actionsResult.name || ACTIONS_TABLE_CANDIDATES[0];
+  allActions = actionsResult.rows;
+
+  const membersResult = await fetchFirstAvailableTable(MEMBERS_TABLE_CANDIDATES);
+  resolvedTableNames.Membres = membersResult.name;
+  membersRows = membersResult.rows;
+
+  const programsResult = await fetchFirstAvailableTable(PROGRAMS_TABLE_CANDIDATES);
+  resolvedTableNames.Programmes = programsResult.name;
+  programSheetRows = programsResult.rows;
+
   buildProgramStructure(allActions);
   if (!hasAutoFittedView) fitTimelineToAll();
   render();
