@@ -139,7 +139,7 @@ body {
   position: absolute; left: 0; right: 0;
   border-bottom: 1px solid #f1f5f9; height: 36px;
 }
-.gantt-row:hover { background: rgba(0,0,0,.015); }
+.gantt-row:hover    { background: rgba(0,0,0,.015); }
 .gantt-row.selected { background: rgba(59,130,246,.06); }
 
 /* ── LIGNES VERTICALES ── */
@@ -168,7 +168,6 @@ body {
 .gantt-bar.dragging { cursor: grabbing; opacity: .85; box-shadow: 0 4px 16px rgba(0,0,0,.3); z-index: 20; transition: none; }
 .gantt-bar.selected { box-shadow: 0 0 0 2px #3b82f6, 0 2px 8px rgba(0,0,0,.2); }
 .gantt-bar.cascaded { box-shadow: 0 0 0 2px #f59e0b; }
-
 .gantt-bar-label {
   font-size: .67rem; font-weight: 700; color: white;
   text-shadow: 0 1px 2px rgba(0,0,0,.35);
@@ -178,8 +177,6 @@ body {
   position: absolute; left: 0; top: 0; bottom: 0;
   border-radius: 4px; background: rgba(0,0,0,.18); pointer-events: none;
 }
-
-/* Handles resize */
 .resize-handle {
   position: absolute; top: 0; bottom: 0; width: 8px;
   cursor: ew-resize; z-index: 10;
@@ -198,11 +195,14 @@ body {
   font-size: .76rem; line-height: 1.7;
   pointer-events: none; display: none;
   box-shadow: 0 4px 20px rgba(0,0,0,.35);
-  min-width: 200px;
+  min-width: 210px;
 }
-.gantt-tooltip strong { font-size: .82rem; display: block; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,.2); padding-bottom: 4px; }
-.gantt-tooltip .tt-row { display: flex; justify-content: space-between; gap: 16px; }
-.gantt-tooltip .tt-val { font-weight: 600; color: #93c5fd; }
+.gantt-tooltip strong {
+  font-size: .82rem; display: block; margin-bottom: 4px;
+  border-bottom: 1px solid rgba(255,255,255,.2); padding-bottom: 4px;
+}
+.tt-row { display: flex; justify-content: space-between; gap: 16px; }
+.tt-val { font-weight: 600; color: #93c5fd; }
 
 /* ── TOAST ── */
 .toast {
@@ -221,10 +221,7 @@ body {
 }
 .legend-item { display: flex; align-items: center; gap: 6px; font-size: .72rem; color: #475569; font-weight: 600; }
 .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
-.statut-badge {
-  display: inline-block; padding: 1px 8px; border-radius: 10px;
-  font-size: .65rem; font-weight: 600;
-}
+.statut-badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: .65rem; font-weight: 600; }
 .s-en-cours { background: #dbeafe; color: #1d4ed8; }
 .s-termine  { background: #dcfce7; color: #15803d; }
 .s-a-faire  { background: #fef9c3; color: #854d0e; }
@@ -249,7 +246,6 @@ body {
 <div class="toast" id="toast"></div>
 
 <div id="gantt-wrap">
-
   <div class="top-bar">
     <div class="logo-sm">SPS<span>MEDICAL</span></div>
     <div class="page-title">📅 Planning Gantt — Maison SPS Medical (Vision 3 ans)</div>
@@ -308,26 +304,28 @@ body {
     <span class="statut-badge s-termine">Terminé</span>
     <span class="statut-badge s-a-faire">A faire</span>
     <span style="margin-left:auto;font-size:.68rem;color:#94a3b8;font-style:italic">
-      Glisser barre = déplacer · Poignées = redimensionner · Cascade automatique des tâches liées
+      Glisser = déplacer · Poignées = redimensionner · Cascade automatique des tâches liées
     </span>
   </div>
 </div>
 
 <script>
-/* ════════════════════════════════════════════
-   CONSTANTES & ÉTAT
-════════════════════════════════════════════ */
+/* ══════════════════════════════════════
+   ÉTAT GLOBAL
+══════════════════════════════════════ */
 const W = 1400, H = 860, ROW_H = 36;
-let allFiches   = [];
-let filtered    = [];
-let selectedId  = null;
-let zoom        = 'mois';
-let pendingChanges = {}; // id → { Date_Demarrage, Date_Fin }
-let originalDates  = {}; // id → { Date_Demarrage, Date_Fin } snapshot avant modifs
+let allFiches      = [];
+let filtered       = [];
+let selectedId     = null;
+let zoom           = 'mois';
+let pendingChanges = {};
+let originalDates  = {};
 let saveTimer      = null;
 let toastTimer     = null;
+let gristLoaded    = false;
 
 const NIVEAU_COLORS = { projet: '#2980b9', tache: '#27ae60', default: '#8e44ad' };
+
 function getNiveauKey(n) {
   if (!n) return 'default';
   const s = String(n).toLowerCase();
@@ -338,9 +336,9 @@ function getNiveauKey(n) {
 function getNiveauColor(n) { return NIVEAU_COLORS[getNiveauKey(n)]; }
 function isTache(f) { return getNiveauKey(f.Niveau) === 'tache'; }
 
-/* ════════════════════════════════════════════
+/* ══════════════════════════════════════
    SCALE
-════════════════════════════════════════════ */
+══════════════════════════════════════ */
 function scaleToFit() {
   const el = document.getElementById('gantt-wrap');
   const sc = Math.min(window.innerWidth / W, window.innerHeight / H);
@@ -350,12 +348,12 @@ function scaleToFit() {
 }
 window.addEventListener('resize', scaleToFit);
 
-/* ════════════════════════════════════════════
+/* ══════════════════════════════════════
    DATES
-════════════════════════════════════════════ */
+══════════════════════════════════════ */
 function parseDate(val) {
   if (!val) return null;
-  if (val instanceof Date) return val;
+  if (val instanceof Date) return isNaN(val) ? null : val;
   if (typeof val === 'number') return new Date(val * 1000);
   if (typeof val === 'string') {
     if (val.match(/^\d{2}-\d{2}-\d{4}$/)) {
@@ -379,18 +377,20 @@ function addDays(d, n) {
 }
 function daysBetween(a, b) { return Math.round((b - a) / 86400000); }
 function dateToTimestamp(d) { return Math.round(d.getTime() / 1000); }
+function getWeekNum(d) {
+  const j = new Date(d.getFullYear(), 0, 1);
+  return Math.ceil((((d - j) / 86400000) + j.getDay() + 1) / 7);
+}
 
-// Récupère la date effective (modif en cours ou originale)
 function getEffectiveDate(f, field) {
-  if (pendingChanges[f.id] && pendingChanges[f.id][field] !== undefined) {
+  if (pendingChanges[f.id] && pendingChanges[f.id][field] !== undefined)
     return parseDate(pendingChanges[f.id][field]);
-  }
   return parseDate(f[field]);
 }
 
-/* ════════════════════════════════════════════
+/* ══════════════════════════════════════
    PLAGE & COORDONNÉES
-════════════════════════════════════════════ */
+══════════════════════════════════════ */
 function getRange(fiches) {
   let min = null, max = null;
   fiches.forEach(f => {
@@ -405,14 +405,15 @@ function getRange(fiches) {
   max = new Date(max); max.setMonth(max.getMonth() + 2); max.setDate(1);
   return { min, max };
 }
+
 const UNIT_PX = { semaine: 42, mois: 62, trimestre: 120 };
+
 function dateToX(date, rangeMin) {
   const days = daysBetween(rangeMin, date);
   const u = UNIT_PX[zoom];
   if (zoom === 'semaine')   return days * (u / 7);
   if (zoom === 'mois')      return days * (u / 30);
-  if (zoom === 'trimestre') return days * (u / 90);
-  return days;
+  return days * (u / 90);
 }
 function xToDate(x, rangeMin) {
   const u = UNIT_PX[zoom];
@@ -424,38 +425,506 @@ function xToDate(x, rangeMin) {
   d.setDate(d.getDate() + Math.round(days));
   return d;
 }
-function getWeekNum(d) {
-  const onejan = new Date(d.getFullYear(), 0, 1);
-  return Math.ceil((((d - onejan) / 86400000) + onejan.getDay() + 1) / 7);
-}
 
-/* ════════════════════════════════════════════
-   CASCADE AUTOMATIQUE
-   Si on bouge f, on décale récursivement toutes
-   les tâches enfants liées via Action_Parent
-════════════════════════════════════════════ */
+/* ══════════════════════════════════════
+   CASCADE
+══════════════════════════════════════ */
 function cascadeChildren(movedId, deltaDays, visited = new Set()) {
   if (visited.has(movedId)) return;
   visited.add(movedId);
-
   allFiches.forEach(child => {
-    let parentId = null;
-    if (Array.isArray(child.Action_Parent))       parentId = child.Action_Parent[0];
-    else if (typeof child.Action_Parent === 'number') parentId = child.Action_Parent;
-    if (parentId !== movedId) return;
-
-    const cStart = getEffectiveDate(child, 'Date_Demarrage');
-    const cEnd   = getEffectiveDate(child, 'Date_Fin');
-    if (!cStart || !cEnd) return;
-
-    const newStart = addDays(cStart, deltaDays);
-    const newEnd   = addDays(cEnd,   deltaDays);
-
+    let pid = null;
+    if (Array.isArray(child.Action_Parent))           pid = child.Action_Parent[0];
+    else if (typeof child.Action_Parent === 'number') pid = child.Action_Parent;
+    if (pid !== movedId) return;
+    const cS = getEffectiveDate(child, 'Date_Demarrage');
+    const cE = getEffectiveDate(child, 'Date_Fin');
+    if (!cS || !cE) return;
     if (!pendingChanges[child.id]) pendingChanges[child.id] = {};
-    pendingChanges[child.id].Date_Demarrage = dateToTimestamp(newStart);
-    pendingChanges[child.id].Date_Fin       = dateToTimestamp(newEnd);
-
-    // Marquer comme cascadé dans allFiches pour l'affichage
+    pendingChanges[child.id].Date_Demarrage = dateToTimestamp(addDays(cS, deltaDays));
+    pendingChanges[child.id].Date_Fin       = dateToTimestamp(addDays(cE, deltaDays));
     child._cascaded = true;
+    cascadeChildren(child.id, deltaDays, visited);
+  });
+}
 
-    cascadeChildren(child.id, deltaDays,
+/* ══════════════════════════════════════
+   SAUVEGARDE & UNDO
+══════════════════════════════════════ */
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  document.getElementById('undo-btn').classList.add('visible');
+  saveTimer = setTimeout(async () => {
+    const entries = Object.entries(pendingChanges);
+    if (!entries.length) return;
+    try {
+      await grist.docApi.applyUserActions(
+        entries.map(([id, fields]) => ['UpdateRecord', 'Actions', +id, fields])
+      );
+      showToast(`✓ ${entries.length} modification(s) sauvegardée(s)`);
+      entries.forEach(([id]) => {
+        const f = allFiches.find(f => f.id === +id);
+        if (f) f._cascaded = false;
+      });
+      pendingChanges = {};
+      originalDates  = {};
+      document.getElementById('undo-btn').classList.remove('visible');
+    } catch(e) {
+      showToast('⚠ Erreur de sauvegarde');
+      console.error(e);
+    }
+  }, 800);
+}
+
+function undoChanges() {
+  clearTimeout(saveTimer);
+  Object.entries(originalDates).forEach(([id, dates]) => {
+    const f = allFiches.find(f => f.id === +id);
+    if (f) { f.Date_Demarrage = dates.Date_Demarrage; f.Date_Fin = dates.Date_Fin; f._cascaded = false; }
+  });
+  pendingChanges = {}; originalDates = {};
+  document.getElementById('undo-btn').classList.remove('visible');
+  showToast('↩ Modifications annulées');
+  render();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+/* ══════════════════════════════════════
+   DRAG & RESIZE
+══════════════════════════════════════ */
+let dragState = null;
+
+function startDrag(e, f, barEl, mode, range) {
+  e.preventDefault(); e.stopPropagation();
+  if (!originalDates[f.id]) {
+    originalDates[f.id] = { Date_Demarrage: f.Date_Demarrage, Date_Fin: f.Date_Fin };
+  }
+  const wrap   = document.getElementById('gantt-wrap');
+  const matrix = new DOMMatrix(getComputedStyle(wrap).transform);
+  const scale  = matrix.a || 1;
+  dragState = {
+    id: f.id, mode, scale, range,
+    startX:    e.clientX,
+    origStart: getEffectiveDate(f, 'Date_Demarrage'),
+    origEnd:   getEffectiveDate(f, 'Date_Fin'),
+    barEl,
+  };
+  barEl.classList.add('dragging');
+  document.addEventListener('mousemove', onDragMove);
+  document.addEventListener('mouseup',   onDragEnd);
+}
+
+function onDragMove(e) {
+  if (!dragState) return;
+  const dx    = (e.clientX - dragState.startX) / dragState.scale;
+  const moved = xToDate(dateToX(dragState.origStart, dragState.range.min) + dx, dragState.range.min);
+  const delta = daysBetween(dragState.origStart, moved);
+  const f     = allFiches.find(f => f.id === dragState.id);
+  if (!pendingChanges[f.id]) pendingChanges[f.id] = {};
+
+  let newStart = dragState.origStart;
+  let newEnd   = dragState.origEnd;
+
+  if (dragState.mode === 'move') {
+    newStart = addDays(dragState.origStart, delta);
+    newEnd   = addDays(dragState.origEnd,   delta);
+  } else if (dragState.mode === 'resize-left') {
+    newStart = addDays(dragState.origStart, delta);
+    if (daysBetween(newStart, dragState.origEnd) < 1) newStart = addDays(dragState.origEnd, -1);
+    newEnd = dragState.origEnd;
+  } else if (dragState.mode === 'resize-right') {
+    const dxR  = (e.clientX - dragState.startX) / dragState.scale;
+    const movedR = xToDate(dateToX(dragState.origEnd, dragState.range.min) + dxR, dragState.range.min);
+    newEnd = movedR;
+    if (daysBetween(dragState.origStart, newEnd) < 1) newEnd = addDays(dragState.origStart, 1);
+    newStart = dragState.origStart;
+  }
+
+  pendingChanges[f.id].Date_Demarrage = dateToTimestamp(newStart);
+  pendingChanges[f.id].Date_Fin       = dateToTimestamp(newEnd);
+
+  if (dragState.mode === 'move') {
+    allFiches.forEach(c => { c._cascaded = false; });
+    cascadeChildren(f.id, delta, new Set([f.id]));
+  }
+  render();
+}
+
+function onDragEnd() {
+  if (!dragState) return;
+  document.removeEventListener('mousemove', onDragMove);
+  document.removeEventListener('mouseup',   onDragEnd);
+  dragState.barEl.classList.remove('dragging');
+  dragState = null;
+  scheduleSave();
+}
+
+/* ══════════════════════════════════════
+   TOOLTIP
+══════════════════════════════════════ */
+function showTooltip(e, f) {
+  const tt     = document.getElementById('tooltip');
+  const dS     = getEffectiveDate(f, 'Date_Demarrage');
+  const dE     = getEffectiveDate(f, 'Date_Fin');
+  const pilote = Array.isArray(f.Pilote) ? (f.Pilote[1] || '—') : (f.Pilote || '—');
+  tt.innerHTML = `
+    <strong>${esc(f.Libelle || '—')}</strong>
+    <div class="tt-row"><span>Priorité</span><span class="tt-val">${esc(f.Priorite||'—')}</span></div>
+    <div class="tt-row"><span>Dates</span><span class="tt-val">${fmtDate(dS)} → ${fmtDate(dE)}</span></div>
+    <div class="tt-row"><span>Durée</span><span class="tt-val">${dS&&dE ? daysBetween(dS,dE)+' j' : '—'}</span></div>
+    <div class="tt-row"><span>Statut</span><span class="tt-val">${esc(f.Statut||'—')}</span></div>
+    <div class="tt-row"><span>Pilote</span><span class="tt-val">${esc(pilote)}</span></div>
+    <div class="tt-row"><span>Avancement</span><span class="tt-val">${f.PDCA||0}%</span></div>
+  `;
+  tt.style.display = 'block';
+  moveTooltip(e);
+}
+function moveTooltip(e) {
+  const tt = document.getElementById('tooltip');
+  tt.style.left = Math.min(e.clientX + 14, window.innerWidth  - 230) + 'px';
+  tt.style.top  = Math.min(e.clientY + 14, window.innerHeight - 170) + 'px';
+}
+function hideTooltip() { document.getElementById('tooltip').style.display = 'none'; }
+
+/* ══════════════════════════════════════
+   HEADER DATES
+══════════════════════════════════════ */
+function renderHeader(range) {
+  const months = document.getElementById('header-months');
+  const weeks  = document.getElementById('header-weeks');
+  months.innerHTML = weeks.innerHTML = '';
+
+  if (zoom === 'trimestre') {
+    const cur = new Date(range.min);
+    while (cur < range.max) {
+      const qS = new Date(cur);
+      const q  = Math.floor(cur.getMonth() / 3);
+      cur.setMonth((q + 1) * 3); cur.setDate(1);
+      const qE = cur < range.max ? new Date(cur) : new Date(range.max);
+      const w  = dateToX(qE, range.min) - dateToX(qS, range.min);
+      const d  = document.createElement('div');
+      d.className = 'gantt-header-month'; d.style.width = w + 'px';
+      d.textContent = `T${q+1} ${qS.getFullYear()}`;
+      months.appendChild(d);
+    }
+    return;
+  }
+
+  const cur2 = new Date(range.min);
+  while (cur2 < range.max) {
+    const mS = new Date(cur2);
+    cur2.setMonth(cur2.getMonth() + 1); cur2.setDate(1);
+    const mE = cur2 < range.max ? new Date(cur2) : new Date(range.max);
+    const w  = dateToX(mE, range.min) - dateToX(mS, range.min);
+    const d  = document.createElement('div');
+    d.className = 'gantt-header-month'; d.style.width = w + 'px';
+    d.textContent = fmtMonth(mS);
+    months.appendChild(d);
+  }
+
+  const cur3 = new Date(range.min);
+  const dy = cur3.getDay();
+  cur3.setDate(cur3.getDate() - (dy === 0 ? 6 : dy - 1));
+  while (cur3 < range.max) {
+    const wS = new Date(cur3); cur3.setDate(cur3.getDate() + 7);
+    const wE = cur3 < range.max ? new Date(cur3) : new Date(range.max);
+    const x1 = Math.max(0, dateToX(wS, range.min));
+    const w  = dateToX(wE, range.min) - x1;
+    if (w < 1) continue;
+    const d = document.createElement('div');
+    d.className = 'gantt-header-week'; d.style.width = w + 'px';
+    d.textContent = zoom === 'semaine' ? `S${getWeekNum(wS)}` : wS.getDate();
+    weeks.appendChild(d);
+  }
+}
+
+/* ══════════════════════════════════════
+   LIGNES VERTICALES
+══════════════════════════════════════ */
+function renderVLines(range, totalH) {
+  const rows = document.getElementById('gantt-rows');
+  rows.querySelectorAll('.gantt-vline,.today-line').forEach(e => e.remove());
+  const cur = new Date(range.min);
+  while (cur < range.max) {
+    const x = dateToX(cur, range.min);
+    const l = document.createElement('div');
+    l.className = 'gantt-vline' + (cur.getDate() === 1 ? ' month' : '');
+    l.style.left = x + 'px'; l.style.height = totalH + 'px';
+    rows.appendChild(l);
+    if (zoom === 'trimestre') cur.setMonth(cur.getMonth() + 3);
+    else if (zoom === 'mois') cur.setMonth(cur.getMonth() + 1);
+    else cur.setDate(cur.getDate() + 7);
+  }
+  const tx = dateToX(new Date(), range.min);
+  if (tx > 0) {
+    const tl = document.createElement('div');
+    tl.className = 'today-line'; tl.style.left = tx + 'px'; tl.style.height = totalH + 'px';
+    rows.appendChild(tl);
+  }
+}
+
+/* ══════════════════════════════════════
+   RENDER
+══════════════════════════════════════ */
+function render() {
+  const hasDates = filtered.some(f =>
+    getEffectiveDate(f, 'Date_Demarrage') && getEffectiveDate(f, 'Date_Fin')
+  );
+
+  // Liste gauche
+  const lb = document.getElementById('task-list-body');
+  lb.innerHTML = '';
+  filtered.forEach(f => {
+    const color    = getNiveauColor(f.Niveau);
+    const estT     = isTache(f);
+    const modified = !!pendingChanges[f.id];
+    const dS = getEffectiveDate(f, 'Date_Demarrage');
+    const dE = getEffectiveDate(f, 'Date_Fin');
+    const row = document.createElement('div');
+    row.className = 'task-row' + (selectedId === f.id ? ' selected' : '') + (modified ? ' modified' : '');
+    row.innerHTML = `
+      <div class="task-name" style="padding-left:${estT ? 20 : 8}px">
+        <div class="pilier-dot" style="background:${color};${estT?'width:6px;height:6px;border-radius:2px':''}"></div>
+        <span style="color:${estT?'#475569':'#1e293b'};font-weight:${estT?500:700}">
+          ${estT ? '└&nbsp;' : ''}${esc(f.Libelle || '—')}
+        </span>
+      </div>
+      <div class="task-date${modified?' changed':''}">${fmtDate(dS)}</div>
+      <div class="task-date${modified?' changed':''}">${fmtDate(dE)}</div>
+    `;
+    row.onclick = () => selectFiche(f.id);
+    lb.appendChild(row);
+  });
+
+  if (!hasDates) {
+    document.getElementById('gantt-rows').innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:center;height:250px;
+        flex-direction:column;gap:12px;color:#94a3b8;font-size:.85rem;font-style:italic">
+        <div style="font-size:2.5rem">📅</div>
+        <div>Aucune date renseignée dans les actions.</div>
+        <div style="font-size:.75rem">Renseignez <strong style="color:#475569">Date_Demarrage</strong>
+        et <strong style="color:#475569">Date_Fin</strong> dans la table Actions.</div>
+      </div>`;
+    document.getElementById('header-months').innerHTML = '';
+    document.getElementById('header-weeks').innerHTML  = '';
+    return;
+  }
+
+  const range  = getRange(filtered);
+  const totalW = dateToX(range.max, range.min);
+  const totalH = filtered.length * ROW_H;
+
+  renderHeader(range);
+  document.getElementById('gantt-header').style.width = totalW + 'px';
+
+  const ganttRows = document.getElementById('gantt-rows');
+  ganttRows.style.width  = totalW + 'px';
+  ganttRows.style.height = totalH + 'px';
+  ganttRows.querySelectorAll('.gantt-row').forEach(e => e.remove());
+
+  const idxMap = {};
+  filtered.forEach((f, i) => { idxMap[f.id] = i; });
+
+  // SVG flèches
+  let svg = document.getElementById('gantt-arrows');
+  if (svg) svg.remove();
+  svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.id = 'gantt-arrows';
+  svg.style.cssText = `position:absolute;top:0;left:0;width:${totalW}px;height:${totalH}px;pointer-events:none;z-index:3;overflow:visible`;
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  Object.values(NIVEAU_COLORS).forEach(c => {
+    const mk = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+    mk.setAttribute('id','arr-'+c.replace('#','')); mk.setAttribute('markerWidth','7');
+    mk.setAttribute('markerHeight','7'); mk.setAttribute('refX','6');
+    mk.setAttribute('refY','3.5'); mk.setAttribute('orient','auto');
+    const pl = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    pl.setAttribute('points','0 0,7 3.5,0 7'); pl.setAttribute('fill',c);
+    mk.appendChild(pl); defs.appendChild(mk);
+  });
+  svg.appendChild(defs);
+
+  filtered.forEach((f, idx) => {
+    const dS    = getEffectiveDate(f, 'Date_Demarrage');
+    const dE    = getEffectiveDate(f, 'Date_Fin');
+    const color = getNiveauColor(f.Niveau);
+    const avct  = Math.min(100, Math.max(0, f.PDCA || 0));
+    const estT  = isTache(f);
+
+    const row = document.createElement('div');
+    row.className = 'gantt-row' + (selectedId === f.id ? ' selected' : '');
+    row.style.top = idx * ROW_H + 'px'; row.style.height = ROW_H + 'px';
+    row.onclick = () => selectFiche(f.id);
+
+    if (dS && dE) {
+      const x1 = Math.max(0, dateToX(dS, range.min));
+      const x2 = Math.max(x1 + 6, dateToX(dE, range.min));
+      const bw = x2 - x1;
+      const bh = estT ? 18 : 24;
+      const bt = (ROW_H - bh) / 2;
+
+      const bar = document.createElement('div');
+      bar.className = 'gantt-bar'
+        + (selectedId === f.id ? ' selected' : '')
+        + (f._cascaded ? ' cascaded' : '');
+      bar.style.cssText = `left:${x1}px;width:${bw}px;top:${bt}px;height:${bh}px;background:${color};opacity:${estT?.78:1}`;
+
+      const prog = document.createElement('div');
+      prog.className = 'gantt-bar-progress'; prog.style.width = avct + '%';
+      bar.appendChild(prog);
+
+      if (bw > 30) {
+        const lbl = document.createElement('div');
+        lbl.className = 'gantt-bar-label'; lbl.textContent = f.Libelle || '';
+        bar.appendChild(lbl);
+      }
+
+      const hl = document.createElement('div');
+      hl.className = 'resize-handle left';
+      hl.onmousedown = e => { e.stopPropagation(); startDrag(e, f, bar, 'resize-left', range); };
+      bar.appendChild(hl);
+
+      const hr = document.createElement('div');
+      hr.className = 'resize-handle right';
+      hr.onmousedown = e => { e.stopPropagation(); startDrag(e, f, bar, 'resize-right', range); };
+      bar.appendChild(hr);
+
+      bar.onmousedown = e => {
+        if (e.target.classList.contains('resize-handle')) return;
+        startDrag(e, f, bar, 'move', range);
+      };
+      bar.onmouseenter = e => showTooltip(e, f);
+      bar.onmousemove  = e => moveTooltip(e);
+      bar.onmouseleave = hideTooltip;
+
+      row.appendChild(bar);
+
+      // Flèche dépendance
+      let pid = null;
+      if (Array.isArray(f.Action_Parent))           pid = f.Action_Parent[0];
+      else if (typeof f.Action_Parent === 'number') pid = f.Action_Parent;
+      if (pid !== null) {
+        const pi = idxMap[pid];
+        if (pi !== undefined) {
+          const pE  = getEffectiveDate(filtered[pi], 'Date_Fin');
+          if (pE) {
+            const px  = dateToX(pE, range.min);
+            const py  = pi  * ROW_H + ROW_H / 2;
+            const cy  = idx * ROW_H + ROW_H / 2;
+            const mid = (px + x1) / 2;
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d',           `M ${px} ${py} C ${mid} ${py}, ${mid} ${cy}, ${x1} ${cy}`);
+            path.setAttribute('stroke',      color);
+            path.setAttribute('stroke-width','1.5');
+            path.setAttribute('fill',        'none');
+            path.setAttribute('stroke-dasharray','4,3');
+            path.setAttribute('marker-end', `url(#arr-${color.replace('#','')})`);
+            svg.appendChild(path);
+          }
+        }
+      }
+    }
+    ganttRows.appendChild(row);
+  });
+
+  ganttRows.appendChild(svg);
+  renderVLines(range, totalH);
+  syncScroll();
+}
+
+/* ══════════════════════════════════════
+   UTILITAIRES
+══════════════════════════════════════ */
+function syncScroll() {
+  const lb = document.getElementById('task-list-body');
+  const gb = document.getElementById('gantt-body');
+  lb.onscroll = () => { gb.scrollTop = lb.scrollTop; };
+  gb.onscroll = () => { lb.scrollTop = gb.scrollTop; };
+}
+function applyFilters() {
+  const niveau = document.getElementById('filter-niveau').value;
+  const statut = document.getElementById('filter-statut').value;
+  filtered = allFiches.filter(f => {
+    if (niveau && !String(f.Niveau || '').toLowerCase().includes(niveau)) return false;
+    if (statut && String(f.Statut || '') !== statut) return false;
+    return true;
+  });
+  render();
+}
+function setZoom(z) {
+  zoom = z;
+  ['semaine','mois','trimestre'].forEach(id =>
+    document.getElementById('z-' + id).classList.toggle('active', id === z)
+  );
+  render();
+}
+function selectFiche(id) {
+  selectedId = (selectedId === id) ? null : id;
+  try { if (selectedId) grist.setSelectedRows([selectedId]); } catch(e) {}
+  render();
+}
+function goMaison() { try { grist.setSelectedRows([]); } catch(e) {} }
+function goFiche()  { try { if (selectedId) grist.setSelectedRows([selectedId]); } catch(e) {} }
+function esc(t) {
+  const d = document.createElement('div'); d.textContent = String(t || ''); return d.innerHTML;
+}
+
+/* ══════════════════════════════════════
+   DONNÉES DÉMO
+══════════════════════════════════════ */
+const DEMO = [
+  { id:1, Libelle:'Former les assembleurs', Niveau:'1 - Projet', Action_Parent:null, Date_Demarrage:1735689600, Date_Fin:1767225600, Statut:'En Cours', PDCA:30,  Pilote:'Emilie RIV',   Priorite:'Haute' },
+  { id:2, Libelle:'Préparer le support',    Niveau:'2 - Tâche',  Action_Parent:1,    Date_Demarrage:1735689600, Date_Fin:1740700800, Statut:'Terminé',  PDCA:100, Pilote:'Emilie RIV',   Priorite:'Haute' },
+  { id:3, Libelle:'Envoyer convocations',   Niveau:'2 - Tâche',  Action_Parent:1,    Date_Demarrage:1740700800, Date_Fin:1746057600, Statut:'En Cours', PDCA:40,  Pilote:'Claire PRIN',  Priorite:'Moyenne' },
+  { id:4, Libelle:'Envoyer compte-rendu',   Niveau:'1 - Projet', Action_Parent:null, Date_Demarrage:1740960000, Date_Fin:1751328000, Statut:'A faire',  PDCA:0,   Pilote:'Emmanuel',     Priorite:'Basse' },
+  { id:5, Libelle:'Préparer le contenu',    Niveau:'2 - Tâche',  Action_Parent:4,    Date_Demarrage:1740960000, Date_Fin:1746057600, Statut:'A faire',  PDCA:0,   Pilote:'Claire PRIN',  Priorite:'Basse' },
+];
+
+/* ══════════════════════════════════════
+   INIT
+══════════════════════════════════════ */
+function show() {
+  document.getElementById('loading').style.display = 'none';
+  const wrap = document.getElementById('gantt-wrap');
+  wrap.style.display = 'flex';
+  scaleToFit();
+}
+
+const fallbackTimer = setTimeout(() => {
+  allFiches = DEMO; filtered = DEMO; show(); render();
+}, 1500);
+
+try {
+  grist.ready({ requiredAccess: 'full' });
+
+  grist.onRecords(records => {
+    clearTimeout(fallbackTimer);           // toujours annuler le timer
+    if (records && records.length > 0) {
+      gristLoaded = true;
+      allFiches   = records;
+      filtered    = records;
+      show(); render();
+    } else if (!gristLoaded) {
+      // Grist répond mais table vide → démo
+      allFiches = DEMO; filtered = DEMO;
+      show(); render();
+    }
+  });
+
+  grist.onRecord(rec => {
+    if (rec && rec.id) { selectedId = rec.id; render(); }
+  });
+
+} catch(e) {
+  clearTimeout(fallbackTimer);
+  allFiches = DEMO; filtered = DEMO;
+  show(); render();
+}
+</script>
+</body>
+</html>
