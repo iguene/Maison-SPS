@@ -104,8 +104,6 @@ body { font-family: 'Segoe UI', -apple-system, sans-serif; background: #f0f4f8; 
 #loading { display: flex; align-items: center; justify-content: center; width: 100%; height: 100vh; color: #888; gap: 10px; font-size: .9rem; }
 .spinner { width: 22px; height: 22px; border: 2px solid #ddd; border-top-color: #c0392b; border-radius: 50%; animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-
-#debug-panel { position:fixed; bottom:60px; right:10px; background:#1e293b; color:#94a3b8; font-size:.65rem; padding:8px; border-radius:6px; max-width:300px; max-height:200px; overflow:auto; z-index:9998; display:none; font-family:monospace; }
 </style>
 </head>
 <body>
@@ -113,7 +111,6 @@ body { font-family: 'Segoe UI', -apple-system, sans-serif; background: #f0f4f8; 
 <div id="loading"><div class="spinner"></div>Chargement...</div>
 <div class="gantt-tooltip" id="tooltip"></div>
 <div class="toast" id="toast"></div>
-<div id="debug-panel"></div>
 
 <div id="gantt-wrap">
   <div class="top-bar">
@@ -165,31 +162,35 @@ body { font-family: 'Segoe UI', -apple-system, sans-serif; background: #f0f4f8; 
 
   <div class="legend">
     <div class="legend-item"><div class="legend-dot" style="background:#2c3e50;height:8px"></div>Programme</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#2980b9"></div>Tâche</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2980b9"></div>Tâches (même programme = même couleur)</div>
     <div class="legend-item"><div style="width:12px;height:12px;border:2px solid #f59e0b;border-radius:3px"></div>Poussée</div>
     <div class="legend-item"><div style="width:12px;height:12px;border:2px solid #ef4444;border-radius:3px"></div>Dépasse programme</div>
-    <span style="margin-left:auto;font-size:.68rem;color:#94a3b8;font-style:italic">
-      Glisser = déplacer · Poignées = redimensionner · → cascade automatique
-    </span>
+    <span style="margin-left:auto;font-size:.68rem;color:#94a3b8;font-style:italic">Glisser · Poignées · → cascade auto</span>
   </div>
 </div>
 
 <script>
-/* ══════════════════════════════════════
+/* ══════════════════════════════════════════════════
    ÉTAT
-══════════════════════════════════════ */
+══════════════════════════════════════════════════ */
 const W=1400, H=860, ROW_H=36;
 let allFiches=[], filtered=[], selectedId=null, zoom='mois';
 let pendingChanges={}, originalDates={};
 let saveTimer=null, toastTimer=null, gristLoaded=false;
 
+// Une couleur par programme (toutes les tâches du même programme = même couleur)
 const PROG_PALETTE=['#2980b9','#27ae60','#8e44ad','#e67e22','#16a085','#c0392b','#1abc9c','#d35400'];
 const progColorMap={}; let progColorIdx=0;
-function getProgColor(id){ if(!progColorMap[id]){progColorMap[id]=PROG_PALETTE[progColorIdx%PROG_PALETTE.length];progColorIdx++;} return progColorMap[id]; }
+function getProgColor(progId){
+  if(progId===null||progId===undefined) return '#7f8c8d';
+  const key=String(progId);
+  if(!progColorMap[key]){progColorMap[key]=PROG_PALETTE[progColorIdx%PROG_PALETTE.length];progColorIdx++;}
+  return progColorMap[key];
+}
 
-/* ══════════════════════════════════════
+/* ══════════════════════════════════════════════════
    SCALE
-══════════════════════════════════════ */
+══════════════════════════════════════════════════ */
 function scaleToFit(){
   const el=document.getElementById('gantt-wrap');
   const sc=Math.min(window.innerWidth/W,window.innerHeight/H);
@@ -199,9 +200,9 @@ function scaleToFit(){
 }
 window.addEventListener('resize',scaleToFit);
 
-/* ══════════════════════════════════════
+/* ══════════════════════════════════════════════════
    DATES
-══════════════════════════════════════ */
+══════════════════════════════════════════════════ */
 function parseDate(val){
   if(!val) return null;
   if(val instanceof Date) return isNaN(val)?null:val;
@@ -223,19 +224,19 @@ function getED(f,field){
   return parseDate(f[field]);
 }
 
-/* ══════════════════════════════════════
-   ACCESSEURS — ROBUSTES POUR GRIST
-   Grist renvoie les Ref comme [rowId, labelAffiché]
-   ou directement un nombre selon le mode
-══════════════════════════════════════ */
+/* ══════════════════════════════════════════════════
+   EXTRACTION RÉFÉRENCE GRIST
+   Grist envoie les colonnes Référence sous forme :
+   - [rowId, "label"] ou ["label", rowId] selon le contexte
+   - ou directement un number
+   → On cherche le premier élément numérique > 0
+══════════════════════════════════════════════════ */
 function extractRefId(val){
-  // Tableau [rowId, label] → prend rowId
+  if(val===null||val===undefined) return null;
   if(Array.isArray(val)){
-    const first=val[0];
-    if(typeof first==='number'&&first>0) return first;
-    // parfois [0] est le label et [1] le numéro (rare)
-    const second=val[1];
-    if(typeof second==='number'&&second>0) return second;
+    for(let i=0;i<val.length;i++){
+      if(typeof val[i]==='number'&&Number.isInteger(val[i])&&val[i]>0) return val[i];
+    }
     return null;
   }
   if(typeof val==='number'&&val>0) return val;
@@ -247,111 +248,101 @@ function getParentId(f){
 }
 
 function getPrecId(f){
-  // Tente les deux graphies possibles
-  const val = f['Tache_précédente'] !== undefined
-    ? f['Tache_précédente']
-    : (f['Tache_Precedente'] !== undefined ? f['Tache_Precedente'] : null);
-  return extractRefId(val);
+  // Teste toutes les variantes possibles du nom du champ
+  const candidates=[
+    f['Tache_précédente'],
+    f['Tache_Precedente'],
+    f['Tache_precedente'],
+    f['tache_precedente'],
+    f['Tâche_précédente'],
+  ];
+  for(const v of candidates){
+    if(v!==undefined&&v!==null){
+      const id=extractRefId(v);
+      if(id!==null) return id;
+    }
+  }
+  return null;
 }
 
 function isProjet(f){
   const n=String(f.Niveau||'').trim();
-  // Accepte "1 - Projet", "1-Projet", "Projet", "1 - projet"
-  return n==='1 - Projet'||n.toLowerCase().includes('projet')||n.startsWith('1 -')||n.startsWith('1-');
+  return n==='1 - Projet'||n.toLowerCase()==='1-projet'||n.toLowerCase().startsWith('1 - proj')||n.toLowerCase()==='projet';
 }
 
-/* ══════════════════════════════════════
-   DEBUG — affiche les données reçues
-══════════════════════════════════════ */
-function debugData(records){
-  const dp=document.getElementById('debug-panel');
-  if(!records||!records.length){dp.style.display='none';return;}
-  dp.style.display='block';
-  let html='<b>Données Grist reçues :</b><br>';
-  records.slice(0,8).forEach(f=>{
-    html+=`#${f.id} [${f.Niveau||'?'}] "${(f.Libelle||'').substring(0,20)}" parent=${JSON.stringify(f.Action_Parent)} prec=${JSON.stringify(f['Tache_précédente']||f['Tache_Precedente'])}<br>`;
-  });
-  dp.innerHTML=html;
-  setTimeout(()=>{dp.style.display='none';},8000);
-}
-
-/* ══════════════════════════════════════
+/* ══════════════════════════════════════════════════
    DATES CHAPEAU PROGRAMME
-   Début = début 1ère tâche
-   Fin   = max(Date_Fin programme, fin dernière tâche)
-══════════════════════════════════════ */
-function getProgDates(prog, tasks){
-  let minS=null, maxE=null;
+   Début = min(début programme, début 1ère tâche)
+   Fin   = max(fin programme, fin dernière tâche)
+   isOverdue = fin dernière tâche > fin programme
+══════════════════════════════════════════════════ */
+function getProgDates(prog,tasks){
+  let minS=null,maxE=null;
   tasks.forEach(t=>{
     const dS=getED(t,'Date_Demarrage');
     const dE=getED(t,'Date_Fin');
-    if(dS&&(!minS||dS<minS)) minS=dS;
-    if(dE&&(!maxE||dE>maxE)) maxE=dE;
+    if(dS&&(!minS||dS<minS))minS=dS;
+    if(dE&&(!maxE||dE>maxE))maxE=dE;
   });
-  const progFin=getED(prog,'Date_Fin');
   const progDeb=getED(prog,'Date_Demarrage');
-  // Fin = max des deux
-  let finalEnd=maxE;
-  if(progFin&&maxE&&progFin>=maxE) finalEnd=progFin;
-  else if(progFin&&!maxE) finalEnd=progFin;
-  // Début = min(début prog, début première tâche)
+  const progFin=getED(prog,'Date_Fin');
   let finalStart=minS;
-  if(progDeb&&minS&&progDeb<minS) finalStart=progDeb;
-  else if(progDeb&&!minS) finalStart=progDeb;
-  const isOverdue=(maxE&&progFin&&maxE>progFin);
-  return{start:finalStart, end:finalEnd, lastTaskEnd:maxE, progFin, isOverdue};
+  if(progDeb&&(!finalStart||progDeb<finalStart))finalStart=progDeb;
+  let finalEnd=maxE;
+  if(progFin&&(!finalEnd||progFin>finalEnd))finalEnd=progFin;
+  const isOverdue=!!(maxE&&progFin&&maxE>progFin);
+  return{start:finalStart,end:finalEnd,lastTaskEnd:maxE,progFin,isOverdue};
 }
 
-/* ══════════════════════════════════════
+/* ══════════════════════════════════════════════════
    STRUCTURE AFFICHAGE
-══════════════════════════════════════ */
+══════════════════════════════════════════════════ */
 function buildDisplayRows(fiches){
-  // On identifie les projets parmi TOUTES les fiches
-  const projets = allFiches.filter(isProjet);
+  // On identifie projets depuis TOUTES les fiches (pas filtered)
+  const projets=allFiches.filter(isProjet);
   const rows=[];
+  const placed=new Set();
 
-  // Filtre dropdown
+  const filterProg=document.getElementById('filter-prog').value;
+  const filterStatut=document.getElementById('filter-statut').value;
+
+  // Remplir dropdown programmes
   const sel=document.getElementById('filter-prog');
   const prev=sel.value;
   sel.innerHTML='<option value="">Tous</option>';
   projets.forEach(p=>{
     const o=document.createElement('option');
-    o.value=p.id; o.textContent=(p.Libelle||'Programme '+p.id).substring(0,40);
+    o.value=p.id;
+    o.textContent=(p.Libelle||'Programme '+p.id).substring(0,45);
     sel.appendChild(o);
   });
-  if(prev) sel.value=prev;
-
-  const placed=new Set();
+  if(prev)sel.value=prev;
 
   projets.forEach(prog=>{
-    // Filtre: si un filtre programme est actif, ignorer les autres
-    const filterProg=document.getElementById('filter-prog').value;
-    if(filterProg&&prog.id!==+filterProg) return;
+    if(filterProg&&prog.id!==+filterProg)return;
 
-    // Tâches de ce programme (dans allFiches pour ne pas perdre les enfants si filtrés)
+    // Tâches de ce programme — cherche dans allFiches
     const tasks=allFiches.filter(f=>!isProjet(f)&&getParentId(f)===prog.id);
     const sorted=sortBySequence(tasks);
 
-    // Appliquer filtre statut sur les tâches
-    const filterStatut=document.getElementById('filter-statut').value;
+    // Appliquer filtre statut sur les tâches visibles
     const visibleTasks=filterStatut?sorted.filter(t=>String(t.Statut||'')===filterStatut):sorted;
 
-    // Afficher le programme si pas de filtre statut, ou si au moins une tâche visible
-    const progVisible=!filterStatut||visibleTasks.length>0;
-    if(!progVisible) return;
+    // Afficher le programme si pas de filtre statut, ou s'il a des tâches visibles
+    if(filterStatut&&visibleTasks.length===0)return;
 
     rows.push({type:'prog',f:prog,tasks:sorted});
     placed.add(prog.id);
+
     visibleTasks.forEach(t=>{
       rows.push({type:'task',f:t,progId:prog.id,prog});
       placed.add(t.id);
     });
   });
 
-  // Tâches orphelines (sans programme ou programme non trouvé)
-  const filterStatut=document.getElementById('filter-statut').value;
-  fiches.filter(f=>!isProjet(f)&&!placed.has(f.id)).forEach(f=>{
-    if(filterStatut&&String(f.Statut||'')!==filterStatut) return;
+  // Tâches orphelines (sans programme trouvé)
+  allFiches.filter(f=>!isProjet(f)&&!placed.has(f.id)).forEach(f=>{
+    if(filterStatut&&String(f.Statut||'')!==filterStatut)return;
     rows.push({type:'task',f,progId:null,prog:null});
     placed.add(f.id);
   });
@@ -360,15 +351,15 @@ function buildDisplayRows(fiches){
 }
 
 function sortBySequence(tasks){
-  if(!tasks.length) return tasks;
+  if(!tasks.length)return tasks;
   const byId={};
   tasks.forEach(t=>{byId[t.id]=t;});
-  const visited=new Set(), sorted=[];
+  const visited=new Set(),sorted=[];
   // Tâches sans prédécesseur dans ce groupe
   const starts=tasks.filter(t=>{const p=getPrecId(t);return !p||!byId[p];});
   function visit(t){
-    if(!t||visited.has(t.id)) return;
-    visited.add(t.id); sorted.push(t);
+    if(!t||visited.has(t.id))return;
+    visited.add(t.id);sorted.push(t);
     const next=tasks.find(n=>getPrecId(n)===t.id);
     visit(next);
   }
@@ -377,9 +368,9 @@ function sortBySequence(tasks){
   return sorted;
 }
 
-/* ══════════════════════════════════════
+/* ══════════════════════════════════════════════════
    PLAGE & COORDONNÉES
-══════════════════════════════════════ */
+══════════════════════════════════════════════════ */
 function getRange(rows){
   let min=null,max=null;
   rows.forEach(r=>{
@@ -411,9 +402,9 @@ function xToDate(x,rm){
   const d=new Date(rm);d.setDate(d.getDate()+Math.round(days));return d;
 }
 
-/* ══════════════════════════════════════
-   CASCADE TÂCHE → SUIVANTE
-══════════════════════════════════════ */
+/* ══════════════════════════════════════════════════
+   CASCADE
+══════════════════════════════════════════════════ */
 function cascadeForward(taskId,visited=new Set()){
   if(visited.has(taskId))return;
   visited.add(taskId);
@@ -445,9 +436,9 @@ function cascadeAllTasks(progId,deltaDays){
   });
 }
 
-/* ══════════════════════════════════════
+/* ══════════════════════════════════════════════════
    SAUVEGARDE & UNDO
-══════════════════════════════════════ */
+══════════════════════════════════════════════════ */
 function scheduleSave(){
   clearTimeout(saveTimer);
   document.getElementById('undo-btn').classList.add('visible');
@@ -480,9 +471,9 @@ function showToast(msg){
   clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2800);
 }
 
-/* ══════════════════════════════════════
+/* ══════════════════════════════════════════════════
    DRAG & RESIZE
-══════════════════════════════════════ */
+══════════════════════════════════════════════════ */
 let dragState=null;
 
 function startDrag(e,f,barEl,mode,range,isProg){
@@ -545,15 +536,17 @@ function onDragEnd(){
   scheduleSave();
 }
 
-/* ══════════════════════════════════════
+/* ══════════════════════════════════════════════════
    TOOLTIP
-══════════════════════════════════════ */
+══════════════════════════════════════════════════ */
 function showTooltip(e,f,isProg,isOverdue){
   const tt=document.getElementById('tooltip');
   let dS,dE;
   if(isProg){const pd=getProgDates(f,allFiches.filter(t=>getParentId(t)===f.id&&!isProjet(t)));dS=pd.start;dE=pd.end;}
   else{dS=getED(f,'Date_Demarrage');dE=getED(f,'Date_Fin');}
-  const pl=Array.isArray(f.Pilote)?(f.Pilote[1]||f.Pilote[0]||'—'):(f.Pilote||'—');
+  const pl=Array.isArray(f.Pilote)
+    ?f.Pilote.find(v=>typeof v==='string'&&v.length>0)||'—'
+    :(f.Pilote||'—');
   tt.innerHTML=`
     <strong>${esc(f.Libelle||'—')}${isProg?' 📋':''}</strong>
     <div class="tt-row"><span>Début</span><span class="tt-val">${fmtDate(dS)}</span></div>
@@ -562,16 +555,20 @@ function showTooltip(e,f,isProg,isOverdue){
     <div class="tt-row"><span>Statut</span><span class="tt-val">${esc(f.Statut||'—')}</span></div>
     <div class="tt-row"><span>Pilote</span><span class="tt-val">${esc(String(pl))}</span></div>
     <div class="tt-row"><span>Avancement</span><span class="tt-val">${f.PDCA||0}%</span></div>
-    ${isOverdue?'<div style="margin-top:4px;color:#fca5a5">⚠ Dépasse la date fin programme</div>':''}
+    ${isOverdue?'<div style="margin-top:4px;color:#fca5a5;font-size:.72rem">⚠ Dépasse la date fin programme</div>':''}
   `;
   tt.style.display='block';moveTooltip(e);
 }
-function moveTooltip(e){const tt=document.getElementById('tooltip');tt.style.left=Math.min(e.clientX+14,window.innerWidth-230)+'px';tt.style.top=Math.min(e.clientY+14,window.innerHeight-200)+'px';}
+function moveTooltip(e){
+  const tt=document.getElementById('tooltip');
+  tt.style.left=Math.min(e.clientX+14,window.innerWidth-230)+'px';
+  tt.style.top=Math.min(e.clientY+14,window.innerHeight-200)+'px';
+}
 function hideTooltip(){document.getElementById('tooltip').style.display='none';}
 
-/* ══════════════════════════════════════
-   HEADER & LIGNES
-══════════════════════════════════════ */
+/* ══════════════════════════════════════════════════
+   HEADER & LIGNES VERTICALES
+══════════════════════════════════════════════════ */
 function renderHeader(range){
   const months=document.getElementById('header-months');
   const weeks=document.getElementById('header-weeks');
@@ -622,12 +619,15 @@ function renderVLines(range,totalH){
     else cur.setDate(cur.getDate()+7);
   }
   const tx=dateToX(new Date(),range.min);
-  if(tx>0){const tl=document.createElement('div');tl.className='today-line';tl.style.left=tx+'px';tl.style.height=totalH+'px';rows.appendChild(tl);}
+  if(tx>0){
+    const tl=document.createElement('div');tl.className='today-line';
+    tl.style.left=tx+'px';tl.style.height=totalH+'px';rows.appendChild(tl);
+  }
 }
 
-/* ══════════════════════════════════════
+/* ══════════════════════════════════════════════════
    RENDER PRINCIPAL
-══════════════════════════════════════ */
+══════════════════════════════════════════════════ */
 function render(){
   const rows=buildDisplayRows(filtered);
 
@@ -648,7 +648,8 @@ function render(){
       }
     }
     const modified=!!pendingChanges[f.id]||(isProg&&r.tasks.some(t=>!!pendingChanges[t.id]));
-    const color=isProg?'#2c3e50':getProgColor(r.progId||f.id);
+    // Couleur = couleur du programme (même pour toutes les tâches du programme)
+    const color=isProg?'#2c3e50':getProgColor(r.progId);
     const row=document.createElement('div');
     row.className='task-row'+(selectedId===f.id?' selected':'')+(modified?' modified':'')+(isOverdue?' overdue':'');
     row.innerHTML=`
@@ -676,8 +677,8 @@ function render(){
     document.getElementById('gantt-rows').innerHTML=`
       <div style="display:flex;align-items:center;justify-content:center;height:250px;flex-direction:column;gap:12px;color:#94a3b8;font-size:.85rem">
         <div style="font-size:2.5rem">📅</div>
-        <div>Aucune date renseignée dans les actions.</div>
-        <div style="font-size:.72rem">Vérifiez que Date_Demarrage et Date_Fin sont renseignées sur les tâches.</div>
+        <div>Aucune date renseignée.</div>
+        <div style="font-size:.72rem">Renseignez Date_Demarrage et Date_Fin sur les tâches.</div>
       </div>`;
     document.getElementById('header-months').innerHTML='';
     document.getElementById('header-weeks').innerHTML='';
@@ -698,16 +699,19 @@ function render(){
   const idxMap={};
   rows.forEach((r,i)=>{idxMap[r.f.id]=i;});
 
-  // SVG flèches
+  // SVG flèches entre tâches
   let svg=document.getElementById('gantt-arrows');
   if(svg)svg.remove();
   svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
   svg.id='gantt-arrows';
   svg.style.cssText=`position:absolute;top:0;left:0;width:${totalW}px;height:${totalH}px;pointer-events:none;z-index:3;overflow:visible`;
   const defs=document.createElementNS('http://www.w3.org/2000/svg','defs');
-  [...new Set([...Object.values(progColorMap),'#2c3e50'])].forEach(c=>{
+  // Marqueur pour chaque couleur utilisée
+  const usedColors=new Set([...Object.values(progColorMap),'#7f8c8d']);
+  usedColors.forEach(c=>{
     const mk=document.createElementNS('http://www.w3.org/2000/svg','marker');
-    mk.setAttribute('id','arr-'+c.replace('#',''));mk.setAttribute('markerWidth','7');
+    const mid=c.replace('#','');
+    mk.setAttribute('id','arr-'+mid);mk.setAttribute('markerWidth','7');
     mk.setAttribute('markerHeight','7');mk.setAttribute('refX','6');
     mk.setAttribute('refY','3.5');mk.setAttribute('orient','auto');
     const pl=document.createElementNS('http://www.w3.org/2000/svg','polygon');
@@ -718,7 +722,8 @@ function render(){
 
   rows.forEach((r,idx)=>{
     const f=r.f;const isProg=r.type==='prog';
-    const color=isProg?'#2c3e50':getProgColor(r.progId||f.id);
+    // Couleur = couleur du programme parent
+    const color=isProg?'#2c3e50':getProgColor(r.progId);
 
     const row=document.createElement('div');
     row.className='gantt-row'+(selectedId===f.id?' selected':'');
@@ -726,6 +731,7 @@ function render(){
     row.onclick=()=>selectFiche(f.id);
 
     if(isProg){
+      // ── BARRE CHAPEAU ──
       const pd=getProgDates(f,r.tasks);
       if(pd.start&&pd.end){
         const x1=Math.max(0,dateToX(pd.start,range.min));
@@ -743,6 +749,7 @@ function render(){
         row.appendChild(bar);
       }
     }else{
+      // ── BARRE TÂCHE ──
       const dS=getED(f,'Date_Demarrage');
       const dE=getED(f,'Date_Fin');
       let isOverdue=false;
@@ -750,6 +757,7 @@ function render(){
         const pd=getProgDates(r.prog,allFiches.filter(t=>getParentId(t)===r.progId&&!isProjet(t)));
         if(dE&&pd.progFin&&dE>pd.progFin)isOverdue=true;
       }
+
       if(dS&&dE){
         const x1=Math.max(0,dateToX(dS,range.min));
         const x2=Math.max(x1+6,dateToX(dE,range.min));
@@ -757,12 +765,15 @@ function render(){
         const avct=Math.min(100,Math.max(0,f.PDCA||0));
 
         const bar=document.createElement('div');
-        bar.className='gantt-bar'+(selectedId===f.id?' selected':'')+(f._pushed?' pushed':'')+(isOverdue?' overdue':'');
+        bar.className='gantt-bar'
+          +(selectedId===f.id?' selected':'')
+          +(f._pushed?' pushed':'')
+          +(isOverdue?' overdue':'');
         bar.style.cssText=`left:${x1}px;width:${bw}px;top:${bt}px;height:${bh}px;background:${color}`;
 
-        const prog=document.createElement('div');
-        prog.className='gantt-bar-progress';prog.style.width=avct+'%';
-        bar.appendChild(prog);
+        const pg=document.createElement('div');
+        pg.className='gantt-bar-progress';pg.style.width=avct+'%';
+        bar.appendChild(pg);
 
         if(bw>30){
           const lbl=document.createElement('div');
@@ -783,12 +794,13 @@ function render(){
         bar.onmouseleave=hideTooltip;
         row.appendChild(bar);
 
-        // Flèche vers tâche suivante
-        const nextRow=rows.find(nr=>nr.type==='task'&&getPrecId(nr.f)===f.id);
-        if(nextRow){
-          const ni=idxMap[nextRow.f.id];
+        // ── FLÈCHE vers tâche suivante (via Tache_précédente) ──
+        // On cherche dans TOUTES les fiches la tâche dont Tache_précédente = f.id
+        const nextTask=allFiches.find(n=>!isProjet(n)&&getPrecId(n)===f.id);
+        if(nextTask){
+          const ni=idxMap[nextTask.id];
           if(ni!==undefined){
-            const nS=getED(nextRow.f,'Date_Demarrage');
+            const nS=getED(nextTask,'Date_Demarrage');
             if(nS){
               const nx=dateToX(nS,range.min);
               const py=idx*ROW_H+ROW_H/2;
@@ -796,8 +808,10 @@ function render(){
               const mid=(x2+nx)/2;
               const path=document.createElementNS('http://www.w3.org/2000/svg','path');
               path.setAttribute('d',`M ${x2} ${py} C ${mid} ${py}, ${mid} ${cy}, ${nx} ${cy}`);
-              path.setAttribute('stroke',color);path.setAttribute('stroke-width','1.5');
-              path.setAttribute('fill','none');path.setAttribute('stroke-dasharray','4,3');
+              path.setAttribute('stroke',color);
+              path.setAttribute('stroke-width','1.8');
+              path.setAttribute('fill','none');
+              path.setAttribute('stroke-dasharray','5,3');
               path.setAttribute('marker-end',`url(#arr-${color.replace('#','')})`);
               svg.appendChild(path);
             }
@@ -813,9 +827,9 @@ function render(){
   syncScroll();
 }
 
-/* ══════════════════════════════════════
+/* ══════════════════════════════════════════════════
    UTILITAIRES
-══════════════════════════════════════ */
+══════════════════════════════════════════════════ */
 function syncScroll(){
   const lb=document.getElementById('task-list-body');
   const gb=document.getElementById('gantt-body');
@@ -837,22 +851,22 @@ function goMaison(){try{grist.setSelectedRows([]);}catch(e){}}
 function goFiche(){try{if(selectedId)grist.setSelectedRows([selectedId]);}catch(e){}}
 function esc(t){const d=document.createElement('div');d.textContent=String(t||'');return d.innerHTML;}
 
-/* ══════════════════════════════════════
-   DÉMO (fallback sans Grist)
-══════════════════════════════════════ */
+/* ══════════════════════════════════════════════════
+   DÉMO
+══════════════════════════════════════════════════ */
 const DEMO=[
-  {id:1,Libelle:'Former les assembleurs',Niveau:'1 - Projet',Action_Parent:null,'Tache_précédente':null,Date_Demarrage:null,Date_Fin:1767225600,Statut:'En Cours',PDCA:30,Pilote:'Emilie RIV'},
-  {id:2,Libelle:'Préparer le support',   Niveau:'2 - Tâche', Action_Parent:1,  'Tache_précédente':null,Date_Demarrage:1735689600,Date_Fin:1740700800,Statut:'Terminé', PDCA:100,Pilote:'Emilie RIV'},
-  {id:3,Libelle:'Envoyer convocations',  Niveau:'2 - Tâche', Action_Parent:1,  'Tache_précédente':2,   Date_Demarrage:1740700800,Date_Fin:1746057600,Statut:'En Cours',PDCA:40, Pilote:'Claire PRIN'},
-  {id:4,Libelle:'Former en salle',       Niveau:'2 - Tâche', Action_Parent:1,  'Tache_précédente':3,   Date_Demarrage:1746057600,Date_Fin:1751328000,Statut:'A faire', PDCA:0,  Pilote:'Emmanuel'},
-  {id:5,Libelle:'Réduction déchets',     Niveau:'1 - Projet',Action_Parent:null,'Tache_précédente':null,Date_Demarrage:null,Date_Fin:1767225600,Statut:'En Cours',PDCA:15,Pilote:'Claire PRIN'},
-  {id:6,Libelle:'Audit initial',         Niveau:'2 - Tâche', Action_Parent:5,  'Tache_précédente':null,Date_Demarrage:1740960000,Date_Fin:1743638400,Statut:'Terminé', PDCA:100,Pilote:'Claire PRIN'},
-  {id:7,Libelle:'Plan de réduction',     Niveau:'2 - Tâche', Action_Parent:5,  'Tache_précédente':6,   Date_Demarrage:1743638400,Date_Fin:1751328000,Statut:'En Cours',PDCA:20, Pilote:'Emmanuel'},
+  {id:1,Libelle:'Former les assembleurs',  Niveau:'1 - Projet',Action_Parent:null,'Tache_précédente':null,Date_Demarrage:null,     Date_Fin:1767225600,Statut:'En Cours',PDCA:30, Pilote:'Emilie RIV'},
+  {id:2,Libelle:'Préparer le support',     Niveau:'2 - Tâche', Action_Parent:1,  'Tache_précédente':null,Date_Demarrage:1735689600,Date_Fin:1740700800,Statut:'Terminé', PDCA:100,Pilote:'Emilie RIV'},
+  {id:3,Libelle:'test_act',                Niveau:'2 - Tâche', Action_Parent:1,  'Tache_précédente':2,   Date_Demarrage:1740700800,Date_Fin:1746057600,Statut:'En Cours',PDCA:40, Pilote:'Claire PRIN'},
+  {id:4,Libelle:'Former en salle',         Niveau:'2 - Tâche', Action_Parent:1,  'Tache_précédente':3,   Date_Demarrage:1746057600,Date_Fin:1751328000,Statut:'A faire', PDCA:0,  Pilote:'Emmanuel'},
+  {id:5,Libelle:'Envoyer communications',  Niveau:'1 - Projet',Action_Parent:null,'Tache_précédente':null,Date_Demarrage:null,     Date_Fin:1767225600,Statut:'A faire', PDCA:0,  Pilote:'Claire PRIN'},
+  {id:6,Libelle:'Audit initial',           Niveau:'2 - Tâche', Action_Parent:5,  'Tache_précédente':null,Date_Demarrage:1740960000,Date_Fin:1743638400,Statut:'Terminé', PDCA:100,Pilote:'Claire PRIN'},
+  {id:7,Libelle:'Plan de réduction',       Niveau:'2 - Tâche', Action_Parent:5,  'Tache_précédente':6,   Date_Demarrage:1743638400,Date_Fin:1751328000,Statut:'En Cours',PDCA:20, Pilote:'Emmanuel'},
 ];
 
-/* ══════════════════════════════════════
+/* ══════════════════════════════════════════════════
    INIT
-══════════════════════════════════════ */
+══════════════════════════════════════════════════ */
 function show(){
   document.getElementById('loading').style.display='none';
   const wrap=document.getElementById('gantt-wrap');
@@ -865,12 +879,12 @@ try{
   grist.ready({requiredAccess:'full'});
   grist.onRecords(records=>{
     clearTimeout(fallbackTimer);
-    debugData(records);
     if(records&&records.length>0){
-      gristLoaded=true;
-      allFiches=records;
-      filtered=records;
-      show();render();
+      // Log debug pour vérifier la structure
+      console.log('[GANTT] Premier enregistrement:',JSON.stringify(records[0]));
+      console.log('[GANTT] Action_Parent exemple:',records.find(r=>r.Action_Parent)?.[`Action_Parent`]);
+      console.log('[GANTT] Tache_précédente exemple:',records.find(r=>r['Tache_précédente'])?.[`Tache_précédente`]);
+      gristLoaded=true;allFiches=records;filtered=records;show();render();
     }else if(!gristLoaded){
       allFiches=DEMO;filtered=DEMO;show();render();
     }
