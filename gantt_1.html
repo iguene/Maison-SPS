@@ -12,15 +12,15 @@
    TOKENS & RESET
 ══════════════════════════════════════════════ */
 :root {
-  --bg:        #0f1117;
-  --surface:   #171b26;
-  --surface2:  #1e2333;
-  --surface3:  #252a3a;
-  --border:    #2d3348;
-  --border2:   #3a4060;
-  --text:      #e8eaf0;
-  --text2:     #8b92a8;
-  --text3:     #555e7a;
+  --bg:        #ffffff;
+  --surface:   #ffffff;
+  --surface2:  #f8fafc;
+  --surface3:  #eef2f7;
+  --border:    #d8dee9;
+  --border2:   #bcc7d6;
+  --text:      #172033;
+  --text2:     #475569;
+  --text3:     #64748b;
   --accent:    #4f7cff;
   --accent2:   #7c4dff;
   --success:   #22c55e;
@@ -31,7 +31,7 @@
   --todo:      #8b92a8;
   --radius:    8px;
   --radius-sm: 5px;
-  --shadow:    0 4px 24px rgba(0,0,0,.45);
+  --shadow:    0 10px 30px rgba(15,23,42,.10);
   --font:      'DM Sans', sans-serif;
   --mono:      'DM Mono', monospace;
 
@@ -42,6 +42,7 @@
 }
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--text); font-family:var(--font); font-size:13px; }
+body { background:#ffffff; }
 
 /* ══════════════════════════════════════════════
    TOOLBAR
@@ -228,7 +229,7 @@ html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--tex
   border-right: 1px solid transparent;
   position: relative;
 }
-.day-cell.weekend { color: #444b66; }
+.day-cell.weekend { color: #94a3b8; }
 .day-cell.today-col { color: var(--accent); font-weight: 700; }
 .day-cell.month-sep::before {
   content: '';
@@ -335,12 +336,12 @@ html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--tex
   align-items: center;
   padding: 0 12px 0 32px;
   gap: 7px;
-  border-bottom: 1px solid rgba(255,255,255,.03);
+  border-bottom: 1px solid rgba(148,163,184,.16);
   cursor: pointer;
   transition: background .1s;
 }
-.task-left-row:hover { background: rgba(255,255,255,.025); }
-.task-left-row.selected { background: rgba(79,124,255,.06); }
+.task-left-row:hover { background: rgba(79,124,255,.05); }
+.task-left-row.selected { background: rgba(79,124,255,.10); }
 
 .task-status-dot {
   width: 7px; height: 7px;
@@ -369,11 +370,11 @@ html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--tex
 .grid-row {
   height: var(--row-h);
   position: relative;
-  border-bottom: 1px solid rgba(255,255,255,.03);
+  border-bottom: 1px solid rgba(148,163,184,.16);
   display: flex;
 }
 .grid-row.prog-bg {
-  background: rgba(255,255,255,.015);
+  background: rgba(148,163,184,.08);
   border-bottom: 1px solid var(--border);
 }
 .grid-col {
@@ -382,9 +383,9 @@ html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--tex
   border-right: 1px solid transparent;
   position: relative;
 }
-.grid-col.weekend { background: rgba(255,255,255,.012); }
-.grid-col.today-col { background: rgba(79,124,255,.06); }
-.grid-col.month-sep { border-right: 1px dashed rgba(255,255,255,.06); }
+.grid-col.weekend { background: rgba(148,163,184,.08); }
+.grid-col.today-col { background: rgba(79,124,255,.08); }
+.grid-col.month-sep { border-right: 1px dashed rgba(148,163,184,.28); }
 
 /* TODAY LINE */
 .today-line {
@@ -395,7 +396,7 @@ html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--tex
   background: var(--accent);
   z-index: 25;
   pointer-events: none;
-  opacity: .7;
+  opacity: .55;
 }
 .today-line::before {
   content: '●';
@@ -421,13 +422,13 @@ html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--tex
   padding: 0 8px;
   font-size: 11px;
   font-weight: 600;
-  color: rgba(255,255,255,.95);
+  color: #ffffff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   cursor: grab;
   z-index: 10;
-  box-shadow: 0 2px 8px rgba(0,0,0,.3);
+  box-shadow: 0 2px 8px rgba(15,23,42,.14);
   transition: box-shadow .15s, opacity .15s;
   min-width: 20px;
   user-select: none;
@@ -438,8 +439,8 @@ html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--tex
   animation: pulse-warn 2s ease-in-out infinite;
 }
 @keyframes pulse-warn {
-  0%,100% { box-shadow:0 0 0 2px rgba(239,68,68,.8), 0 2px 8px rgba(0,0,0,.3); }
-  50%      { box-shadow:0 0 0 4px rgba(239,68,68,.3), 0 2px 8px rgba(0,0,0,.3); }
+  0%,100% { box-shadow:0 0 0 2px rgba(239,68,68,.55), 0 2px 8px rgba(15,23,42,.14); }
+  50%      { box-shadow:0 0 0 4px rgba(239,68,68,.18), 0 2px 8px rgba(15,23,42,.14); }
 }
 .prog-bar-label { pointer-events:none; min-width:0; overflow:hidden; text-overflow:ellipsis; }
 .prog-bar-warn { margin-left:4px; font-size:12px; flex-shrink:0; pointer-events:none; }
@@ -460,13 +461,13 @@ html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--tex
   transition: filter .1s, box-shadow .1s;
 }
 .task-bar:active { cursor:grabbing; }
-.task-bar:hover  { filter:brightness(1.15); z-index:20; }
+.task-bar:hover  { filter:brightness(1.05); z-index:20; box-shadow: 0 2px 8px rgba(15,23,42,.12); }
 
 .task-bar-fill {
   position: absolute;
   left: 0; top: 0; bottom: 0;
   border-radius: 4px 0 0 4px;
-  background: rgba(255,255,255,.18);
+  background: rgba(255,255,255,.28);
   pointer-events: none;
 }
 .task-bar-label {
@@ -474,7 +475,7 @@ html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--tex
   z-index: 1;
   font-size: 10.5px;
   font-weight: 500;
-  color: rgba(255,255,255,.9);
+  color: #ffffff;
   padding: 0 6px;
   white-space: nowrap;
   overflow: hidden;
@@ -516,7 +517,7 @@ html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--tex
   border-radius: var(--radius);
   padding: 10px 13px;
   font-size: 12px;
-  box-shadow: var(--shadow);
+  box-shadow: 0 10px 30px rgba(15,23,42,.10);
   z-index: 9999;
   pointer-events: none;
   opacity: 0;
@@ -1442,6 +1443,7 @@ async function doSave(id, type) {
   if (!gristReady) { setSavePill('saved'); undoSnapshot=null; hideUndoBtn(); return; }
   setSavePill('saving');
   try {
+    suppressNextRecordRefresh = true;
     if (type==='task') {
       // Collect all modified tasks in the cascade
       const allTasks = Object.values(tasksByProg).flat();
@@ -1468,6 +1470,7 @@ async function doSave(id, type) {
       ];
       await grist.docApi.applyUserActions(acts);
     }
+    await refreshFromGrist();
     setSavePill('saved');
     undoSnapshot = null;
     hideUndoBtn();
@@ -1515,19 +1518,33 @@ function convertColumnar(data) {
   });
 }
 
+let suppressNextRecordRefresh = false;
+
+async function refreshFromGrist() {
+  const raw = await grist.docApi.fetchTable('Actions');
+  allActions = convertColumnar(raw);
+  buildProgramStructure(allActions);
+  render();
+}
+
 async function initGrist() {
   try {
     await grist.ready({ requiredAccess:'full' });
     gristReady = true;
-    const raw = await grist.docApi.fetchTable('Actions');
-    allActions = convertColumnar(raw);
-    buildProgramStructure(allActions);
-    render();
+    await refreshFromGrist();
 
-    grist.onRecords(records => {
-      allActions = records;
-      buildProgramStructure(allActions);
-      render();
+    grist.onRecords(async (records) => {
+      if (suppressNextRecordRefresh) {
+        suppressNextRecordRefresh = false;
+        return;
+      }
+      if (records && Array.isArray(records) && records.length) {
+        allActions = records;
+        buildProgramStructure(allActions);
+        render();
+      } else {
+        await refreshFromGrist();
+      }
     });
   } catch(err) {
     console.warn('Grist unavailable, loading demo data', err);
