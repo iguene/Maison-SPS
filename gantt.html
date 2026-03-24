@@ -66,7 +66,7 @@ body { font-family: 'Segoe UI', -apple-system, sans-serif; background: #f0f4f8; 
 .today-line { position: absolute; top: 0; bottom: 0; width: 2px; background: #ef4444; z-index: 5; pointer-events: none; }
 .today-line::before { content: "Aujourd'hui"; position: absolute; top: 4px; left: 4px; font-size: .62rem; color: #ef4444; font-weight: 700; white-space: nowrap; background: white; padding: 0 3px; border-radius: 2px; }
 
-/* Barre PROGRAMME (chapeau) */
+/* Barre PROGRAMME chapeau */
 .gantt-bar-programme {
   position: absolute; border-radius: 3px;
   background: #2c3e50; height: 8px;
@@ -75,41 +75,31 @@ body { font-family: 'Segoe UI', -apple-system, sans-serif; background: #f0f4f8; 
 }
 .gantt-bar-programme::before,
 .gantt-bar-programme::after {
-  content: ''; position: absolute; bottom: 0;
-  width: 0; height: 0;
-  border-style: solid;
+  content: ''; position: absolute; bottom: -8px;
+  width: 0; height: 0; border-style: solid;
 }
-.gantt-bar-programme::before { left: 0; border-width: 0 0 8px 8px; border-color: transparent transparent #2c3e50 transparent; transform: translateY(100%); }
-.gantt-bar-programme::after  { right: 0; border-width: 0 8px 8px 0; border-color: transparent #2c3e50 transparent transparent; transform: translateY(100%); }
+.gantt-bar-programme::before { left: 0;  border-width: 8px 8px 0 0; border-color: #2c3e50 transparent transparent transparent; }
+.gantt-bar-programme::after  { right: 0; border-width: 8px 0 0 8px; border-color: #2c3e50 transparent transparent transparent; }
 .gantt-bar-programme:hover   { box-shadow: 0 2px 8px rgba(0,0,0,.3); }
 .gantt-bar-programme.dragging { cursor: grabbing; opacity: .8; z-index: 20; }
 .gantt-bar-programme.overdue  { background: #ef4444; }
-.gantt-bar-programme.overdue::before { border-color: transparent transparent #ef4444 transparent; }
-.gantt-bar-programme.overdue::after  { border-color: transparent #ef4444 transparent transparent; }
-.prog-label { position: absolute; left: 10px; top: -18px; font-size: .68rem; font-weight: 700; color: #2c3e50; white-space: nowrap; pointer-events: none; }
+.gantt-bar-programme.overdue::before { border-color: #ef4444 transparent transparent transparent; }
+.gantt-bar-programme.overdue::after  { border-color: #ef4444 transparent transparent transparent; }
+.prog-label { position: absolute; left: 0; top: -20px; font-size: .7rem; font-weight: 700; color: #2c3e50; white-space: nowrap; pointer-events: none; }
 
 /* Barre TÂCHE */
-.gantt-bar {
-  position: absolute; border-radius: 4px;
-  display: flex; align-items: center;
-  padding: 0 10px; overflow: visible;
-  white-space: nowrap; z-index: 2; min-width: 6px;
-  cursor: grab; user-select: none; transition: box-shadow .15s;
-}
+.gantt-bar { position: absolute; border-radius: 4px; display: flex; align-items: center; padding: 0 10px; overflow: visible; white-space: nowrap; z-index: 2; min-width: 6px; cursor: grab; user-select: none; transition: box-shadow .15s; }
 .gantt-bar:hover    { box-shadow: 0 2px 8px rgba(0,0,0,.25); }
 .gantt-bar.dragging { cursor: grabbing; opacity: .85; box-shadow: 0 4px 16px rgba(0,0,0,.3); z-index: 20; transition: none; }
 .gantt-bar.selected { box-shadow: 0 0 0 2px #3b82f6, 0 2px 8px rgba(0,0,0,.2); }
-.gantt-bar.cascaded { box-shadow: 0 0 0 2px #f59e0b; }
+.gantt-bar.pushed   { box-shadow: 0 0 0 2px #f59e0b; }
 .gantt-bar.overdue  { box-shadow: 0 0 0 2px #ef4444; }
 .gantt-bar-label { font-size: .67rem; font-weight: 700; color: white; text-shadow: 0 1px 2px rgba(0,0,0,.35); overflow: hidden; text-overflow: ellipsis; pointer-events: none; flex: 1; }
 .gantt-bar-progress { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: rgba(0,0,0,.18); pointer-events: none; }
 .resize-handle { position: absolute; top: 0; bottom: 0; width: 8px; cursor: ew-resize; z-index: 10; background: rgba(255,255,255,.25); border-radius: 3px; opacity: 0; transition: opacity .15s; }
 .gantt-bar:hover .resize-handle { opacity: 1; }
-.resize-handle.left  { left: 0; border-radius: 4px 0 0 4px; }
+.resize-handle.left  { left: 0;  border-radius: 4px 0 0 4px; }
 .resize-handle.right { right: 0; border-radius: 0 4px 4px 0; }
-
-/* Alerte dépassement */
-.overdue-badge { position: absolute; right: -20px; top: 50%; transform: translateY(-50%); font-size: .7rem; z-index: 10; pointer-events: none; }
 
 .gantt-tooltip { position: fixed; z-index: 999; background: #1e293b; color: white; border-radius: 8px; padding: 10px 14px; font-size: .76rem; line-height: 1.7; pointer-events: none; display: none; box-shadow: 0 4px 20px rgba(0,0,0,.35); min-width: 210px; }
 .gantt-tooltip strong { font-size: .82rem; display: block; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,.2); padding-bottom: 4px; }
@@ -123,10 +113,6 @@ body { font-family: 'Segoe UI', -apple-system, sans-serif; background: #f0f4f8; 
 .legend { display: flex; align-items: center; gap: 14px; padding: 6px 20px; background: white; border-top: 1px solid #e2e8f0; flex-shrink: 0; flex-wrap: wrap; }
 .legend-item { display: flex; align-items: center; gap: 6px; font-size: .72rem; color: #475569; font-weight: 600; }
 .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
-.statut-badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: .65rem; font-weight: 600; }
-.s-en-cours { background: #dbeafe; color: #1d4ed8; }
-.s-termine  { background: #dcfce7; color: #15803d; }
-.s-a-faire  { background: #fef9c3; color: #854d0e; }
 
 #loading { display: flex; align-items: center; justify-content: center; width: 100%; height: 100vh; color: #888; gap: 10px; font-size: .9rem; }
 .spinner { width: 22px; height: 22px; border: 2px solid #ddd; border-top-color: #c0392b; border-radius: 50%; animation: spin .7s linear infinite; }
@@ -188,42 +174,37 @@ body { font-family: 'Segoe UI', -apple-system, sans-serif; background: #f0f4f8; 
   </div>
 
   <div class="legend">
-    <div class="legend-item"><div class="legend-dot" style="background:#2c3e50;height:8px;border-radius:2px"></div>Programme (chapeau)</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#2980b9"></div>Tâche standard</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Dépassement programme</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2c3e50;height:8px;border-radius:2px"></div>Programme</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2980b9"></div>Tâche</div>
+    <div class="legend-item"><div style="width:12px;height:12px;border:2px solid #f59e0b;border-radius:3px"></div>Poussée</div>
+    <div class="legend-item"><div style="width:12px;height:12px;border:2px solid #ef4444;border-radius:3px"></div>Dépasse programme</div>
     <span style="margin-left:auto;font-size:.68rem;color:#94a3b8;font-style:italic">
-      Glisser = déplacer · Poignées = redimensionner · Flèches = séquence tâches
+      Glisser = déplacer · Poignées = redimensionner · Cascade automatique →
     </span>
   </div>
 </div>
 
 <script>
 /* ══════════════════════════════════════
-   ÉTAT
+   ÉTAT GLOBAL
 ══════════════════════════════════════ */
 const W = 1400, H = 860, ROW_H = 36;
 let allFiches      = [];
-let displayRows    = []; // liste ordonnée : programmes + leurs tâches
 let filtered       = [];
 let selectedId     = null;
 let zoom           = 'mois';
-let pendingChanges = {};
-let originalDates  = {};
+let pendingChanges = {};  // id → { Date_Demarrage?, Date_Fin? } en timestamp unix
+let originalDates  = {};  // snapshot avant drag pour undo
 let saveTimer      = null;
 let toastTimer     = null;
 let gristLoaded    = false;
 
-// Couleurs par programme (générées dynamiquement)
-const PROG_PALETTE = ['#2980b9','#27ae60','#8e44ad','#e67e22','#16a085','#c0392b','#2c3e50','#d35400'];
-const progColorMap = {};
-let progColorIdx = 0;
-
-function getProgColor(progId) {
-  if (!progColorMap[progId]) {
-    progColorMap[progId] = PROG_PALETTE[progColorIdx % PROG_PALETTE.length];
-    progColorIdx++;
-  }
-  return progColorMap[progId];
+const PROG_PALETTE  = ['#2980b9','#27ae60','#8e44ad','#e67e22','#16a085','#c0392b','#1abc9c','#d35400'];
+const progColorMap  = {};
+let   progColorIdx  = 0;
+function getProgColor(id) {
+  if (!progColorMap[id]) { progColorMap[id] = PROG_PALETTE[progColorIdx % PROG_PALETTE.length]; progColorIdx++; }
+  return progColorMap[id];
 }
 
 /* ══════════════════════════════════════
@@ -246,125 +227,115 @@ function parseDate(val) {
   if (val instanceof Date) return isNaN(val) ? null : val;
   if (typeof val === 'number') return new Date(val * 1000);
   if (typeof val === 'string') {
-    if (val.match(/^\d{2}-\d{2}-\d{4}$/)) {
-      const [d,m,y] = val.split('-'); return new Date(+y, +m-1, +d);
-    }
+    if (val.match(/^\d{2}-\d{2}-\d{4}$/)) { const [d,m,y]=val.split('-'); return new Date(+y,+m-1,+d); }
     if (val.match(/^\d{4}-\d{2}-\d{2}$/)) return new Date(val);
   }
   const d = new Date(val); return isNaN(d) ? null : d;
 }
-function fmtDate(d) {
-  if (!d) return '—';
-  return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit'});
-}
-function fmtMonth(d) {
-  return d.toLocaleDateString('fr-FR',{month:'short',year:'2-digit'}).toUpperCase();
-}
-function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate()+n); return r; }
-function daysBetween(a, b) { return Math.round((b-a)/86400000); }
-function dateToTimestamp(d) { return Math.round(d.getTime()/1000); }
-function getWeekNum(d) {
-  const j = new Date(d.getFullYear(),0,1);
-  return Math.ceil((((d-j)/86400000)+j.getDay()+1)/7);
-}
-function getEffectiveDate(f, field) {
-  if (pendingChanges[f.id] && pendingChanges[f.id][field] !== undefined)
-    return parseDate(pendingChanges[f.id][field]);
+function fmtDate(d)  { if(!d) return '—'; return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit'}); }
+function fmtMonth(d) { return d.toLocaleDateString('fr-FR',{month:'short',year:'2-digit'}).toUpperCase(); }
+function addDays(d,n){ const r=new Date(d); r.setDate(r.getDate()+n); return r; }
+function daysBetween(a,b){ return Math.round((b-a)/86400000); }
+function toTs(d){ return Math.round(d.getTime()/1000); }
+function getWeekNum(d){ const j=new Date(d.getFullYear(),0,1); return Math.ceil((((d-j)/86400000)+j.getDay()+1)/7); }
+
+function getED(f, field) {
+  if (pendingChanges[f.id]?.[field] !== undefined) return parseDate(pendingChanges[f.id][field]);
   return parseDate(f[field]);
 }
 
 /* ══════════════════════════════════════
-   STRUCTURE : PROGRAMMES & TÂCHES
+   ACCESSEURS CHAMPS
 ══════════════════════════════════════ */
 function getParentId(f) {
-  if (Array.isArray(f.Action_Parent)) return f.Action_Parent[0] || null;
+  if (Array.isArray(f.Action_Parent) && f.Action_Parent[0]) return f.Action_Parent[0];
   if (typeof f.Action_Parent === 'number' && f.Action_Parent > 0) return f.Action_Parent;
   return null;
 }
 function getPrecId(f) {
-  if (Array.isArray(f.Tache_Precedente)) return f.Tache_Precedente[0] || null;
-  if (typeof f.Tache_Precedente === 'number' && f.Tache_Precedente > 0) return f.Tache_Precedente;
+  // Supporte "Tache_précédente" (avec accent) et "Tache_Precedente"
+  const val = f['Tache_précédente'] ?? f['Tache_Precedente'] ?? null;
+  if (Array.isArray(val) && val[0]) return val[0];
+  if (typeof val === 'number' && val > 0) return val;
   return null;
 }
 function isProjet(f) {
-  return String(f.Niveau||'').toLowerCase().includes('projet') ||
-         String(f.Niveau||'').includes('1 -');
+  return String(f.Niveau||'').toLowerCase().includes('projet') || String(f.Niveau||'').includes('1 -');
 }
 
-// Calcule les dates du programme chapeau à partir de ses tâches
-function computeProgDates(prog, tasks) {
-  let min = null, max = null;
+/* ══════════════════════════════════════
+   DATES CHAPEAU PROGRAMME
+   Règle :
+   - Début = début 1ère tâche
+   - Fin    = max(Date_Fin programme, date fin dernière tâche)
+══════════════════════════════════════ */
+function getProgDates(prog, tasks) {
+  let minS = null, maxE = null;
   tasks.forEach(t => {
-    const dS = getEffectiveDate(t, 'Date_Demarrage');
-    const dE = getEffectiveDate(t, 'Date_Fin');
-    if (dS && (!min || dS < min)) min = dS;
-    if (dE && (!max || dE > max)) max = dE;
+    const dS = getED(t,'Date_Demarrage');
+    const dE = getED(t,'Date_Fin');
+    if (dS && (!minS || dS < minS)) minS = dS;
+    if (dE && (!maxE || dE > maxE)) maxE = dE;
   });
-  return { start: min, end: max };
+  // Date fin programme explicite
+  const progFin = getED(prog,'Date_Fin');
+  // On prend la plus grande des deux
+  let finalEnd = maxE;
+  if (progFin && maxE && progFin >= maxE) finalEnd = progFin;
+  // Si dépassement → on signale
+  const isOverdue = (maxE && progFin && maxE > progFin);
+  return { start: minS, end: finalEnd, lastTaskEnd: maxE, progFin, isOverdue };
 }
 
-// Construit la liste d'affichage : programme puis ses tâches triées par séquence
+/* ══════════════════════════════════════
+   STRUCTURE AFFICHAGE
+══════════════════════════════════════ */
 function buildDisplayRows(fiches) {
-  const byId = {};
-  fiches.forEach(f => { byId[f.id] = f; });
-
   const programmes = fiches.filter(isProjet);
   const rows = [];
 
-  // Remplir filtre programme
-  const sel = document.getElementById('filter-prog');
+  // Filtre programme dropdown
+  const sel  = document.getElementById('filter-prog');
   const prev = sel.value;
   sel.innerHTML = '<option value="">Tous</option>';
   programmes.forEach(p => {
-    const opt = document.createElement('option');
-    opt.value = p.id; opt.textContent = p.Libelle || ('Programme ' + p.id);
-    sel.appendChild(opt);
+    const o = document.createElement('option');
+    o.value = p.id; o.textContent = p.Libelle || ('Programme '+p.id);
+    sel.appendChild(o);
   });
   if (prev) sel.value = prev;
 
   programmes.forEach(prog => {
-    const tasks = fiches.filter(f => getParentId(f) === prog.id && !isProjet(f));
-
-    // Trier les tâches par séquence (tri topologique via Tache_Precedente)
-    const sorted = sortTasksBySequence(tasks);
-
-    rows.push({ type: 'prog', f: prog, tasks: sorted });
-    sorted.forEach(t => rows.push({ type: 'task', f: t, progId: prog.id }));
+    // Chercher dans allFiches (pas filtered) pour avoir toutes les tâches du programme
+    const tasks = allFiches.filter(f => getParentId(f) === prog.id && !isProjet(f));
+    const sorted = sortBySequence(tasks);
+    rows.push({ type:'prog', f:prog, tasks:sorted });
+    sorted.forEach(t => rows.push({ type:'task', f:t, progId:prog.id, prog }));
   });
 
-  // Tâches orphelines (sans programme)
-  const withProg = new Set();
-  rows.forEach(r => { if (r.type === 'task') withProg.add(r.f.id); });
-  fiches.filter(f => !isProjet(f) && !withProg.has(f.id)).forEach(f => {
-    rows.push({ type: 'task', f, progId: null });
+  // Tâches orphelines
+  const placed = new Set(); rows.forEach(r => { if(r.type==='task') placed.add(r.f.id); });
+  fiches.filter(f => !isProjet(f) && !placed.has(f.id)).forEach(f => {
+    rows.push({ type:'task', f, progId:null, prog:null });
   });
-
   return rows;
 }
 
-function sortTasksBySequence(tasks) {
+function sortBySequence(tasks) {
   if (!tasks.length) return tasks;
   const byId = {};
   tasks.forEach(t => { byId[t.id] = t; });
-
-  // Trouver la tâche de départ (sans prédécesseur dans ce groupe)
-  const withPrec = new Set(tasks.map(t => getPrecId(t)).filter(Boolean));
-  const starts   = tasks.filter(t => !getPrecId(t) || !byId[getPrecId(t)]);
-
-  const sorted  = [];
   const visited = new Set();
-
+  const sorted  = [];
+  // Tâches sans prédécesseur dans ce groupe
+  const starts = tasks.filter(t => { const p=getPrecId(t); return !p || !byId[p]; });
   function visit(t) {
     if (!t || visited.has(t.id)) return;
-    visited.add(t.id);
-    sorted.push(t);
-    // Trouver le suivant (celui dont Tache_Precedente = t.id)
+    visited.add(t.id); sorted.push(t);
     const next = tasks.find(n => getPrecId(n) === t.id);
     visit(next);
   }
-
   starts.forEach(visit);
-  // Ajouter les non-visités (cycles ou orphelins)
   tasks.filter(t => !visited.has(t.id)).forEach(t => sorted.push(t));
   return sorted;
 }
@@ -375,77 +346,65 @@ function sortTasksBySequence(tasks) {
 function getRange(rows) {
   let min = null, max = null;
   rows.forEach(r => {
-    const f  = r.f;
     let dS, dE;
-    if (r.type === 'prog') {
-      const cd = computeProgDates(f, r.tasks);
-      dS = cd.start; dE = cd.end;
-    } else {
-      dS = getEffectiveDate(f, 'Date_Demarrage');
-      dE = getEffectiveDate(f, 'Date_Fin');
-    }
-    if (dS && (!min || dS < min)) min = dS;
-    if (dE && (!max || dE > max)) max = dE;
+    if (r.type === 'prog') { const pd=getProgDates(r.f,r.tasks); dS=pd.start; dE=pd.end; }
+    else { dS=getED(r.f,'Date_Demarrage'); dE=getED(r.f,'Date_Fin'); }
+    if (dS && (!min||dS<min)) min=dS;
+    if (dE && (!max||dE>max)) max=dE;
   });
-  if (!min) { min = new Date(); min.setDate(1); }
-  if (!max) { max = new Date(min); max.setFullYear(max.getFullYear()+1); }
-  min = new Date(min); min.setMonth(min.getMonth()-1); min.setDate(1);
-  max = new Date(max); max.setMonth(max.getMonth()+2); max.setDate(1);
-  return { min, max };
+  if (!min) { min=new Date(); min.setDate(1); }
+  if (!max) { max=new Date(min); max.setFullYear(max.getFullYear()+1); }
+  min=new Date(min); min.setMonth(min.getMonth()-1); min.setDate(1);
+  max=new Date(max); max.setMonth(max.getMonth()+2); max.setDate(1);
+  return {min,max};
 }
 
-const UNIT_PX = { semaine: 42, mois: 62, trimestre: 120 };
-function dateToX(date, rm) {
-  const days = daysBetween(rm, date);
-  const u = UNIT_PX[zoom];
-  if (zoom==='semaine')   return days*(u/7);
-  if (zoom==='mois')      return days*(u/30);
-  return days*(u/90);
-}
-function xToDate(x, rm) {
-  const u = UNIT_PX[zoom];
-  let days;
-  if (zoom==='semaine')   days = x/(u/7);
-  else if (zoom==='mois') days = x/(u/30);
-  else                    days = x/(u/90);
-  const d = new Date(rm); d.setDate(d.getDate()+Math.round(days)); return d;
-}
+const UNIT_PX = {semaine:42,mois:62,trimestre:120};
+function dateToX(d,rm){ const days=daysBetween(rm,d); const u=UNIT_PX[zoom]; if(zoom==='semaine') return days*(u/7); if(zoom==='mois') return days*(u/30); return days*(u/90); }
+function xToDate(x,rm){ const u=UNIT_PX[zoom]; let days; if(zoom==='semaine') days=x/(u/7); else if(zoom==='mois') days=x/(u/30); else days=x/(u/90); const d=new Date(rm); d.setDate(d.getDate()+Math.round(days)); return d; }
 
 /* ══════════════════════════════════════
-   CASCADE TÂCHE → TÂCHE SUIVANTE
+   RÈGLES MÉTIER DRAG
 ══════════════════════════════════════ */
-function cascadeNext(taskId, deltaDays, visited = new Set()) {
+
+// Cascade vers l'avant : si date_fin A > date_début B → pousse B
+// Ne cascade PAS si on réduit (delta négatif sur fin)
+function cascadeForward(taskId, visited = new Set()) {
   if (visited.has(taskId)) return;
   visited.add(taskId);
 
-  // Trouver la tâche dont Tache_Precedente = taskId
   const next = allFiches.find(f => getPrecId(f) === taskId);
   if (!next) return;
 
-  const nS = getEffectiveDate(next, 'Date_Demarrage');
-  const nE = getEffectiveDate(next, 'Date_Fin');
-  if (!nS || !nE) return;
+  const curEnd   = getED(allFiches.find(f=>f.id===taskId), 'Date_Fin');
+  const nextStart= getED(next, 'Date_Demarrage');
+  const nextEnd  = getED(next, 'Date_Fin');
+  if (!curEnd || !nextStart || !nextEnd) return;
 
-  if (!pendingChanges[next.id]) pendingChanges[next.id] = {};
-  pendingChanges[next.id].Date_Demarrage = dateToTimestamp(addDays(nS, deltaDays));
-  pendingChanges[next.id].Date_Fin       = dateToTimestamp(addDays(nE, deltaDays));
-  next._cascaded = true;
-
-  cascadeNext(next.id, deltaDays, visited);
+  // Si la fin du courant dépasse le début du suivant → on pousse
+  if (curEnd > nextStart) {
+    const delta = daysBetween(nextStart, curEnd); // nb jours à pousser
+    if (!pendingChanges[next.id]) pendingChanges[next.id] = {};
+    const newStart = addDays(nextStart, delta);
+    const newEnd   = addDays(nextEnd,   delta);
+    pendingChanges[next.id].Date_Demarrage = toTs(newStart);
+    pendingChanges[next.id].Date_Fin       = toTs(newEnd);
+    next._pushed = true;
+    cascadeForward(next.id, visited);
+  }
 }
 
-// Cascade toutes les tâches d'un programme quand on déplace le chapeau
+// Cascade toutes les tâches d'un programme (drag chapeau)
 function cascadeAllTasks(progId, deltaDays) {
-  allFiches.forEach(f => {
-    if (getParentId(f) !== progId || isProjet(f)) return;
-    const dS = getEffectiveDate(f, 'Date_Demarrage');
-    const dE = getEffectiveDate(f, 'Date_Fin');
+  allFiches.filter(f => getParentId(f) === progId && !isProjet(f)).forEach(f => {
+    const dS = getED(f,'Date_Demarrage');
+    const dE = getED(f,'Date_Fin');
     if (!dS || !dE) return;
-    if (!originalDates[f.id]) originalDates[f.id] = { Date_Demarrage: f.Date_Demarrage, Date_Fin: f.Date_Fin };
+    if (!originalDates[f.id]) originalDates[f.id] = {Date_Demarrage:f.Date_Demarrage,Date_Fin:f.Date_Fin};
     if (!pendingChanges[f.id]) pendingChanges[f.id] = {};
-    pendingChanges[f.id].Date_Demarrage = dateToTimestamp(addDays(dS, deltaDays));
-    pendingChanges[f.id].Date_Fin       = dateToTimestamp(addDays(dE, deltaDays));
-    f._cascaded = true;
+    pendingChanges[f.id].Date_Demarrage = toTs(addDays(dS,deltaDays));
+    pendingChanges[f.id].Date_Fin       = toTs(addDays(dE,deltaDays));
+    f._pushed = true;
   });
 }
 
@@ -460,11 +419,11 @@ function scheduleSave() {
     if (!entries.length) return;
     try {
       await grist.docApi.applyUserActions(
-        entries.map(([id, fields]) => ['UpdateRecord','Actions',+id, fields])
+        entries.map(([id,fields]) => ['UpdateRecord','Actions',+id,fields])
       );
       showToast(`✓ ${entries.length} modification(s) sauvegardée(s)`);
-      entries.forEach(([id]) => { const f = allFiches.find(f=>f.id===+id); if(f) f._cascaded=false; });
-      pendingChanges = {}; originalDates = {};
+      entries.forEach(([id]) => { const f=allFiches.find(f=>f.id===+id); if(f){f._pushed=false;} });
+      pendingChanges={}; originalDates={};
       document.getElementById('undo-btn').classList.remove('visible');
     } catch(e) { showToast('⚠ Erreur de sauvegarde'); console.error(e); }
   }, 800);
@@ -472,9 +431,9 @@ function scheduleSave() {
 
 function undoChanges() {
   clearTimeout(saveTimer);
-  Object.entries(originalDates).forEach(([id, dates]) => {
-    const f = allFiches.find(f=>f.id===+id);
-    if (f) { f.Date_Demarrage=dates.Date_Demarrage; f.Date_Fin=dates.Date_Fin; f._cascaded=false; }
+  Object.entries(originalDates).forEach(([id,dates]) => {
+    const f=allFiches.find(f=>f.id===+id);
+    if(f){f.Date_Demarrage=dates.Date_Demarrage;f.Date_Fin=dates.Date_Fin;f._pushed=false;}
   });
   pendingChanges={}; originalDates={};
   document.getElementById('undo-btn').classList.remove('visible');
@@ -482,10 +441,8 @@ function undoChanges() {
 }
 
 function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent=msg; t.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>t.classList.remove('show'), 2800);
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2800);
 }
 
 /* ══════════════════════════════════════
@@ -493,24 +450,21 @@ function showToast(msg) {
 ══════════════════════════════════════ */
 let dragState = null;
 
-function startDrag(e, f, barEl, mode, range, isProg, progId) {
+function startDrag(e, f, barEl, mode, range, isProg) {
   e.preventDefault(); e.stopPropagation();
   if (!originalDates[f.id])
-    originalDates[f.id] = { Date_Demarrage: f.Date_Demarrage, Date_Fin: f.Date_Fin };
+    originalDates[f.id] = {Date_Demarrage:f.Date_Demarrage, Date_Fin:f.Date_Fin};
 
-  const wrap  = document.getElementById('gantt-wrap');
-  const sc    = (new DOMMatrix(getComputedStyle(wrap).transform)).a || 1;
-
+  const sc = (new DOMMatrix(getComputedStyle(document.getElementById('gantt-wrap')).transform)).a || 1;
   let origStart, origEnd;
   if (isProg) {
-    const cd = computeProgDates(f, allFiches.filter(t=>getParentId(t)===f.id&&!isProjet(t)));
-    origStart = cd.start; origEnd = cd.end;
+    const pd = getProgDates(f, allFiches.filter(t=>getParentId(t)===f.id&&!isProjet(t)));
+    origStart=pd.start; origEnd=pd.end;
   } else {
-    origStart = getEffectiveDate(f, 'Date_Demarrage');
-    origEnd   = getEffectiveDate(f, 'Date_Fin');
+    origStart=getED(f,'Date_Demarrage'); origEnd=getED(f,'Date_Fin');
   }
 
-  dragState = { id:f.id, mode, scale:sc, range, startX:e.clientX, origStart, origEnd, barEl, isProg, progId };
+  dragState = {id:f.id, mode, scale:sc, range, startX:e.clientX, origStart, origEnd, barEl, isProg};
   barEl.classList.add('dragging');
   document.addEventListener('mousemove', onDragMove);
   document.addEventListener('mouseup',   onDragEnd);
@@ -519,42 +473,41 @@ function startDrag(e, f, barEl, mode, range, isProg, progId) {
 function onDragMove(e) {
   if (!dragState) return;
   const dx    = (e.clientX - dragState.startX) / dragState.scale;
-  const moved = xToDate(dateToX(dragState.origStart, dragState.range.min)+dx, dragState.range.min);
-  const delta = daysBetween(dragState.origStart, moved);
+  const movedS= xToDate(dateToX(dragState.origStart, dragState.range.min)+dx, dragState.range.min);
+  const delta = daysBetween(dragState.origStart, movedS);
   const f     = allFiches.find(f=>f.id===dragState.id);
 
+  // Reset pushed sur toutes les tâches avant recalcul
+  allFiches.forEach(t => { t._pushed = false; });
+
   if (dragState.isProg) {
-    // Déplace toutes les tâches du programme
-    allFiches.forEach(t => { t._cascaded = false; });
     cascadeAllTasks(f.id, delta);
   } else {
     if (!pendingChanges[f.id]) pendingChanges[f.id] = {};
-    let newStart = dragState.origStart;
-    let newEnd   = dragState.origEnd;
 
     if (dragState.mode === 'move') {
-      newStart = addDays(dragState.origStart, delta);
-      newEnd   = addDays(dragState.origEnd,   delta);
-      pendingChanges[f.id].Date_Demarrage = dateToTimestamp(newStart);
-      pendingChanges[f.id].Date_Fin       = dateToTimestamp(newEnd);
-      // Cascade tâche suivante
-      allFiches.forEach(t=>{ if(t.id!==f.id) t._cascaded=false; });
-      cascadeNext(f.id, delta, new Set([f.id]));
+      const newStart = addDays(dragState.origStart, delta);
+      const newEnd   = addDays(dragState.origEnd,   delta);
+      pendingChanges[f.id].Date_Demarrage = toTs(newStart);
+      pendingChanges[f.id].Date_Fin       = toTs(newEnd);
+      // Cascade forward uniquement si on avance (delta > 0)
+      if (delta > 0) cascadeForward(f.id, new Set([f.id]));
+
     } else if (dragState.mode === 'resize-left') {
-      newStart = addDays(dragState.origStart, delta);
+      let newStart = addDays(dragState.origStart, delta);
       if (daysBetween(newStart, dragState.origEnd) < 1) newStart = addDays(dragState.origEnd,-1);
-      pendingChanges[f.id].Date_Demarrage = dateToTimestamp(newStart);
-      pendingChanges[f.id].Date_Fin       = dateToTimestamp(dragState.origEnd);
+      pendingChanges[f.id].Date_Demarrage = toTs(newStart);
+      pendingChanges[f.id].Date_Fin       = toTs(dragState.origEnd);
+
     } else if (dragState.mode === 'resize-right') {
       const dxR    = (e.clientX - dragState.startX) / dragState.scale;
-      const movedR = xToDate(dateToX(dragState.origEnd, dragState.range.min)+dxR, dragState.range.min);
-      newEnd = movedR;
-      if (daysBetween(dragState.origStart, newEnd)<1) newEnd=addDays(dragState.origStart,1);
-      pendingChanges[f.id].Date_Demarrage = dateToTimestamp(dragState.origStart);
-      pendingChanges[f.id].Date_Fin       = dateToTimestamp(newEnd);
-      // Cascade suivante sur resize-right aussi
-      const newDelta = daysBetween(dragState.origEnd, newEnd);
-      cascadeNext(f.id, newDelta, new Set([f.id]));
+      const movedE = xToDate(dateToX(dragState.origEnd, dragState.range.min)+dxR, dragState.range.min);
+      let newEnd   = movedE;
+      if (daysBetween(dragState.origStart, newEnd) < 1) newEnd = addDays(dragState.origStart,1);
+      pendingChanges[f.id].Date_Demarrage = toTs(dragState.origStart);
+      pendingChanges[f.id].Date_Fin       = toTs(newEnd);
+      // Cascade forward si on étend vers la droite
+      if (daysBetween(dragState.origEnd, newEnd) > 0) cascadeForward(f.id, new Set([f.id]));
     }
   }
   render();
@@ -573,14 +526,20 @@ function onDragEnd() {
    TOOLTIP
 ══════════════════════════════════════ */
 function showTooltip(e, f, isProg, isOverdue) {
-  const tt  = document.getElementById('tooltip');
-  const dS  = getEffectiveDate(f,'Date_Demarrage');
-  const dE  = getEffectiveDate(f,'Date_Fin');
-  const pl  = Array.isArray(f.Pilote) ? (f.Pilote[1]||'—') : (f.Pilote||'—');
-  tt.innerHTML = `
+  const tt = document.getElementById('tooltip');
+  const dS = isProg ? null : getED(f,'Date_Demarrage');
+  const dE = isProg ? null : getED(f,'Date_Fin');
+  const pl = Array.isArray(f.Pilote)?(f.Pilote[1]||'—'):(f.Pilote||'—');
+  let dSDisplay=dS, dEDisplay=dE;
+  if (isProg) {
+    const pd=getProgDates(f,allFiches.filter(t=>getParentId(t)===f.id&&!isProjet(t)));
+    dSDisplay=pd.start; dEDisplay=pd.end;
+  }
+  tt.innerHTML=`
     <strong>${esc(f.Libelle||'—')}${isProg?' 📋':''}</strong>
-    <div class="tt-row"><span>Dates</span><span class="tt-val">${fmtDate(dS)} → ${fmtDate(dE)}</span></div>
-    <div class="tt-row"><span>Durée</span><span class="tt-val">${dS&&dE?daysBetween(dS,dE)+' j':'—'}</span></div>
+    <div class="tt-row"><span>Début</span><span class="tt-val">${fmtDate(dSDisplay)}</span></div>
+    <div class="tt-row"><span>Fin</span><span class="tt-val${isOverdue?' tt-warn':''}">${fmtDate(dEDisplay)}${isOverdue?' ⚠':''}</span></div>
+    ${dSDisplay&&dEDisplay?`<div class="tt-row"><span>Durée</span><span class="tt-val">${daysBetween(dSDisplay,dEDisplay)} j</span></div>`:''}
     <div class="tt-row"><span>Statut</span><span class="tt-val">${esc(f.Statut||'—')}</span></div>
     <div class="tt-row"><span>Pilote</span><span class="tt-val">${esc(pl)}</span></div>
     <div class="tt-row"><span>Avancement</span><span class="tt-val">${f.PDCA||0}%</span></div>
@@ -588,55 +547,49 @@ function showTooltip(e, f, isProg, isOverdue) {
   `;
   tt.style.display='block'; moveTooltip(e);
 }
-function moveTooltip(e) {
-  const tt=document.getElementById('tooltip');
-  tt.style.left=Math.min(e.clientX+14,window.innerWidth-230)+'px';
-  tt.style.top =Math.min(e.clientY+14,window.innerHeight-180)+'px';
-}
+function moveTooltip(e) { const tt=document.getElementById('tooltip'); tt.style.left=Math.min(e.clientX+14,window.innerWidth-230)+'px'; tt.style.top=Math.min(e.clientY+14,window.innerHeight-200)+'px'; }
 function hideTooltip() { document.getElementById('tooltip').style.display='none'; }
 
 /* ══════════════════════════════════════
-   HEADER
+   HEADER & LIGNES
 ══════════════════════════════════════ */
 function renderHeader(range) {
   const months=document.getElementById('header-months');
   const weeks =document.getElementById('header-weeks');
   months.innerHTML=weeks.innerHTML='';
-
-  if (zoom==='trimestre') {
+  if(zoom==='trimestre'){
     const cur=new Date(range.min);
     while(cur<range.max){
-      const qS=new Date(cur); const q=Math.floor(cur.getMonth()/3);
-      cur.setMonth((q+1)*3); cur.setDate(1);
+      const qS=new Date(cur);const q=Math.floor(cur.getMonth()/3);
+      cur.setMonth((q+1)*3);cur.setDate(1);
       const qE=cur<range.max?new Date(cur):new Date(range.max);
       const w=dateToX(qE,range.min)-dateToX(qS,range.min);
-      const d=document.createElement('div'); d.className='gantt-header-month'; d.style.width=w+'px';
-      d.textContent=`T${q+1} ${qS.getFullYear()}`; months.appendChild(d);
+      const d=document.createElement('div');d.className='gantt-header-month';d.style.width=w+'px';
+      d.textContent=`T${q+1} ${qS.getFullYear()}`;months.appendChild(d);
     }
     return;
   }
   const cur2=new Date(range.min);
   while(cur2<range.max){
-    const mS=new Date(cur2); cur2.setMonth(cur2.getMonth()+1); cur2.setDate(1);
+    const mS=new Date(cur2);cur2.setMonth(cur2.getMonth()+1);cur2.setDate(1);
     const mE=cur2<range.max?new Date(cur2):new Date(range.max);
     const w=dateToX(mE,range.min)-dateToX(mS,range.min);
-    const d=document.createElement('div'); d.className='gantt-header-month'; d.style.width=w+'px';
-    d.textContent=fmtMonth(mS); months.appendChild(d);
+    const d=document.createElement('div');d.className='gantt-header-month';d.style.width=w+'px';
+    d.textContent=fmtMonth(mS);months.appendChild(d);
   }
   const cur3=new Date(range.min);
-  const dy=cur3.getDay(); cur3.setDate(cur3.getDate()-(dy===0?6:dy-1));
+  const dy=cur3.getDay();cur3.setDate(cur3.getDate()-(dy===0?6:dy-1));
   while(cur3<range.max){
-    const wS=new Date(cur3); cur3.setDate(cur3.getDate()+7);
+    const wS=new Date(cur3);cur3.setDate(cur3.getDate()+7);
     const wE=cur3<range.max?new Date(cur3):new Date(range.max);
     const x1=Math.max(0,dateToX(wS,range.min));
-    const w=dateToX(wE,range.min)-x1;
-    if(w<1) continue;
-    const d=document.createElement('div'); d.className='gantt-header-week'; d.style.width=w+'px';
-    d.textContent=zoom==='semaine'?`S${getWeekNum(wS)}`:wS.getDate(); weeks.appendChild(d);
+    const w=dateToX(wE,range.min)-x1;if(w<1)continue;
+    const d=document.createElement('div');d.className='gantt-header-week';d.style.width=w+'px';
+    d.textContent=zoom==='semaine'?`S${getWeekNum(wS)}`:wS.getDate();weeks.appendChild(d);
   }
 }
 
-function renderVLines(range, totalH) {
+function renderVLines(range,totalH) {
   const rows=document.getElementById('gantt-rows');
   rows.querySelectorAll('.gantt-vline,.today-line').forEach(e=>e.remove());
   const cur=new Date(range.min);
@@ -644,20 +597,17 @@ function renderVLines(range, totalH) {
     const x=dateToX(cur,range.min);
     const l=document.createElement('div');
     l.className='gantt-vline'+(cur.getDate()===1?' month':'');
-    l.style.left=x+'px'; l.style.height=totalH+'px'; rows.appendChild(l);
-    if(zoom==='trimestre') cur.setMonth(cur.getMonth()+3);
-    else if(zoom==='mois') cur.setMonth(cur.getMonth()+1);
+    l.style.left=x+'px';l.style.height=totalH+'px';rows.appendChild(l);
+    if(zoom==='trimestre')cur.setMonth(cur.getMonth()+3);
+    else if(zoom==='mois')cur.setMonth(cur.getMonth()+1);
     else cur.setDate(cur.getDate()+7);
   }
   const tx=dateToX(new Date(),range.min);
-  if(tx>0){
-    const tl=document.createElement('div');
-    tl.className='today-line'; tl.style.left=tx+'px'; tl.style.height=totalH+'px'; rows.appendChild(tl);
-  }
+  if(tx>0){const tl=document.createElement('div');tl.className='today-line';tl.style.left=tx+'px';tl.style.height=totalH+'px';rows.appendChild(tl);}
 }
 
 /* ══════════════════════════════════════
-   RENDER
+   RENDER PRINCIPAL
 ══════════════════════════════════════ */
 function render() {
   const rows = buildDisplayRows(filtered);
@@ -666,40 +616,27 @@ function render() {
   const lb=document.getElementById('task-list-body');
   lb.innerHTML='';
   rows.forEach(r => {
-    const f=r.f;
-    const isProg=r.type==='prog';
-    const modified=!!pendingChanges[f.id] || (isProg && r.tasks.some(t=>!!pendingChanges[t.id]));
-
-    let dS, dE;
-    if (isProg) {
-      const cd=computeProgDates(f, r.tasks);
-      dS=cd.start; dE=cd.end;
+    const f=r.f; const isProg=r.type==='prog';
+    let dS,dE,isOverdue=false;
+    if(isProg){
+      const pd=getProgDates(f,r.tasks);
+      dS=pd.start;dE=pd.end;isOverdue=pd.isOverdue;
     } else {
-      dS=getEffectiveDate(f,'Date_Demarrage');
-      dE=getEffectiveDate(f,'Date_Fin');
-    }
-
-    // Vérif dépassement programme
-    let isOverdue = false;
-    if (!isProg && r.progId) {
-      const prog=allFiches.find(p=>p.id===r.progId);
-      if (prog) {
-        const cd=computeProgDates(prog, allFiches.filter(t=>getParentId(t)===r.progId&&!isProjet(t)));
-        const progEnd=getEffectiveDate(prog,'Date_Fin') || cd.end;
-        if (dE && progEnd && dE > progEnd) isOverdue=true;
+      dS=getED(f,'Date_Demarrage');dE=getED(f,'Date_Fin');
+      if(r.prog){
+        const pd=getProgDates(r.prog,allFiches.filter(t=>getParentId(t)===r.progId&&!isProjet(t)));
+        if(dE&&pd.progFin&&dE>pd.progFin) isOverdue=true;
       }
     }
-
-    const color = isProg ? '#2c3e50' : getProgColor(r.progId || f.id);
+    const modified=!!pendingChanges[f.id]||(isProg&&r.tasks.some(t=>!!pendingChanges[t.id]));
+    const color=isProg?'#2c3e50':getProgColor(r.progId||f.id);
     const row=document.createElement('div');
-    row.className='task-row'
-      +(selectedId===f.id?' selected':'')
-      +(modified?' modified':'')
-      +(isOverdue?' overdue':'');
+    row.className='task-row'+(selectedId===f.id?' selected':'')+(modified?' modified':'')+(isOverdue?' overdue':'');
     row.innerHTML=`
       <div class="task-name" style="padding-left:${isProg?8:24}px">
-        ${isProg?`<span style="font-size:.7rem;margin-right:4px">📋</span>`
-                :`<div class="pilier-dot" style="background:${color};width:6px;height:6px;border-radius:2px"></div>`}
+        ${isProg
+          ?`<span style="font-size:.7rem;margin-right:5px">📋</span>`
+          :`<div class="pilier-dot" style="background:${color};width:6px;height:6px;border-radius:2px"></div>`}
         <span style="font-weight:${isProg?700:500};color:${isProg?'#1e293b':'#475569'}">
           ${!isProg?'└&nbsp;':''}${esc(f.Libelle||'—')}
         </span>
@@ -713,151 +650,125 @@ function render() {
   });
 
   const hasDates=rows.some(r=>{
-    if(r.type==='prog'){const cd=computeProgDates(r.f,r.tasks);return cd.start&&cd.end;}
-    return getEffectiveDate(r.f,'Date_Demarrage')&&getEffectiveDate(r.f,'Date_Fin');
+    if(r.type==='prog'){const pd=getProgDates(r.f,r.tasks);return pd.start&&pd.end;}
+    return getED(r.f,'Date_Demarrage')&&getED(r.f,'Date_Fin');
   });
-
   if(!hasDates){
     document.getElementById('gantt-rows').innerHTML=`
-      <div style="display:flex;align-items:center;justify-content:center;height:250px;
-        flex-direction:column;gap:12px;color:#94a3b8;font-size:.85rem;font-style:italic">
-        <div style="font-size:2.5rem">📅</div>
-        <div>Aucune date renseignée dans les actions.</div>
+      <div style="display:flex;align-items:center;justify-content:center;height:250px;flex-direction:column;gap:12px;color:#94a3b8;font-size:.85rem">
+        <div style="font-size:2.5rem">📅</div><div>Aucune date renseignée.</div>
       </div>`;
     document.getElementById('header-months').innerHTML='';
     document.getElementById('header-weeks').innerHTML='';
     return;
   }
 
-  const range  = getRange(rows);
-  const totalW = dateToX(range.max, range.min);
-  const totalH = rows.length * ROW_H;
+  const range =getRange(rows);
+  const totalW=dateToX(range.max,range.min);
+  const totalH=rows.length*ROW_H;
 
   renderHeader(range);
   document.getElementById('gantt-header').style.width=totalW+'px';
 
   const ganttRows=document.getElementById('gantt-rows');
-  ganttRows.style.width =totalW+'px';
-  ganttRows.style.height=totalH+'px';
+  ganttRows.style.width=totalW+'px'; ganttRows.style.height=totalH+'px';
   ganttRows.querySelectorAll('.gantt-row').forEach(e=>e.remove());
 
-  // Map id → index pour flèches
   const idxMap={};
-  rows.forEach((r,i)=>{ idxMap[r.f.id]=i; });
+  rows.forEach((r,i)=>{idxMap[r.f.id]=i;});
 
-  // SVG flèches (entre tâches uniquement)
+  // SVG flèches
   let svg=document.getElementById('gantt-arrows');
-  if(svg) svg.remove();
+  if(svg)svg.remove();
   svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
   svg.id='gantt-arrows';
   svg.style.cssText=`position:absolute;top:0;left:0;width:${totalW}px;height:${totalH}px;pointer-events:none;z-index:3;overflow:visible`;
-
-  // Marqueurs flèches
   const defs=document.createElementNS('http://www.w3.org/2000/svg','defs');
-  [...new Set(Object.values(progColorMap)),...['#2c3e50']].forEach(c=>{
+  [...new Set([...Object.values(progColorMap),'#2c3e50'])].forEach(c=>{
     const mk=document.createElementNS('http://www.w3.org/2000/svg','marker');
-    mk.setAttribute('id','arr-'+c.replace('#','')); mk.setAttribute('markerWidth','7');
-    mk.setAttribute('markerHeight','7'); mk.setAttribute('refX','6');
-    mk.setAttribute('refY','3.5'); mk.setAttribute('orient','auto');
+    mk.setAttribute('id','arr-'+c.replace('#',''));mk.setAttribute('markerWidth','7');
+    mk.setAttribute('markerHeight','7');mk.setAttribute('refX','6');
+    mk.setAttribute('refY','3.5');mk.setAttribute('orient','auto');
     const pl=document.createElementNS('http://www.w3.org/2000/svg','polygon');
-    pl.setAttribute('points','0 0,7 3.5,0 7'); pl.setAttribute('fill',c);
-    mk.appendChild(pl); defs.appendChild(mk);
+    pl.setAttribute('points','0 0,7 3.5,0 7');pl.setAttribute('fill',c);
+    mk.appendChild(pl);defs.appendChild(mk);
   });
   svg.appendChild(defs);
 
-  // Render chaque ligne
-  rows.forEach((r, idx) => {
-    const f      = r.f;
-    const isProg = r.type==='prog';
-    const color  = isProg ? '#2c3e50' : getProgColor(r.progId || f.id);
+  rows.forEach((r,idx)=>{
+    const f=r.f; const isProg=r.type==='prog';
+    const color=isProg?'#2c3e50':getProgColor(r.progId||f.id);
 
     const row=document.createElement('div');
     row.className='gantt-row'+(selectedId===f.id?' selected':'');
-    row.style.top=idx*ROW_H+'px'; row.style.height=ROW_H+'px';
+    row.style.top=idx*ROW_H+'px';row.style.height=ROW_H+'px';
     row.onclick=()=>selectFiche(f.id);
 
-    if (isProg) {
-      // ── BARRE PROGRAMME CHAPEAU ──
-      const cd=computeProgDates(f, r.tasks);
-      if (cd.start && cd.end) {
-        const x1=Math.max(0,dateToX(cd.start,range.min));
-        const x2=Math.max(x1+10,dateToX(cd.end,range.min));
-        const bw=x2-x1;
-
+    if(isProg){
+      const pd=getProgDates(f,r.tasks);
+      if(pd.start&&pd.end){
+        const x1=Math.max(0,dateToX(pd.start,range.min));
+        const x2=Math.max(x1+10,dateToX(pd.end,range.min));
         const bar=document.createElement('div');
-        bar.className='gantt-bar-programme';
-        bar.style.cssText=`left:${x1}px;width:${bw}px;top:${ROW_H/2}px`;
-
+        bar.className='gantt-bar-programme'+(pd.isOverdue?' overdue':'');
+        bar.style.cssText=`left:${x1}px;width:${x2-x1}px;top:${ROW_H/2}px`;
         const lbl=document.createElement('div');
-        lbl.className='prog-label'; lbl.textContent=f.Libelle||'';
+        lbl.className='prog-label';lbl.textContent=f.Libelle||'';
         bar.appendChild(lbl);
-
-        bar.onmousedown=e=>startDrag(e,f,bar,'move',range,true,f.id);
-        bar.onmouseenter=e=>showTooltip(e,f,true,false);
-        bar.onmousemove =e=>moveTooltip(e);
+        bar.onmousedown=e=>startDrag(e,f,bar,'move',range,true);
+        bar.onmouseenter=e=>showTooltip(e,f,true,pd.isOverdue);
+        bar.onmousemove=e=>moveTooltip(e);
         bar.onmouseleave=hideTooltip;
         row.appendChild(bar);
       }
     } else {
-      // ── BARRE TÂCHE ──
-      const dS=getEffectiveDate(f,'Date_Demarrage');
-      const dE=getEffectiveDate(f,'Date_Fin');
-
-      // Vérif dépassement
+      const dS=getED(f,'Date_Demarrage');
+      const dE=getED(f,'Date_Fin');
       let isOverdue=false;
-      if (r.progId) {
-        const prog=allFiches.find(p=>p.id===r.progId);
-        if(prog){
-          const cd=computeProgDates(prog,allFiches.filter(t=>getParentId(t)===r.progId&&!isProjet(t)));
-          const progEnd=getEffectiveDate(prog,'Date_Fin')||cd.end;
-          if(dE&&progEnd&&dE>progEnd) isOverdue=true;
-        }
+      if(r.prog){
+        const pd=getProgDates(r.prog,allFiches.filter(t=>getParentId(t)===r.progId&&!isProjet(t)));
+        if(dE&&pd.progFin&&dE>pd.progFin)isOverdue=true;
       }
 
-      if (dS && dE) {
+      if(dS&&dE){
         const x1=Math.max(0,dateToX(dS,range.min));
         const x2=Math.max(x1+6,dateToX(dE,range.min));
-        const bw=x2-x1;
-        const bh=20; const bt=(ROW_H-bh)/2;
+        const bw=x2-x1;const bh=20;const bt=(ROW_H-bh)/2;
         const avct=Math.min(100,Math.max(0,f.PDCA||0));
 
         const bar=document.createElement('div');
-        bar.className='gantt-bar'
-          +(selectedId===f.id?' selected':'')
-          +(f._cascaded?' cascaded':'')
-          +(isOverdue?' overdue':'');
+        bar.className='gantt-bar'+(selectedId===f.id?' selected':'')+(f._pushed?' pushed':'')+(isOverdue?' overdue':'');
         bar.style.cssText=`left:${x1}px;width:${bw}px;top:${bt}px;height:${bh}px;background:${color}`;
 
         const prog=document.createElement('div');
-        prog.className='gantt-bar-progress'; prog.style.width=avct+'%';
+        prog.className='gantt-bar-progress';prog.style.width=avct+'%';
         bar.appendChild(prog);
 
         if(bw>30){
           const lbl=document.createElement('div');
-          lbl.className='gantt-bar-label'; lbl.textContent=f.Libelle||'';
+          lbl.className='gantt-bar-label';lbl.textContent=f.Libelle||'';
           bar.appendChild(lbl);
         }
 
-        // Handles resize
-        const hl=document.createElement('div'); hl.className='resize-handle left';
-        hl.onmousedown=e=>{e.stopPropagation();startDrag(e,f,bar,'resize-left',range,false,r.progId);};
+        const hl=document.createElement('div');hl.className='resize-handle left';
+        hl.onmousedown=e=>{e.stopPropagation();startDrag(e,f,bar,'resize-left',range,false);};
         bar.appendChild(hl);
-        const hr=document.createElement('div'); hr.className='resize-handle right';
-        hr.onmousedown=e=>{e.stopPropagation();startDrag(e,f,bar,'resize-right',range,false,r.progId);};
+        const hr=document.createElement('div');hr.className='resize-handle right';
+        hr.onmousedown=e=>{e.stopPropagation();startDrag(e,f,bar,'resize-right',range,false);};
         bar.appendChild(hr);
 
-        bar.onmousedown=e=>{if(e.target.classList.contains('resize-handle'))return;startDrag(e,f,bar,'move',range,false,r.progId);};
+        bar.onmousedown=e=>{if(e.target.classList.contains('resize-handle'))return;startDrag(e,f,bar,'move',range,false);};
         bar.onmouseenter=e=>showTooltip(e,f,false,isOverdue);
-        bar.onmousemove =e=>moveTooltip(e);
+        bar.onmousemove=e=>moveTooltip(e);
         bar.onmouseleave=hideTooltip;
         row.appendChild(bar);
 
-        // Flèche vers la tâche suivante (celle dont Tache_Precedente = f.id)
-        const nextTask=rows.find(nr=>nr.type==='task'&&getPrecId(nr.f)===f.id);
-        if(nextTask){
-          const ni=idxMap[nextTask.f.id];
+        // Flèche vers tâche suivante
+        const nextRow=rows.find(nr=>nr.type==='task'&&getPrecId(nr.f)===f.id);
+        if(nextRow){
+          const ni=idxMap[nextRow.f.id];
           if(ni!==undefined){
-            const nS=getEffectiveDate(nextTask.f,'Date_Demarrage');
+            const nS=getED(nextRow.f,'Date_Demarrage');
             if(nS){
               const nx=dateToX(nS,range.min);
               const py=idx*ROW_H+ROW_H/2;
@@ -865,10 +776,8 @@ function render() {
               const mid=(x2+nx)/2;
               const path=document.createElementNS('http://www.w3.org/2000/svg','path');
               path.setAttribute('d',`M ${x2} ${py} C ${mid} ${py}, ${mid} ${cy}, ${nx} ${cy}`);
-              path.setAttribute('stroke',color);
-              path.setAttribute('stroke-width','1.5');
-              path.setAttribute('fill','none');
-              path.setAttribute('stroke-dasharray','4,3');
+              path.setAttribute('stroke',color);path.setAttribute('stroke-width','1.5');
+              path.setAttribute('fill','none');path.setAttribute('stroke-dasharray','4,3');
               path.setAttribute('marker-end',`url(#arr-${color.replace('#','')})`);
               svg.appendChild(path);
             }
@@ -880,46 +789,35 @@ function render() {
   });
 
   ganttRows.appendChild(svg);
-  renderVLines(range, totalH);
+  renderVLines(range,totalH);
   syncScroll();
 }
 
 /* ══════════════════════════════════════
    UTILITAIRES
 ══════════════════════════════════════ */
-function syncScroll() {
+function syncScroll(){
   const lb=document.getElementById('task-list-body');
   const gb=document.getElementById('gantt-body');
   lb.onscroll=()=>{gb.scrollTop=lb.scrollTop;};
   gb.onscroll=()=>{lb.scrollTop=gb.scrollTop;};
 }
-function applyFilters() {
+function applyFilters(){
   const statut=document.getElementById('filter-statut').value;
   const prog  =document.getElementById('filter-prog').value;
-  // On garde tous les projets + leurs tâches si filtre programme actif
   filtered=allFiches.filter(f=>{
-    if(statut && String(f.Statut||'')!==statut) return false;
-    if(prog){
-      const pid=+prog;
-      if(isProjet(f)) return f.id===pid;
-      return getParentId(f)===pid;
-    }
+    if(statut&&String(f.Statut||'')!==statut)return false;
+    if(prog){const pid=+prog;if(isProjet(f))return f.id===pid;return getParentId(f)===pid;}
     return true;
   });
   render();
 }
-function setZoom(z) {
+function setZoom(z){
   zoom=z;
-  ['semaine','mois','trimestre'].forEach(id=>
-    document.getElementById('z-'+id).classList.toggle('active',id===z)
-  );
+  ['semaine','mois','trimestre'].forEach(id=>document.getElementById('z-'+id).classList.toggle('active',id===z));
   render();
 }
-function selectFiche(id) {
-  selectedId=(selectedId===id)?null:id;
-  try{if(selectedId) grist.setSelectedRows([selectedId]);}catch(e){}
-  render();
-}
+function selectFiche(id){ selectedId=(selectedId===id)?null:id; try{if(selectedId)grist.setSelectedRows([selectedId]);}catch(e){} render(); }
 function goMaison(){try{grist.setSelectedRows([]);}catch(e){}}
 function goFiche() {try{if(selectedId)grist.setSelectedRows([selectedId]);}catch(e){}}
 function esc(t){const d=document.createElement('div');d.textContent=String(t||'');return d.innerHTML;}
@@ -928,13 +826,13 @@ function esc(t){const d=document.createElement('div');d.textContent=String(t||''
    DÉMO
 ══════════════════════════════════════ */
 const DEMO=[
-  {id:1,Libelle:'Former les assembleurs',Niveau:'1 - Projet',Action_Parent:null,Tache_Precedente:null,Date_Demarrage:1735689600,Date_Fin:1767225600,Statut:'En Cours',PDCA:30,Pilote:'Emilie RIV'},
-  {id:2,Libelle:'Préparer le support',   Niveau:'2 - Tâche', Action_Parent:1,  Tache_Precedente:null,Date_Demarrage:1735689600,Date_Fin:1740700800,Statut:'Terminé', PDCA:100,Pilote:'Emilie RIV'},
-  {id:3,Libelle:'Envoyer convocations',  Niveau:'2 - Tâche', Action_Parent:1,  Tache_Precedente:2,   Date_Demarrage:1740700800,Date_Fin:1746057600,Statut:'En Cours',PDCA:40, Pilote:'Claire PRIN'},
-  {id:4,Libelle:'Former en salle',       Niveau:'2 - Tâche', Action_Parent:1,  Tache_Precedente:3,   Date_Demarrage:1746057600,Date_Fin:1751328000,Statut:'A faire', PDCA:0,  Pilote:'Emmanuel'},
-  {id:5,Libelle:'Réduction déchets',     Niveau:'1 - Projet',Action_Parent:null,Tache_Precedente:null,Date_Demarrage:1740960000,Date_Fin:1767225600,Statut:'En Cours',PDCA:15,Pilote:'Claire PRIN'},
-  {id:6,Libelle:'Audit initial',         Niveau:'2 - Tâche', Action_Parent:5,  Tache_Precedente:null,Date_Demarrage:1740960000,Date_Fin:1743638400,Statut:'Terminé', PDCA:100,Pilote:'Claire PRIN'},
-  {id:7,Libelle:'Plan de réduction',     Niveau:'2 - Tâche', Action_Parent:5,  Tache_Precedente:6,   Date_Demarrage:1743638400,Date_Fin:1751328000,Statut:'En Cours',PDCA:20, Pilote:'Emmanuel'},
+  {id:1,Libelle:'Former les assembleurs',Niveau:'1 - Projet',Action_Parent:null,'Tache_précédente':null,Date_Demarrage:null,Date_Fin:1767225600,Statut:'En Cours',PDCA:30,Pilote:'Emilie RIV'},
+  {id:2,Libelle:'Préparer le support',   Niveau:'2 - Tâche', Action_Parent:1,  'Tache_précédente':null,Date_Demarrage:1735689600,Date_Fin:1740700800,Statut:'Terminé', PDCA:100,Pilote:'Emilie RIV'},
+  {id:3,Libelle:'Envoyer convocations',  Niveau:'2 - Tâche', Action_Parent:1,  'Tache_précédente':2,   Date_Demarrage:1740700800,Date_Fin:1746057600,Statut:'En Cours',PDCA:40, Pilote:'Claire PRIN'},
+  {id:4,Libelle:'Former en salle',       Niveau:'2 - Tâche', Action_Parent:1,  'Tache_précédente':3,   Date_Demarrage:1746057600,Date_Fin:1751328000,Statut:'A faire', PDCA:0,  Pilote:'Emmanuel'},
+  {id:5,Libelle:'Réduction déchets',     Niveau:'1 - Projet',Action_Parent:null,'Tache_précédente':null,Date_Demarrage:null,Date_Fin:1767225600,Statut:'En Cours',PDCA:15,Pilote:'Claire PRIN'},
+  {id:6,Libelle:'Audit initial',         Niveau:'2 - Tâche', Action_Parent:5,  'Tache_précédente':null,Date_Demarrage:1740960000,Date_Fin:1743638400,Statut:'Terminé', PDCA:100,Pilote:'Claire PRIN'},
+  {id:7,Libelle:'Plan de réduction',     Niveau:'2 - Tâche', Action_Parent:5,  'Tache_précédente':6,   Date_Demarrage:1743638400,Date_Fin:1751328000,Statut:'En Cours',PDCA:20, Pilote:'Emmanuel'},
 ];
 
 /* ══════════════════════════════════════
@@ -946,26 +844,22 @@ function show(){
   wrap.style.display='flex'; scaleToFit();
 }
 
-const fallbackTimer=setTimeout(()=>{
-  allFiches=DEMO; filtered=DEMO; show(); render();
-},1500);
+const fallbackTimer=setTimeout(()=>{allFiches=DEMO;filtered=DEMO;show();render();},1500);
 
 try {
   grist.ready({requiredAccess:'full'});
   grist.onRecords(records=>{
     clearTimeout(fallbackTimer);
     if(records&&records.length>0){
-      gristLoaded=true; allFiches=records; filtered=records; show(); render();
+      gristLoaded=true;allFiches=records;filtered=records;show();render();
     } else if(!gristLoaded){
-      allFiches=DEMO; filtered=DEMO; show(); render();
+      allFiches=DEMO;filtered=DEMO;show();render();
     }
   });
-  grist.onRecord(rec=>{
-    if(rec&&rec.id){selectedId=rec.id; render();}
-  });
+  grist.onRecord(rec=>{if(rec&&rec.id){selectedId=rec.id;render();}});
 } catch(e){
   clearTimeout(fallbackTimer);
-  allFiches=DEMO; filtered=DEMO; show(); render();
+  allFiches=DEMO;filtered=DEMO;show();render();
 }
 </script>
 </body>
