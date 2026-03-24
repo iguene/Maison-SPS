@@ -1397,26 +1397,44 @@ function directInitiativeLabelOf(action) {
 function getInitiativeChoices() {
   const seen = new Map();
 
-  // 1) Valeurs réellement présentes dans la colonne Initiative_ID de la table Actions
-  allActions.forEach(a => {
-    const id = directInitiativeIdOf(a);
-    if (id == null) return;
-    const key = String(id);
-    const linkedRow = programSheetRows.find(r => String(normalizeRefValue(r.id)) === key);
-    const label = (linkedRow && programSheetName(linkedRow)) || directInitiativeLabelOf(a) || `Programme ${id}`;
-    if (!seen.has(key)) seen.set(key, { id, label });
-  });
-
-  // 2) Complément depuis Fiches Programmes pour garder les références possibles
+  // 1) Toutes les lignes de la table liée Fiches Programmes
   programSheetRows.forEach(r => {
     const id = normalizeRefValue(r.id);
     if (id == null) return;
+
     const key = String(id);
-    const label = programSheetName(r) || `Programme ${id}`;
-    if (!seen.has(key)) seen.set(key, { id, label });
+    const label =
+      r.Programme_Nom ||
+      r.Programme ||
+      r.Libelle ||
+      r.Nom ||
+      programSheetName(r) ||
+      `Programme ${id}`;
+
+    if (!seen.has(key)) {
+      seen.set(key, { id, label });
+    }
   });
 
-  return Array.from(seen.values()).sort((a,b)=> String(a.label).localeCompare(String(b.label), 'fr'));
+  // 2) Complément depuis les valeurs déjà présentes dans Actions.Initiative_ID
+  allActions.forEach(a => {
+    const id = directInitiativeIdOf(a);
+    if (id == null) return;
+
+    const key = String(id);
+    if (seen.has(key)) return;
+
+    const label =
+      refLabelOf(a?.Initiative_ID) ||
+      directInitiativeLabelOf(a) ||
+      `Programme ${id}`;
+
+    seen.set(key, { id, label });
+  });
+
+  return Array.from(seen.values()).sort((a, b) =>
+    String(a.label).localeCompare(String(b.label), 'fr')
+  );
 }
 
 function linkedProgramIdForAction(action) {
@@ -1681,7 +1699,7 @@ function formHtml(item, mode) {
     ${!isProg ? `
     <div class="form-grid-2">
       <div class="form-row">
-        <label class="form-label">Programme lié (Initiative_ID)</label>
+        <label class="form-label">Programme lié (Programme_Nom)</label>
         <select class="form-select" id="panelInitiative" onchange="syncCreateLinkedFields()">${initiativeOptions}</select>
       </div>
       <div class="form-row">
@@ -1701,7 +1719,7 @@ function formHtml(item, mode) {
     </div>` : `
     <div class="form-grid-2">
       <div class="form-row">
-        <label class="form-label">Programme lié (Initiative_ID)</label>
+        <label class="form-label">Programme lié (Programme_Nom)</label>
         <select class="form-select" id="panelInitiative">${initiativeOptions}</select>
       </div>
       <div class="form-row">
