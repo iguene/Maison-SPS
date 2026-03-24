@@ -37,7 +37,6 @@ body {
   flex-shrink: 0;
 }
 .logo-sm span { font-size: 0.55rem; color: #2c3e50; display: block; }
-
 .prog-name {
   flex: 1;
   font-size: 1.1rem;
@@ -47,7 +46,6 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
 .nav-btns { display: flex; gap: 8px; flex-shrink: 0; }
 .nav-btn {
   padding: 7px 28px;
@@ -74,7 +72,6 @@ body {
   flex-shrink: 0;
   line-height: 1.5;
 }
-.context-bar strong { color: #1e293b; }
 
 /* ── GRILLE TUILES ── */
 .tiles-area {
@@ -86,7 +83,6 @@ body {
   min-height: 0;
   overflow: auto;
 }
-
 .tiles-row {
   display: grid;
   grid-template-columns: 1fr 1fr 1.4fr 1fr 1fr;
@@ -102,33 +98,28 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  min-height: 280px;
+  min-height: 260px;
 }
-
 .tile-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 22px 0 16px;
+  padding: 20px 0 14px;
   flex-shrink: 0;
   border-bottom: 1px solid #f1f5f9;
 }
 .tile-icon svg {
-  width: 72px;
-  height: 72px;
-  stroke: #1e3a5f;
-  stroke-width: 1.2;
-  fill: none;
+  width: 68px; height: 68px;
+  stroke: #1e3a5f; stroke-width: 1.2; fill: none;
+  stroke-linecap: round; stroke-linejoin: round;
 }
-
 .tile-label {
-  padding: 10px 14px 6px;
+  padding: 10px 14px 4px;
   font-size: 0.82rem;
   font-weight: 700;
   color: #1e293b;
   flex-shrink: 0;
 }
-
 .tile-content {
   padding: 0 14px 14px;
   font-size: 0.78rem;
@@ -137,47 +128,6 @@ body {
   flex: 1;
   overflow-y: auto;
 }
-
-.bullet-list { list-style: none; padding: 0; }
-.bullet-list li::before { content: "• "; color: #64748b; }
-.bullet-list li { padding: 1px 0; }
-
-/* ── TUILE KSF (bas) ── */
-.ksf-tile {
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  padding: 16px 20px;
-  flex-shrink: 0;
-}
-.ksf-icon {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 64px; height: 64px;
-}
-.ksf-icon svg {
-  width: 56px; height: 56px;
-  stroke: #1e3a5f; stroke-width: 1.2; fill: none;
-}
-.ksf-body { flex: 1; }
-.ksf-label {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 6px;
-}
-.ksf-text {
-  font-size: 0.78rem;
-  color: #334155;
-  line-height: 1.6;
-}
-
-/* ── TUILE LEADER/RESSOURCES ── */
 .tile-sub {
   border-top: 1px solid #f1f5f9;
   padding: 10px 14px;
@@ -191,6 +141,41 @@ body {
   color: #1e293b;
   margin-bottom: 4px;
 }
+.bullet-list { list-style: none; padding: 0; }
+.bullet-list li::before { content: "• "; color: #64748b; }
+.bullet-list li { padding: 1px 0; }
+
+/* ── KSF ── */
+.ksf-tile {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px 20px;
+  flex-shrink: 0;
+}
+.ksf-icon { flex-shrink: 0; }
+.ksf-icon svg {
+  width: 52px; height: 52px;
+  stroke: #1e3a5f; stroke-width: 1.2; fill: none;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.ksf-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 6px;
+}
+.ksf-text {
+  font-size: 0.78rem;
+  color: #334155;
+  line-height: 1.6;
+}
+
+/* ── EMPTY ── */
+.empty { color: #94a3b8; font-style: italic; }
 
 /* ── LOADING ── */
 #loading {
@@ -199,13 +184,11 @@ body {
 }
 .spinner {
   width: 20px; height: 20px;
-  border: 2px solid #ddd;
-  border-top-color: #c0392b;
+  border: 2px solid #ddd; border-top-color: #c0392b;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-
 #fiche { display: none; flex-direction: column; height: 100%; }
 </style>
 </head>
@@ -214,7 +197,6 @@ body {
 <div id="loading"><div class="spinner"></div>Chargement...</div>
 
 <div id="fiche">
-  <!-- HEADER -->
   <div class="top-bar">
     <div class="logo-sm">SPS<span>MEDICAL</span></div>
     <div class="prog-name" id="prog-name">—</div>
@@ -224,10 +206,8 @@ body {
     </div>
   </div>
 
-  <!-- CONTEXTE -->
-  <div class="context-bar" id="context-bar"></div>
+  <div class="context-bar" id="context-bar" style="display:none"></div>
 
-  <!-- TUILES -->
   <div class="tiles-area">
     <div class="tiles-row">
 
@@ -235,87 +215,81 @@ body {
       <div class="tile">
         <div class="tile-icon">
           <svg viewBox="0 0 64 64">
-            <!-- Tête avec engrenage -->
-            <circle cx="28" cy="22" r="14"/>
-            <circle cx="28" cy="22" r="6"/>
-            <path d="M46 46 a18 18 0 0 0-36 0"/>
-            <circle cx="50" cy="36" r="8"/>
-            <path d="M50 28v-4M50 48v-4M42 36h-4M62 36h-4M44.3 30.3l-2.8-2.8M58.5 44.5l-2.8-2.8M44.3 41.7l-2.8 2.8M58.5 27.5l-2.8 2.8"/>
+            <circle cx="26" cy="20" r="13"/>
+            <circle cx="26" cy="20" r="5"/>
+            <path d="M6 52 a20 20 0 0 1 40 0"/>
+            <circle cx="50" cy="34" r="8"/>
+            <line x1="50" y1="26" x2="50" y2="22"/>
+            <line x1="50" y1="42" x2="50" y2="46"/>
+            <line x1="42" y1="34" x2="38" y2="34"/>
+            <line x1="58" y1="34" x2="62" y2="34"/>
+            <line x1="44.3" y1="28.3" x2="41.5" y2="25.5"/>
+            <line x1="55.7" y1="39.7" x2="58.5" y2="42.5"/>
+            <line x1="55.7" y1="28.3" x2="58.5" y2="25.5"/>
+            <line x1="44.3" y1="39.7" x2="41.5" y2="42.5"/>
           </svg>
         </div>
         <div class="tile-label">Objectifs :</div>
-        <div class="tile-content">
-          <ul class="bullet-list" id="objectifs-list"></ul>
-        </div>
+        <div class="tile-content"><ul class="bullet-list" id="objectifs-list"></ul></div>
       </div>
 
       <!-- Départements -->
       <div class="tile">
         <div class="tile-icon">
           <svg viewBox="0 0 64 64">
-            <circle cx="32" cy="20" r="12"/>
-            <path d="M8 56 a24 24 0 0 1 48 0"/>
-            <circle cx="32" cy="20" r="5"/>
-            <line x1="32" y1="8" x2="32" y2="4"/>
-            <line x1="42" y1="11" x2="45" y2="8"/>
-            <line x1="44" y1="20" x2="48" y2="20"/>
-            <line x1="42" y1="29" x2="45" y2="32"/>
-            <line x1="22" y1="11" x2="19" y2="8"/>
-            <line x1="20" y1="20" x2="16" y2="20"/>
+            <circle cx="32" cy="18" r="12"/>
+            <path d="M8 54 a24 24 0 0 1 48 0"/>
+            <circle cx="32" cy="18" r="5"/>
+            <line x1="32" y1="6"  x2="32" y2="2"/>
+            <line x1="43" y1="9"  x2="46" y2="6"/>
+            <line x1="46" y1="18" x2="50" y2="18"/>
+            <line x1="43" y1="27" x2="46" y2="30"/>
+            <line x1="21" y1="9"  x2="18" y2="6"/>
+            <line x1="18" y1="18" x2="14" y2="18"/>
+            <line x1="21" y1="27" x2="18" y2="30"/>
           </svg>
         </div>
         <div class="tile-label">Départements :</div>
-        <div class="tile-content">
-          <ul class="bullet-list" id="dept-list"></ul>
-        </div>
+        <div class="tile-content"><ul class="bullet-list" id="dept-list"></ul></div>
       </div>
 
       <!-- Actions -->
       <div class="tile">
         <div class="tile-icon">
           <svg viewBox="0 0 64 64">
-            <!-- Labyrinthe stylisé -->
-            <rect x="8" y="8" width="48" height="48" rx="3"/>
-            <path d="M20 8v16M8 20h12M20 20h12v12M32 20h12v-12M44 32v12H32M32 32H20v12M20 44v8M44 44h8" stroke-linecap="round"/>
+            <rect x="8" y="8" width="48" height="48" rx="4"/>
+            <path d="M22 8 v14 M8 22 h14 M22 22 h14 v-14 M36 8 v14 h14 M50 22 v14 h-14 M36 36 v14 h14 M50 50 v6 M22 36 h-14 M8 36 v14 h14 M22 50 v6"/>
           </svg>
         </div>
         <div class="tile-label">Actions :</div>
-        <div class="tile-content">
-          <ul class="bullet-list" id="actions-list"></ul>
-        </div>
+        <div class="tile-content"><ul class="bullet-list" id="actions-list"></ul></div>
       </div>
 
       <!-- KPI -->
       <div class="tile">
         <div class="tile-icon">
           <svg viewBox="0 0 64 64">
-            <rect x="8" y="40" width="10" height="16" rx="2"/>
-            <rect x="22" y="28" width="10" height="28" rx="2"/>
-            <rect x="36" y="16" width="10" height="40" rx="2"/>
-            <rect x="50" y="8"  width="10" height="48" rx="2"/>
-            <line x1="4" y1="56" x2="64" y2="56"/>
+            <line x1="4" y1="56" x2="60" y2="56"/>
+            <rect x="6"  y="38" width="10" height="18" rx="2"/>
+            <rect x="20" y="28" width="10" height="28" rx="2"/>
+            <rect x="34" y="16" width="10" height="40" rx="2"/>
+            <rect x="48" y="8"  width="10" height="48" rx="2"/>
           </svg>
         </div>
-        <div class="tile-label">KPI:</div>
-        <div class="tile-content">
-          <ul class="bullet-list" id="kpi-list"></ul>
-        </div>
+        <div class="tile-label">KPI :</div>
+        <div class="tile-content"><ul class="bullet-list" id="kpi-list"></ul></div>
       </div>
 
       <!-- Leader + Ressources -->
       <div class="tile">
         <div class="tile-icon">
           <svg viewBox="0 0 64 64">
-            <rect x="8" y="8" width="48" height="56" rx="3"/>
-            <line x1="20" y1="22" x2="44" y2="22"/>
-            <line x1="20" y1="30" x2="36" y2="30"/>
-            <line x1="20" y1="38" x2="44" y2="38"/>
-            <line x1="20" y1="46" x2="32" y2="46"/>
-            <!-- Croix en haut à droite -->
-            <line x1="38" y1="10" x2="54" y2="10"/>
-            <line x1="38" y1="14" x2="54" y2="14"/>
-            <line x1="38" y1="10" x2="38" y2="14"/>
-            <line x1="54" y1="10" x2="54" y2="14"/>
+            <rect x="8" y="4" width="48" height="56" rx="3"/>
+            <line x1="18" y1="18" x2="46" y2="18"/>
+            <line x1="18" y1="26" x2="38" y2="26"/>
+            <line x1="18" y1="34" x2="46" y2="34"/>
+            <line x1="18" y1="42" x2="34" y2="42"/>
+            <line x1="18" y1="50" x2="42" y2="50"/>
           </svg>
         </div>
         <div class="tile-label">Leader :</div>
@@ -332,16 +306,15 @@ body {
     <div class="ksf-tile">
       <div class="ksf-icon">
         <svg viewBox="0 0 64 64">
-          <!-- Clé -->
-          <circle cx="20" cy="32" r="14"/>
-          <circle cx="20" cy="32" r="7"/>
-          <line x1="30" y1="32" x2="58" y2="32"/>
-          <line x1="50" y1="32" x2="50" y2="40"/>
-          <line x1="58" y1="32" x2="58" y2="40"/>
+          <circle cx="20" cy="34" r="14"/>
+          <circle cx="20" cy="34" r="6"/>
+          <line x1="30" y1="34" x2="56" y2="34"/>
+          <line x1="48" y1="34" x2="48" y2="44"/>
+          <line x1="56" y1="34" x2="56" y2="44"/>
         </svg>
       </div>
-      <div class="ksf-body">
-        <div class="ksf-label">Key Success Factor:</div>
+      <div style="flex:1">
+        <div class="ksf-label">Key Success Factor :</div>
         <div class="ksf-text" id="ksf-content"></div>
       </div>
     </div>
@@ -349,37 +322,34 @@ body {
 </div>
 
 <script>
-let currentFiche = null;
-let allActions   = [];
-
+// ── Helpers ──
 function esc(t) {
   const d = document.createElement('div');
   d.textContent = String(t || '');
   return d.innerHTML;
 }
-
 function splitBullets(text) {
   if (!text) return [];
-  return String(text).split(/\n|;/).map(s => s.trim()).filter(Boolean);
+  return String(text).split(/[\n;]+/).map(s => s.trim()).filter(Boolean);
 }
-
 function renderList(elId, items) {
   const ul = document.getElementById(elId);
-  if (!items.length) { ul.innerHTML = '<li style="color:#94a3b8;font-style:italic">—</li>'; return; }
-  ul.innerHTML = items.map(i => `<li>${esc(i)}</li>`).join('');
+  if (!items || !items.length) {
+    ul.innerHTML = '<li class="empty">—</li>';
+  } else {
+    ul.innerHTML = items.map(i => `<li>${esc(i)}</li>`).join('');
+  }
 }
 
+// ── Rendu principal ──
 function renderFiche(f) {
-  if (!f) return;
-  currentFiche = f;
-
-  // Nom
   document.getElementById('prog-name').textContent = f.Programme || '—';
 
   // Contexte
   const ctx = document.getElementById('context-bar');
   if (f.Contexte) {
-    ctx.innerHTML = f.Contexte.split('\n').map(l => `<div>${esc(l)}</div>`).join('');
+    ctx.innerHTML = splitBullets(f.Contexte)
+      .map(l => `<div>${esc(l)}</div>`).join('');
     ctx.style.display = 'block';
   } else {
     ctx.style.display = 'none';
@@ -391,11 +361,79 @@ function renderFiche(f) {
   // Départements
   renderList('dept-list', splitBullets(f.Departements));
 
-  // Actions (depuis la table Actions liée)
-  const linked = allActions.filter(a => {
-    const ref = Array.isArray(a.Initiative_ID) ? a.Initiative_ID[1] : a.Initiative_ID;
-    return ref == f.id;
+  // Actions — depuis le champ texte (les actions liées arrivent via onRecords si configuré)
+  renderList('actions-list', splitBullets(f.Actions || f.KPIs));
+
+  // KPI
+  renderList('kpi-list', splitBullets(f.KPIs));
+
+  // Leader
+  const leaderEl = document.getElementById('leader-content');
+  const leaderName = Array.isArray(f.Leader)
+    ? (f.Leader[1] || '—')
+    : (f.Leader || '—');
+  leaderEl.innerHTML = `<span>${esc(leaderName)}</span>`;
+
+  // Ressources
+  const resEl  = document.getElementById('ressources-content');
+  const resItems = splitBullets(f.Ressources);
+  resEl.innerHTML = resItems.length
+    ? '<ul class="bullet-list">' + resItems.map(r => `<li>${esc(r)}</li>`).join('') + '</ul>'
+    : '<span class="empty">—</span>';
+
+  // KSF
+  const ksfEl    = document.getElementById('ksf-content');
+  const ksfItems = splitBullets(f.KeySuccessFactor);
+  ksfEl.innerHTML = ksfItems.length
+    ? ksfItems.map(k => `• ${esc(k)}`).join('<br>')
+    : '<span class="empty">—</span>';
+
+  // Afficher la fiche
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('fiche').style.display   = 'flex';
+}
+
+// ── Navigation ──
+function goMaison()   { grist.setSelectedRows([]); }
+function goPlanning() { alert('Navigation Planning — à connecter'); }
+
+// ── Données de démo (hors Grist) ──
+const DEMO = {
+  id: 0,
+  Programme:        'Exemple Programme',
+  Contexte:         'Ceci est un aperçu de démonstration.\nOuvrez ce widget depuis Grist pour voir les vraies données.',
+  Objectifs:        'Réduction de notre empreinte écologique\nSavings transport et matière première\nMeilleure image du site',
+  Departements:     'Tous les départements du site',
+  Actions:          'Digitalisation de la gâche journalière\nDéfinir défauthèques avec nos clients\nEtude optimisation des bennes',
+  KPIs:             'T de déchets et %',
+  Leader:           'Prénom NOM',
+  Ressources:       'People : Fournisseur extérieur ou interne\nCapex : A définir',
+  KeySuccessFactor: 'Implication de tous pour réduire notre impact environnemental',
+  Avancement_Global: 42,
+};
+
+// ── Init Grist ──
+let gristReady = false;
+
+// Timeout de sécurité : si Grist ne répond pas en 1.5s → démo
+const fallbackTimer = setTimeout(() => {
+  if (!gristReady) renderFiche(DEMO);
+}, 1500);
+
+try {
+  grist.ready({ requiredAccess: 'full' });
+
+  grist.onRecord(rec => {
+    if (rec && rec.id) {
+      gristReady = true;
+      clearTimeout(fallbackTimer);
+      renderFiche(rec);
+    }
   });
-  const actionItems = linked.length
-    ? linked.map(a => a.Libelle || a.titre || '').filter(Boolean)
-    : splitBullets(f.KPIs); //
+} catch (e) {
+  clearTimeout(fallbackTimer);
+  renderFiche(DEMO);
+}
+</script>
+</body>
+</html>
