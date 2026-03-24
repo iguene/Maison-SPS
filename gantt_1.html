@@ -777,17 +777,33 @@ const startOfMonth = d => new Date(d.getFullYear(),d.getMonth(),1);
 const startOfWeek  = d => { const r=new Date(d); r.setDate(r.getDate()-((r.getDay()+6)%7)); return r; };
 
 function gristTs(ts) {
-  if (!ts && ts!==0) return null;
+  if (ts == null || ts === '') return null;
+  if (ts instanceof Date) return new Date(ts.getTime());
+
+  if (typeof ts === 'string') {
+    const raw = ts.trim();
+    if (!raw) return null;
+    if (!Number.isNaN(Number(raw))) {
+      ts = Number(raw);
+    } else {
+      const parsed = new Date(raw);
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+  }
+
   const n = Number(ts);
-  if (isNaN(n)) return null;
-  // Grist dates are days since epoch (not seconds for Date columns)
-  // But if >1e8 it's seconds
-  if (n > 1e8) return new Date(n*1000);
-  return new Date(n*MS_DAY);
+  if (Number.isNaN(n)) return null;
+
+  // Grist stocke généralement les dates en timestamp Unix (secondes).
+  // On garde quand même des garde-fous pour d'autres formats éventuels.
+  if (Math.abs(n) >= 1e12) return new Date(n);          // millisecondes
+  if (Math.abs(n) >= 1e8)  return new Date(n * 1000);   // secondes Unix
+  if (Math.abs(n) >= 1000) return new Date(n * MS_DAY); // ancien fallback en jours
+  return null;
 }
 function toGristTs(d) {
   if (!d) return null;
-  return Math.floor(d.getTime()/MS_DAY);
+  return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 1000);
 }
 
 function leftPx(date) {
@@ -1311,6 +1327,47 @@ function pilotNameOf(item) {
   return item.Pilote ? String(item.Pilote) : '';
 }
 
+function pilotRefIdOf(item) {
+  if (!item) return null;
+  if (Array.isArray(item.Pilote)) return item.Pilote[1] ?? null;
+  if (typeof item.Pilote === 'number') return item.Pilote;
+  return null;
+}
+
+function normalizeRefValue(val) {
+  if (val == null || val === '') return null;
+  const n = Number(val);
+  return Number.isFinite(n) ? n : val;
+}
+
+function resolvePilotFieldForSave(obj, pilotLabel) {
+  const clean = (pilotLabel || '').trim();
+  const currentRefId = pilotRefIdOf(obj);
+
+  if (!clean) {
+    if ('Pilote' in obj) return { field: 'Pilote', value: null };
+    if ('Pilote_Nom' in obj && !('Pilote' in obj)) return { field: 'Pilote_Nom', value: '' };
+    return null;
+  }
+
+  if (currentRefId != null && pilotNameOf(obj) === clean) {
+    return { field: 'Pilote', value: currentRefId };
+  }
+
+  const matched = allActions.find(a => pilotRefIdOf(a) != null && pilotNameOf(a) === clean);
+  if (matched) {
+    return { field: 'Pilote', value: pilotRefIdOf(matched) };
+  }
+
+  if ('Pilote' in obj && (Array.isArray(obj.Pilote) || typeof obj.Pilote === 'number')) {
+    return { unresolved: true, label: clean };
+  }
+
+  if ('Pilote' in obj) return { field: 'Pilote', value: clean };
+  if ('Pilote_Nom' in obj) return { field: 'Pilote_Nom', value: clean };
+  return null;
+}
+
 function selectedItem() {
   if (selectedId == null) return null;
   const prog = programs.find(p => String(p.id) === String(selectedId));
@@ -1331,8 +1388,9 @@ function toInputDate(val) {
 
 function fromInputDate(val) {
   if (!val) return null;
-  const d = new Date(val + 'T00:00:00');
-  return toGristTs(d);
+  const [y, m, d] = val.split('-').map(Number);
+  if (!y || !m || !d) return null;
+  return Math.floor(Date.UTC(y, m - 1, d) / 1000);
 }
 
 function fitAndRender() {
@@ -1458,10 +1516,9 @@ async function saveSelectedFromPanel(id, mode) {
   obj.Date_Fin = fromInputDate(document.getElementById('panelDateEnd').value);
   obj.Description = document.getElementById('panelDescription').value;
   const pilotVal = document.getElementById('panelPilot').value.trim();
-  if ('Pilote_Nom' in obj || !('Pilote' in obj)) obj.Pilote_Nom = pilotVal;
-  else obj.Pilote = pilotVal;
+  obj._pilotEditName = pilotVal;
   if (mode !== 'prog') {
-    obj.Action_Parent = document.getElementById('panelParent').value || null;
+    obj.Action_Parent = normalizeRefValue(document.getElementById('panelParent').value);
   }
   render();
   await saveFullRecord(obj);
@@ -1476,9 +1533,12 @@ async function createTaskFromPanel() {
     Date_Demarrage: fromInputDate(document.getElementById('panelDateStart').value),
     Date_Fin: fromInputDate(document.getElementById('panelDateEnd').value),
     Description: document.getElementById('panelDescription').value,
-    Action_Parent: document.getElementById('panelParent').value || null,
-    Pilote_Nom: document.getElementById('panelPilot').value.trim(),
+    Action_Parent: normalizeRefValue(document.getElementById('panelParent').value),
   };
+  const pilotField = resolvePilotFieldForSave(payload, document.getElementById('panelPilot').value.trim());
+  if (pilotField && !pilotField.unresolved) {
+    payload[pilotField.field] = pilotField.value;
+  }
   if (!gristReady) return;
   try {
     setSavePill('saving');
@@ -1490,7 +1550,7 @@ async function createTaskFromPanel() {
     setTimeout(()=>setSavePill(''),2500);
   } catch (err) {
     console.error('Create task error', err);
-    setSavePill('error');
+    setSavePill('error', err && err.message ? err.message : 'Erreur de création');
   }
 }
 
@@ -1505,19 +1565,24 @@ async function saveFullRecord(obj) {
     Description: obj.Description || '',
   };
   if ('Niveau' in obj) fields.Niveau = obj.Niveau;
-  if ('Action_Parent' in obj) fields.Action_Parent = obj.Action_Parent || null;
-  if ('Pilote_Nom' in obj || !('Pilote' in obj)) fields.Pilote_Nom = pilotNameOf(obj);
-  if ('Pilote' in obj) fields.Pilote = pilotNameOf(obj);
+  if ('Action_Parent' in obj) fields.Action_Parent = normalizeRefValue(obj.Action_Parent);
+
+  const pilotField = resolvePilotFieldForSave(obj, obj._pilotEditName ?? pilotNameOf(obj));
+  if (pilotField && !pilotField.unresolved) {
+    fields[pilotField.field] = pilotField.value;
+  }
+
   try {
     setSavePill('saving');
     suppressNextRecordRefresh = true;
     await grist.docApi.applyUserActions([[ 'UpdateRecord', 'Actions', obj.id, fields ]]);
+    delete obj._pilotEditName;
     await refreshFromGrist();
     setSavePill('saved');
     setTimeout(()=>setSavePill(''),2500);
   } catch (err) {
     console.error('Panel save error', err);
-    setSavePill('error');
+    setSavePill('error', err && err.message ? err.message : 'Erreur de sauvegarde');
   }
 }
 
@@ -1839,16 +1904,17 @@ async function doSave(id, type) {
     setTimeout(()=>setSavePill(''),2500);
   } catch(err) {
     console.error('Save error', err);
-    setSavePill('error');
+    setSavePill('error', err && err.message ? err.message : 'Erreur de sauvegarde');
   }
 }
 
-function setSavePill(state) {
+function setSavePill(state, message='') {
   const pill = document.getElementById('savePill');
   pill.className = 'save-pill';
+  pill.title = message || '';
   if (state==='saving') { pill.classList.add('saving'); pill.innerHTML='<span>↺</span> Sauvegarde…'; }
   else if (state==='saved')  { pill.classList.add('saved');  pill.innerHTML='<span>✓</span> Sauvegardé'; }
-  else if (state==='error')  { pill.classList.add('error');  pill.innerHTML='<span>!</span> Erreur'; }
+  else if (state==='error')  { pill.classList.add('error');  pill.innerHTML=`<span>!</span> ${esc(message || 'Erreur')}`; }
 }
 
 /* ════════════════════════════════════════════
