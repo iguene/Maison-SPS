@@ -110,8 +110,11 @@ body {
 }
 .tile-icon svg {
   width: 68px; height: 68px;
-  stroke: #1e3a5f; stroke-width: 1.2; fill: none;
-  stroke-linecap: round; stroke-linejoin: round;
+  stroke: #1e3a5f;
+  stroke-width: 1.2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .tile-label {
   padding: 10px 14px 4px;
@@ -144,6 +147,7 @@ body {
 .bullet-list { list-style: none; padding: 0; }
 .bullet-list li::before { content: "• "; color: #64748b; }
 .bullet-list li { padding: 1px 0; }
+.empty { color: #94a3b8; font-style: italic; }
 
 /* ── KSF ── */
 .ksf-tile {
@@ -156,11 +160,13 @@ body {
   padding: 16px 20px;
   flex-shrink: 0;
 }
-.ksf-icon { flex-shrink: 0; }
 .ksf-icon svg {
   width: 52px; height: 52px;
-  stroke: #1e3a5f; stroke-width: 1.2; fill: none;
-  stroke-linecap: round; stroke-linejoin: round;
+  stroke: #1e3a5f;
+  stroke-width: 1.2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .ksf-label {
   font-size: 0.82rem;
@@ -174,9 +180,6 @@ body {
   line-height: 1.6;
 }
 
-/* ── EMPTY ── */
-.empty { color: #94a3b8; font-style: italic; }
-
 /* ── LOADING ── */
 #loading {
   display: flex; align-items: center; justify-content: center;
@@ -184,7 +187,8 @@ body {
 }
 .spinner {
   width: 20px; height: 20px;
-  border: 2px solid #ddd; border-top-color: #c0392b;
+  border: 2px solid #ddd;
+  border-top-color: #c0392b;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
@@ -258,7 +262,7 @@ body {
         <div class="tile-icon">
           <svg viewBox="0 0 64 64">
             <rect x="8" y="8" width="48" height="48" rx="4"/>
-            <path d="M22 8 v14 M8 22 h14 M22 22 h14 v-14 M36 8 v14 h14 M50 22 v14 h-14 M36 36 v14 h14 M50 50 v6 M22 36 h-14 M8 36 v14 h14 M22 50 v6"/>
+            <path d="M22 8v14 M8 22h14 M22 22h14v-14 M36 8v14h14 M50 22v14h-14 M36 36v14h14 M50 50v6 M22 36h-14 M8 36v14h14 M22 50v6"/>
           </svg>
         </div>
         <div class="tile-label">Actions :</div>
@@ -311,129 +315,3 @@ body {
           <line x1="30" y1="34" x2="56" y2="34"/>
           <line x1="48" y1="34" x2="48" y2="44"/>
           <line x1="56" y1="34" x2="56" y2="44"/>
-        </svg>
-      </div>
-      <div style="flex:1">
-        <div class="ksf-label">Key Success Factor :</div>
-        <div class="ksf-text" id="ksf-content"></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-// ── Helpers ──
-function esc(t) {
-  const d = document.createElement('div');
-  d.textContent = String(t || '');
-  return d.innerHTML;
-}
-function splitBullets(text) {
-  if (!text) return [];
-  return String(text).split(/[\n;]+/).map(s => s.trim()).filter(Boolean);
-}
-function renderList(elId, items) {
-  const ul = document.getElementById(elId);
-  if (!items || !items.length) {
-    ul.innerHTML = '<li class="empty">—</li>';
-  } else {
-    ul.innerHTML = items.map(i => `<li>${esc(i)}</li>`).join('');
-  }
-}
-
-// ── Rendu principal ──
-function renderFiche(f) {
-  document.getElementById('prog-name').textContent = f.Programme || '—';
-
-  // Contexte
-  const ctx = document.getElementById('context-bar');
-  if (f.Contexte) {
-    ctx.innerHTML = splitBullets(f.Contexte)
-      .map(l => `<div>${esc(l)}</div>`).join('');
-    ctx.style.display = 'block';
-  } else {
-    ctx.style.display = 'none';
-  }
-
-  // Objectifs
-  renderList('objectifs-list', splitBullets(f.Objectifs));
-
-  // Départements
-  renderList('dept-list', splitBullets(f.Departements));
-
-  // Actions — depuis le champ texte (les actions liées arrivent via onRecords si configuré)
-  renderList('actions-list', splitBullets(f.Actions || f.KPIs));
-
-  // KPI
-  renderList('kpi-list', splitBullets(f.KPIs));
-
-  // Leader
-  const leaderEl = document.getElementById('leader-content');
-  const leaderName = Array.isArray(f.Leader)
-    ? (f.Leader[1] || '—')
-    : (f.Leader || '—');
-  leaderEl.innerHTML = `<span>${esc(leaderName)}</span>`;
-
-  // Ressources
-  const resEl  = document.getElementById('ressources-content');
-  const resItems = splitBullets(f.Ressources);
-  resEl.innerHTML = resItems.length
-    ? '<ul class="bullet-list">' + resItems.map(r => `<li>${esc(r)}</li>`).join('') + '</ul>'
-    : '<span class="empty">—</span>';
-
-  // KSF
-  const ksfEl    = document.getElementById('ksf-content');
-  const ksfItems = splitBullets(f.KeySuccessFactor);
-  ksfEl.innerHTML = ksfItems.length
-    ? ksfItems.map(k => `• ${esc(k)}`).join('<br>')
-    : '<span class="empty">—</span>';
-
-  // Afficher la fiche
-  document.getElementById('loading').style.display = 'none';
-  document.getElementById('fiche').style.display   = 'flex';
-}
-
-// ── Navigation ──
-function goMaison()   { grist.setSelectedRows([]); }
-function goPlanning() { alert('Navigation Planning — à connecter'); }
-
-// ── Données de démo (hors Grist) ──
-const DEMO = {
-  id: 0,
-  Programme:        'Exemple Programme',
-  Contexte:         'Ceci est un aperçu de démonstration.\nOuvrez ce widget depuis Grist pour voir les vraies données.',
-  Objectifs:        'Réduction de notre empreinte écologique\nSavings transport et matière première\nMeilleure image du site',
-  Departements:     'Tous les départements du site',
-  Actions:          'Digitalisation de la gâche journalière\nDéfinir défauthèques avec nos clients\nEtude optimisation des bennes',
-  KPIs:             'T de déchets et %',
-  Leader:           'Prénom NOM',
-  Ressources:       'People : Fournisseur extérieur ou interne\nCapex : A définir',
-  KeySuccessFactor: 'Implication de tous pour réduire notre impact environnemental',
-  Avancement_Global: 42,
-};
-
-// ── Init Grist ──
-let gristReady = false;
-
-// Timeout de sécurité : si Grist ne répond pas en 1.5s → démo
-const fallbackTimer = setTimeout(() => {
-  if (!gristReady) renderFiche(DEMO);
-}, 1500);
-
-try {
-  grist.ready({ requiredAccess: 'full' });
-
-  grist.onRecord(rec => {
-    if (rec && rec.id) {
-      gristReady = true;
-      clearTimeout(fallbackTimer);
-      renderFiche(rec);
-    }
-  });
-} catch (e) {
-  clearTimeout(fallbackTimer);
-  renderFiche(DEMO);
-}
-</script>
-</body>
-</html>
