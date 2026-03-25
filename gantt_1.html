@@ -1375,7 +1375,7 @@ function memberName(row) {
 }
 
 function programSheetName(row) {
-  return String(row.Programme || row.Libelle || row.Nom || '').trim();
+  return String(row.Programme_Nom || row.Programme || row.Libelle || row.Nom || '').trim();
 }
 
 function directInitiativeIdOf(action) {
@@ -1398,36 +1398,58 @@ function getInitiativeChoices() {
   const seen = new Map();
 
   // 1) Toutes les lignes de la table liée Fiches Programmes
+  //    On cherche d'abord Programme_Nom (colonne formule dans Fiches Programmes),
+  //    puis les autres variantes de nom pour rester robuste.
   programSheetRows.forEach(r => {
     const id = normalizeRefValue(r.id);
     if (id == null) return;
 
     const key = String(id);
+    // Ordre de priorité : Programme_Nom > Programme > Libelle > Nom
     const label =
-      r.Programme_Nom ||
-      r.Programme ||
-      r.Libelle ||
-      r.Nom ||
-      programSheetName(r) ||
+      (typeof r.Programme_Nom === 'string' && r.Programme_Nom.trim() ? r.Programme_Nom.trim() : null) ||
+      (typeof r.Programme     === 'string' && r.Programme.trim()     ? r.Programme.trim()     : null) ||
+      (typeof r.Libelle       === 'string' && r.Libelle.trim()       ? r.Libelle.trim()       : null) ||
+      (typeof r.Nom           === 'string' && r.Nom.trim()           ? r.Nom.trim()           : null) ||
       `Programme ${id}`;
 
     if (!seen.has(key)) {
       seen.set(key, { id, label });
+    } else {
+      // Si on a déjà l'entrée mais avec un label qui ressemble à un id brut, on améliore
+      const existing = seen.get(key);
+      if (/^\d+$/.test(String(existing.label))) {
+        seen.set(key, { id, label });
+      }
     }
   });
 
   // 2) Complément depuis les valeurs déjà présentes dans Actions.Initiative_ID
+  //    On ne l'utilise que si le label du programSheetRow n'est pas disponible.
   allActions.forEach(a => {
     const id = directInitiativeIdOf(a);
     if (id == null) return;
 
     const key = String(id);
+
+    // Chercher d'abord dans programSheetRows le vrai nom
+    const sheetRow = programSheetRows.find(r => String(normalizeRefValue(r.id)) === key);
+    if (sheetRow) {
+      // Déjà géré ci-dessus ; on s'assure juste que le label n'est pas un id brut
+      if (!seen.has(key) || /^\d+$/.test(String(seen.get(key).label))) {
+        const label = programSheetName(sheetRow) || `Programme ${id}`;
+        seen.set(key, { id, label });
+      }
+      return;
+    }
+
     if (seen.has(key)) return;
 
-    const label =
-      refLabelOf(a?.Initiative_ID) ||
-      directInitiativeLabelOf(a) ||
-      `Programme ${id}`;
+    // Pas de ligne dans Fiches Programmes : utiliser le label stocké dans la ref
+    const refLabel = refLabelOf(a?.Initiative_ID);
+    const label = (refLabel && !/^\d+$/.test(refLabel) ? refLabel : null) ||
+                  directInitiativeLabelOf(a) ||
+                  `Programme ${id}`;
 
     seen.set(key, { id, label });
   });
@@ -1451,9 +1473,14 @@ function linkedProgramIdForAction(action) {
 function linkedProgramLabelForAction(action) {
   const pid = linkedProgramIdForAction(action);
   if (pid != null) {
+    // Chercher le vrai nom dans programSheetRows en priorité
     const row = programSheetRows.find(r => String(normalizeRefValue(r.id)) === String(pid));
-    if (row) return programSheetName(row);
+    if (row) {
+      const name = programSheetName(row);
+      if (name) return name;
+    }
   }
+  // Fallback : label stocké dans la ref, seulement s'il n'est pas un id numérique brut
   const directLabel = refLabelOf(action && action.Initiative_ID);
   if (directLabel && !/^\d+$/.test(directLabel)) return directLabel;
   const parentId = refIdOf(action && action.Action_Parent);
