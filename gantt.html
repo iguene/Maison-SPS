@@ -734,6 +734,8 @@ let programs   = [];          // niveau 1 (projects)
 let tasksByProg= {};          // progId → [tasks]
 let membersRows = [];         // table Membres
 let programSheetRows = [];    // table Fiches Programmes
+let programSheetById = {};   // id -> nom du programme
+let _detectedProgramNameCol = null; // colonne detectee auto
 let collapsed  = {};          // progId → bool
 let filterStatus  = '';
 let filterProgram = '';
@@ -1337,13 +1339,15 @@ function pilotRefIdOf(item) {
 }
 
 function normalizeRefValue(val) {
-  if (val == null || val === '') return null;
+  if (val == null || val === '' || val === '0' || val === 0) return null;
   if (typeof val === 'object' && !Array.isArray(val)) {
     if ('id' in val) return normalizeRefValue(val.id);
     if ('rowId' in val) return normalizeRefValue(val.rowId);
   }
   const n = Number(val);
-  return Number.isFinite(n) ? n : val;
+  // 0 = "aucune référence" en Grist — on traite comme null côté widget
+  if (n === 0) return null;
+  return Number.isFinite(n) ? n : (typeof val === 'string' && val.trim() ? val.trim() : null);
 }
 
 function refIdOf(val) {
@@ -1375,9 +1379,14 @@ function memberName(row) {
 }
 
 // Nom d'une ligne de Fiches Programmes.
-// Dans Grist fetchTable, la colonne principale s'appelle "Programme".
 function programSheetName(row) {
   if (!row) return '';
+  // Si la colonne a été auto-détectée, l'utiliser en priorité
+  if (_detectedProgramNameCol && row[_detectedProgramNameCol] !== undefined) {
+    const v = row[_detectedProgramNameCol];
+    if (typeof v === 'string' && v.trim()) return v.trim();
+  }
+  // Fallback : essayer toutes les variantes connues
   for (const col of ['Programme','Programme_Nom','Libelle','Nom','name','Name']) {
     const v = row[col];
     if (typeof v === 'string' && v.trim()) return v.trim();
@@ -1386,15 +1395,46 @@ function programSheetName(row) {
 }
 
 // Index id (rowId de Fiches Programmes) -> nom, reconstruit à chaque refresh.
-let programSheetById = {};
+function detectProgramNameColumn() {
+  if (!programSheetRows.length) return null;
+  const firstRow = programSheetRows[0];
+  const cols = Object.keys(firstRow).filter(c => c !== 'id' && c !== 'manualSort');
+  console.log('[Gantt] Fiches Programmes columns:', cols);
+
+  // Priorité 1 : correspondance exacte sur les noms attendus
+  const priority = ['Programme','Programme_Nom','Libelle','Nom','name','Name','label','Label'];
+  for (const p of priority) {
+    if (cols.includes(p)) {
+      const v = firstRow[p];
+      if (typeof v === 'string' && v.trim()) return p;
+    }
+  }
+
+  // Priorité 2 : première colonne string non vide qui ressemble à un nom
+  for (const col of cols) {
+    const v = firstRow[col];
+    if (typeof v === 'string' && v.trim().length > 1) return col;
+  }
+
+  return null;
+}
+
 function rebuildProgramSheetIndex() {
   programSheetById = {};
+  _detectedProgramNameCol = detectProgramNameColumn();
+  console.log('[Gantt] detected programme name column:', _detectedProgramNameCol,
+    '| rows:', programSheetRows.length);
+
   programSheetRows.forEach(r => {
     const id = normalizeRefValue(r.id);
     if (id == null) return;
-    const name = programSheetName(r);
+    // Utiliser la colonne détectée en priorité, puis le fallback générique
+    let name = _detectedProgramNameCol ? String(r[_detectedProgramNameCol] || '').trim() : '';
+    if (!name) name = programSheetName(r);
     if (name) programSheetById[String(id)] = name;
   });
+
+  console.log('[Gantt] programSheetById:', programSheetById);
 }
 
 // Initiative_ID est une Ref Grist -> Fiches Programmes.
@@ -1800,37 +1840,50 @@ async function saveSelectedFromPanel(id, mode) {
 
 async function createTaskFromPanel() {
   let initiativeId = normalizeRefValue(document.getElementById('panelInitiative')?.value || '');
-  const parentId = normalizeRefValue(document.getElementById('panelParent').value);
-  const prevId = normalizeRefValue(document.getElementById('panelPrev')?.value || '');
-  const pilotId = normalizeRefValue(document.getElementById('panelPilot')?.value || '');
+  const parentId   = normalizeRefValue(document.getElementById('panelParent')?.value || '');
+  const prevId     = normalizeRefValue(document.getElementById('panelPrev')?.value || '');
+  const pilotId    = normalizeRefValue(document.getElementById('panelPilot')?.value || '');
 
   if (!initiativeId && parentId) {
-    const parent = programs.find(p => String(p.id) === String(parentId)) || allActions.find(a => String(a.id) === String(parentId));
+    const parent = programs.find(p => String(p.id) === String(parentId))
+                || allActions.find(a => String(a.id) === String(parentId));
     initiativeId = normalizeRefValue(linkedProgramIdForAction(parent || {}));
   }
 
+  // Payload de base — champs toujours présents
   const payload = {
-    Libelle: document.getElementById('panelLibelle').value.trim() || 'Nouvelle tâche',
-    Niveau: '2 - Tâche',
-    Statut: document.getElementById('panelStatut').value,
-    PDCA: Number(document.getElementById('panelPDCA').value || 0),
-    Date_Demarrage: fromInputDate(document.getElementById('panelDateStart').value),
-    Date_Fin: fromInputDate(document.getElementById('panelDateEnd').value),
-    Description: document.getElementById('panelDescription').value,
-    Action_Parent: parentId,
-    'Tache_précédente': prevId,
-    Initiative_ID: initiativeId,
-    Pilote: pilotId,
+    Libelle:         document.getElementById('panelLibelle').value.trim() || 'Nouvelle tâche',
+    Niveau:          '2 - Tâche',
+    Statut:          document.getElementById('panelStatut').value || 'A faire',
+    PDCA:            Number(document.getElementById('panelPDCA').value || 0),
+    Description:     document.getElementById('panelDescription').value || '',
   };
-  if (!gristReady) return;
+
+  // Dates (omises si vides plutôt qu'envoyées null)
+  const dateStart = fromInputDate(document.getElementById('panelDateStart').value);
+  const dateEnd   = fromInputDate(document.getElementById('panelDateEnd').value);
+  if (dateStart != null) payload.Date_Demarrage = dateStart;
+  if (dateEnd   != null) payload.Date_Fin       = dateEnd;
+
+  // Colonnes Référence : n'envoyer que si une vraie valeur est sélectionnée
+  // (0 ou null causerait une KeyError côté Grist sur les colonnes Ref)
+  if (parentId)     payload.Action_Parent    = parentId;
+  if (prevId)       payload.Tache_precedente = prevId;   // nom SANS accent = nom interne Grist
+  if (initiativeId) payload.Initiative_ID    = initiativeId;
+  if (pilotId)      payload.Pilote           = pilotId;
+
+  if (!gristReady) {
+    setSavePill('error', 'Grist non disponible');
+    return;
+  }
   try {
     setSavePill('saving');
     suppressNextRecordRefresh = true;
-    await grist.docApi.applyUserActions([[ 'AddRecord', currentActionsTable(), null, payload ]]);
+    await grist.docApi.applyUserActions([['AddRecord', currentActionsTable(), null, payload]]);
     panelMode = 'view';
     await refreshFromGrist();
     setSavePill('saved');
-    setTimeout(()=>setSavePill(''),2500);
+    setTimeout(() => setSavePill(''), 2500);
   } catch (err) {
     console.error('Create task error', err);
     setSavePill('error', err && err.message ? err.message : 'Erreur de création');
@@ -1848,10 +1901,24 @@ async function saveFullRecord(obj) {
     Description: obj.Description || '',
   };
   if ('Niveau' in obj) fields.Niveau = obj.Niveau;
-  if ('Action_Parent' in obj) fields.Action_Parent = normalizeRefValue(obj.Action_Parent);
-  if ('Tache_precedente' in obj || 'Tache_précédente' in obj) fields['Tache_précédente'] = normalizeRefValue(obj.Tache_precedente || obj['Tache_précédente']);
-  if (obj._initiativeEditId != null || 'Initiative_ID' in obj) fields.Initiative_ID = normalizeRefValue(obj._initiativeEditId ?? refIdOf(obj.Initiative_ID));
-  if (obj._pilotEditId != null || 'Pilote' in obj) fields.Pilote = normalizeRefValue(obj._pilotEditId ?? pilotRefIdOf(obj));
+
+  // Colonnes Référence : Grist accepte 0 pour "effacer" mais rejette null/undefined.
+  // On envoie la valeur numérique si elle existe, sinon 0 (= aucune ref).
+  const refVal = (v) => { const n = normalizeRefValue(v); return (n != null && n > 0) ? n : 0; };
+
+  if ('Action_Parent' in obj) fields.Action_Parent = refVal(obj.Action_Parent);
+
+  const prevRaw = obj.Tache_precedente ?? obj['Tache_précédente'];
+  if ('Tache_precedente' in obj || 'Tache_précédente' in obj) {
+    fields['Tache_precedente'] = refVal(prevRaw);
+  }
+
+  if (obj._initiativeEditId != null || 'Initiative_ID' in obj) {
+    fields.Initiative_ID = refVal(obj._initiativeEditId ?? refIdOf(obj.Initiative_ID));
+  }
+  if (obj._pilotEditId != null || 'Pilote' in obj) {
+    fields.Pilote = refVal(obj._pilotEditId ?? pilotRefIdOf(obj));
+  }
 
   try {
     setSavePill('saving');
@@ -2216,7 +2283,7 @@ function findTask(id) {
 let gristReady = false;
 const ACTIONS_TABLE_CANDIDATES = ['Actions'];
 const MEMBERS_TABLE_CANDIDATES = ['Membres', 'Table1'];
-const PROGRAMS_TABLE_CANDIDATES = ['Fiches Programmes'];
+const PROGRAMS_TABLE_CANDIDATES = ['Fiches_Programmes','Fiches Programmes','Fiches_programmes','FichesProgrammes','fiches_programmes'];
 let resolvedTableNames = { Actions:'Actions', Membres:null, Programmes:null };
 
 function convertColumnar(data) {
@@ -2235,16 +2302,32 @@ function convertColumnar(data) {
 let suppressNextRecordRefresh = false;
 
 async function fetchFirstAvailableTable(candidates) {
-  let lastErr = null;
+  // 1) Try exact candidates first
   for (const name of candidates) {
     try {
       const raw = await grist.docApi.fetchTable(name);
       return { name, rows: convertColumnar(raw) };
-    } catch (err) {
-      lastErr = err;
-    }
+    } catch (err) { /* continue */ }
   }
-  if (lastErr) console.warn('Table introuvable parmi', candidates, lastErr);
+
+  // 2) List all tables in the document and fuzzy-match
+  try {
+    const allTables = await grist.docApi.listTables();
+    // Normalize: lowercase, no spaces/underscores
+    const normalize = s => String(s).toLowerCase().replace(/[\s_]/g, '');
+    const candidateNorms = candidates.map(normalize);
+    const match = allTables.find(t => candidateNorms.includes(normalize(t)));
+    if (match) {
+      try {
+        const raw = await grist.docApi.fetchTable(match);
+        return { name: match, rows: convertColumnar(raw) };
+      } catch (err) { /* continue */ }
+    }
+  } catch (err) {
+    console.warn('listTables failed:', err);
+  }
+
+  console.warn('Table introuvable parmi', candidates);
   return { name: null, rows: [] };
 }
 
