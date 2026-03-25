@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maison SPS</title>
+<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; }
+body {
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  background: #f5f5f5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#maison {
+  width: 1400px;
+  height: 860px;
+  display: flex;
+  flex-direction: column;
+  transform-origin: top left;
+  position: relative;
+}
+
+/* ── HEADER ── */
+.header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 6px 0 2px;
+  flex-shrink: 0;
+}
+.logo {
+  position: absolute;
+  left: 40px;
+  font-size: 0.9rem;
+  font-weight: 900;
+  color: #c0392b;
+  letter-spacing: 2px;
+  border: 2.5px solid #c0392b;
+  padding: 4px 10px;
+  border-radius: 3px;
+  line-height: 1.2;
+  text-align: center;
+}
+.logo-sub { font-size: 0.6rem; letter-spacing: 1px; color: #2c3e50; }
+.main-title { font-size: 1.55rem; font-weight: 700; color: #c0392b; text-align: center; }
+.lock-btn {
+  position: absolute;
+  right: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 1px solid rgba(0,0,0,0.12);
+  background: white;
+  color: #2c3e50;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: transform 0.15s, box-shadow 0.15s, background 0.15s, color 0.15s;
+}
+.lock-btn:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+.lock-btn.locked {
+  background: #2c3e50;
+  color: white;
+}
+.lock-btn:active {
+  transform: translateY(-50%) scale(0.98);
+}
+body.layout-locked .fiche-card {
+  cursor: default;
+}
+body.layout-locked .fiche-card:hover {
+  border-color: transparent;
+}
+
+/* ── TRIANGLE ── */
+.triangle-wrap { width: 100%; display: flex; justify-content: center; flex-shrink: 0; }
+.triangle-svg  { width: 100%; }
+
+/* ── BANDEAU VISION ── */
+.vision-band {
+  width: 100%;
+  background: #e05d5d;
+  color: white;
+  text-align: center;
+  padding: 18px 60px;
+  font-size: 1.25rem;
+  font-weight: 500;
+  line-height: 1.6;
+  flex-shrink: 0;
+}
+
+/* ── ZONE PILIERS ── */
+.pillars-wrap {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+  display: flex;
+}
+.side-arrow-left, .side-arrow-right {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 32px;
+  z-index: 5;
+  pointer-events: none;
+}
+.side-arrow-left  { left: 0; }
+.side-arrow-right { right: 0; }
+
+.pillars {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  padding: 8px 40px;
+  min-height: 0;
+  flex: 1;
+}
+
+.pillar {
+  display: flex;
+  flex-direction: column;
+  border-radius: 6px;
+  overflow: hidden;
+  height: 100%;
+}
+.pillar-header {
+  padding: 7px 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  text-align: center;
+  flex-shrink: 0;
+  background: white;
+}
+.pillar.dev     .pillar-header { color: #2980b9; }
+.pillar.impact  .pillar-header { color: #27ae60; }
+.pillar.culture .pillar-header { color: #c0392b; }
+
+/* ── CANVAS LIBRE PAR PILIER ── */
+.pillar-body {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  cursor: default;
+}
+.pillar.dev     .pillar-body { background: #d6e8f7; }
+.pillar.impact  .pillar-body { background: #d5ecd5; }
+.pillar.culture .pillar-body { background: #f7d6d6; }
+
+.empty-hint {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  color: rgba(0,0,0,0.25);
+  font-size: 0.75rem;
+  font-style: italic;
+  pointer-events: none;
+  text-align: center;
+}
+
+/* ── CARTES ── */
+.fiche-card {
+  position: absolute;
+  cursor: grab;
+  font-weight: 600;
+  color: #2c3e50;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  user-select: none;
+  white-space: nowrap;
+  transition: box-shadow 0.1s, border-color 0.1s, background 0.1s;
+  background: rgba(255,255,255,0.5);
+  line-height: 1.3;
+}
+.fiche-card:hover {
+  background: rgba(255,255,255,0.85);
+  border-color: rgba(0,0,0,0.15);
+  z-index: 10;
+}
+.fiche-card.selected {
+  background: white;
+  border-color: #3e5de7;
+  color: #3e5de7;
+  box-shadow: 0 2px 10px rgba(62,93,231,0.3);
+  z-index: 10;
+}
+.fiche-card.dragging-card {
+  cursor: grabbing;
+  opacity: 0.85;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  z-index: 100;
+  transition: none;
+}
+
+/* Taille selon priorité */
+.fiche-card.prio-critique { font-size: 1.1rem; }
+.fiche-card.prio-haute    { font-size: 0.88rem; }
+.fiche-card.prio-moyenne  { font-size: 0.75rem; }
+.fiche-card.prio-basse    { font-size: 0.65rem; font-weight: 500; opacity: 0.85; }
+
+/* Couleur selon statut */
+.fiche-card.s-en-cours { color: #1a5276; }
+.fiche-card.s-termine  { color: #1a5c2a; }
+.fiche-card.s-a-venir  { color: #7d6608; }
+
+/* Indicateur double-clic */
+.fiche-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  background: rgba(62,93,231,0);
+  transition: background 0.15s;
+}
+.fiche-card:active::after {
+  background: rgba(62,93,231,0.08);
+}
+
+/* ── TOOLTIP double-clic ── */
+.dbl-hint {
+  position: absolute;
+  bottom: 6px;
+  right: 8px;
+  font-size: 0.6rem;
+  color: rgba(0,0,0,0.3);
+  pointer-events: none;
+  font-style: italic;
+}
+
+/* ── BANDEAU BAS ── */
+.bottom-band {
+  width: 100%;
+  background: #e05d5d;
+  color: white;
+  text-align: center;
+  padding: 18px 8px;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  flex-shrink: 0;
+}
+
+/* ── TOAST ── */
+.toast {
+  position: fixed;
+  bottom: 20px; left: 50%;
+  transform: translateX(-50%);
+  background: #2c3e50;
+  color: white;
+  padding: 7px 18px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  z-index: 999;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
+/* ── LOADING ── */
+#app-loading {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; height: 100vh; color: #888; gap: 10px; font-size: 0.9rem;
+}
+.spinner {
+  width: 22px; height: 22px;
+  border: 2px solid #ddd;
+  border-top-color: #c0392b;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div id="app-loading"><div class="spinner"></div>Chargement...</div>
+<div class="toast" id="toast"></div>
+
+<div id="maison" style="display:none">
+
+  <div class="header">
+    <div class="logo">SPS<br><span class="logo-sub">MEDICAL</span></div>
+    <div class="main-title">Maison SPS Medical &nbsp;(Vision 3 ans)</div>
+    <button class="lock-btn" id="lock-btn" type="button" aria-pressed="false" title="Verrouiller le déplacement des fiches">🔓 Disposition libre</button>
+  </div>
+
+  <div class="triangle-wrap">
+    <svg class="triangle-svg" viewBox="0 0 1400 160">
+      <defs>
+        <linearGradient id="triGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="#5b7fa6"/>
+          <stop offset="100%" stop-color="#2c3e50"/>
+        </linearGradient>
+      </defs>
+      <polygon points="700,6 1392,154 8,154" fill="url(#triGrad)"/>
+      <text x="700" y="82" text-anchor="middle" fill="white"
+            font-size="48" font-weight="800"
+            font-family="Segoe UI,sans-serif" letter-spacing="6">EXCELLENCE</text>
+      <text x="700" y="124" text-anchor="middle" fill="#dce6f5"
+            font-size="26" font-family="Segoe UI,sans-serif" font-weight="600">Meilleur ensemble</text>
+    </svg>
+  </div>
+
+  <div class="vision-band">
+    Pionniers d'une industrie de l'emballage médical responsable,
+    nous œuvrons tous ensemble pour la plus grande sécurité des patients
+  </div>
+
+  <div class="pillars-wrap">
+    <div class="side-arrow-left">
+      <svg viewBox="0 0 32 600" preserveAspectRatio="none" style="width:32px;height:100%">
+        <rect x="13" y="30" width="6" height="560" fill="#888" rx="2"/>
+        <polygon points="16,2 28,32 4,32" fill="#888"/>
+      </svg>
+    </div>
+
+    <div class="pillars">
+      <div class="pillar dev">
+        <div class="pillar-header">DEVELOPPEMENT BUSINESS</div>
+        <div class="pillar-body" id="body-dev">
+          <span class="dbl-hint">Double-clic pour ouvrir</span>
+        </div>
+      </div>
+      <div class="pillar impact">
+        <div class="pillar-header">IMPACT</div>
+        <div class="pillar-body" id="body-impact">
+          <span class="dbl-hint">Double-clic pour ouvrir</span>
+        </div>
+      </div>
+      <div class="pillar culture">
+        <div class="pillar-header">CULTURE MANAGERIALE</div>
+        <div class="pillar-body" id="body-culture">
+          <span class="dbl-hint">Double-clic pour ouvrir</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-arrow-right">
+      <svg viewBox="0 0 32 600" preserveAspectRatio="none" style="width:32px;height:100%">
+        <rect x="13" y="30" width="6" height="560" fill="#888" rx="2"/>
+        <polygon points="16,2 28,32 4,32" fill="#888"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="bottom-band">
+    EXCELLENCE — ENTREPRENEURIAT — SOLIDARITÉ — CRÉATION DE VALEUR
+  </div>
+</div>
+
+<script>
+let fiches = [];
+let selectedId = null;
+let dragState  = null;
+let saveTimer  = null;
+let toastTimer = null;
+let layoutLocked = false;
+const W = 1400, H = 860;
+
+// ── Scale ──
+function scaleToFit() {
+  const el = document.getElementById('maison');
+  const scale = Math.min(window.innerWidth / W, window.innerHeight / H);
+  el.style.transform = `scale(${scale})`;
+  el.style.marginLeft = Math.max(0, (window.innerWidth  - W * scale) / 2) + 'px';
+  el.style.marginTop  = Math.max(0, (window.innerHeight - H * scale) / 2) + 'px';
+}
+window.addEventListener('resize', scaleToFit);
+
+// ── Toast ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function updateLockButton() {
+  const btn = document.getElementById('lock-btn');
+  if (!btn) return;
+  btn.textContent = layoutLocked ? '🔒 Disposition verrouillée' : '🔓 Disposition libre';
+  btn.classList.toggle('locked', layoutLocked);
+  btn.setAttribute('aria-pressed', layoutLocked ? 'true' : 'false');
+  btn.title = layoutLocked
+    ? 'Déverrouiller pour déplacer les fiches'
+    : 'Verrouiller le déplacement des fiches';
+  document.body.classList.toggle('layout-locked', layoutLocked);
+}
+
+function toggleLayoutLock() {
+  layoutLocked = !layoutLocked;
+  updateLockButton();
+  showToast(layoutLocked ? '🔒 Disposition verrouillée' : '🔓 Disposition déverrouillée');
+}
+
+// ── Helpers ──
+function getPilierKey(pilier) {
+  if (!pilier) return 'dev';
+  const p = String(pilier).toLowerCase();
+  if (p.includes('impact'))  return 'impact';
+  if (p.includes('culture')) return 'culture';
+  return 'dev';
+}
+function getPrioClass(prio) {
+  if (!prio) return 'prio-moyenne';
+  const p = String(prio).toLowerCase();
+  if (p.includes('critique')) return 'prio-critique';
+  if (p.includes('haute'))    return 'prio-haute';
+  if (p.includes('moyenne'))  return 'prio-moyenne';
+  return 'prio-basse';
+}
+function getStatutClass(statut) {
+  if (!statut) return 's-a-venir';
+  const s = String(statut).toLowerCase();
+  if (s.includes('cours'))  return 's-en-cours';
+  if (s.includes('termin')) return 's-termine';
+  return 's-a-venir';
+}
+
+// Position par défaut en grille
+function getDefaultPos(index, total, bodyEl) {
+  const cols  = Math.ceil(Math.sqrt(total));
+  const rows  = Math.ceil(total / cols);
+  const col   = index % cols;
+  const row   = Math.floor(index / cols);
+  const bw    = bodyEl.clientWidth  || 300;
+  const bh    = bodyEl.clientHeight || 300;
+  return {
+    x: Math.round((col + 0.5) * (bw / cols)),
+    y: Math.round((row + 0.5) * (bh / rows))
+  };
+}
+
+// ── Drag intra-pilier ──
+function startDrag(e, fiche, cardEl, bodyEl) {
+  if (layoutLocked) {
+    e.preventDefault();
+    selectFiche(fiche.id);
+    showToast('🔒 Déverrouille la disposition pour déplacer les fiches');
+    return;
+  }
+  e.preventDefault();
+  const maison = document.getElementById('maison');
+  const matrix = new DOMMatrix(getComputedStyle(maison).transform);
+  const scale  = matrix.a || 1;
+  dragState = {
+    id:            fiche.id,
+    startMouseX:   e.clientX,
+    startMouseY:   e.clientY,
+    startCardLeft: parseFloat(cardEl.style.left),
+    startCardTop:  parseFloat(cardEl.style.top),
+    el:            cardEl,
+    bodyEl:        bodyEl,
+    scale:         scale,
+    moved:         false,
+  };
+  cardEl.classList.add('dragging-card');
+  document.addEventListener('mousemove', onDragMove);
+  document.addEventListener('mouseup',   onDragEnd);
+}
+
+function onDragMove(e) {
+  if (!dragState) return;
+  const dx = (e.clientX - dragState.startMouseX) / dragState.scale;
+  const dy = (e.clientY - dragState.startMouseY) / dragState.scale;
+  if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragState.moved = true;
+  const bw  = dragState.bodyEl.clientWidth;
+  const bh  = dragState.bodyEl.clientHeight;
+  const cw  = dragState.el.offsetWidth;
+  const ch  = dragState.el.offsetHeight;
+  const newLeft = Math.max(cw/2, Math.min(bw - cw/2, dragState.startCardLeft + dx));
+  const newTop  = Math.max(ch/2, Math.min(bh - ch/2, dragState.startCardTop  + dy));
+  dragState.el.style.left = newLeft + 'px';
+  dragState.el.style.top  = newTop  + 'px';
+}
+
+function onDragEnd() {
+  if (!dragState) return;
+  document.removeEventListener('mousemove', onDragMove);
+  document.removeEventListener('mouseup',   onDragEnd);
+  dragState.el.classList.remove('dragging-card');
+
+  if (dragState.moved) {
+    const newLeft = parseFloat(dragState.el.style.left);
+    const newTop  = parseFloat(dragState.el.style.top);
+    const bw  = dragState.bodyEl.clientWidth  || 1;
+    const bh  = dragState.bodyEl.clientHeight || 1;
+    const pctX = Math.round((newLeft / bw) * 1000) / 10;
+    const pctY = Math.round((newTop  / bh) * 1000) / 10;
+
+    const fiche = fiches.find(f => f.id === dragState.id);
+    if (fiche) { fiche.Position_X = pctX; fiche.Position_Y = pctY; }
+
+    const id = dragState.id;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      grist.docApi.applyUserActions([
+        ['UpdateRecord', 'FichesProgrammes', id, { Position_X: pctX, Position_Y: pctY }]
+      ]).then(() => showToast('✓ Position sauvegardée'))
+        .catch(() => showToast('⚠ Erreur de sauvegarde'));
+    }, 400);
+  } else {
+    // Simple clic → sélection
+    selectFiche(dragState.id);
+  }
+  dragState = null;
+}
+
+// ── Rendu pilier ──
+function renderPilier(list, bodyId) {
+  const body = document.getElementById(bodyId);
+  body.innerHTML = '';
+
+  if (!list.length) {
+    const hint = document.createElement('div');
+    hint.className = 'empty-hint';
+    hint.textContent = 'Aucune fiche dans ce pilier';
+    body.appendChild(hint);
+    return;
+  }
+
+  const bw = body.clientWidth  || 300;
+  const bh = body.clientHeight || 300;
+
+  list.forEach((f, idx) => {
+    const span = document.createElement('span');
+    span.className = [
+      'fiche-card',
+      getPrioClass(f.Priorite),
+      getStatutClass(f.Statut),
+      selectedId === f.id ? 'selected' : ''
+    ].join(' ');
+    span.textContent = f.Programme || 'Sans titre';
+    span.title = `${f.Statut || ''} — ${Math.round(f.Avancement_Global || 0)}%\nGlisser pour repositionner\nDouble-clic pour ouvrir la fiche`;
+
+    // Position
+    let left, top;
+    if (f.Position_X != null && f.Position_X > 0) {
+      left = Math.round((f.Position_X / 100) * bw);
+      top  = Math.round((f.Position_Y / 100) * bh);
+    } else {
+      const pos = getDefaultPos(idx, list.length, body);
+      left = pos.x;
+      top  = pos.y;
+    }
+    span.style.left      = left + 'px';
+    span.style.top       = top  + 'px';
+    span.style.transform = 'translate(-50%, -50%)';
+
+    // Drag (mousedown)
+    span.addEventListener('mousedown', e => startDrag(e, f, span, body));
+
+    // Double-clic → ouvre la fiche (sélection Grist)
+    span.addEventListener('dblclick', e => {
+      e.stopPropagation();
+      selectedId = f.id;
+      grist.setSelectedRows([f.id]);
+      showToast(`📄 Fiche "${f.Programme}" sélectionnée`);
+      render();
+    });
+
+    body.appendChild(span);
+  });
+}
+
+function render() {
+  renderPilier(fiches.filter(f => getPilierKey(f.Pilier) === 'dev'),     'body-dev');
+  renderPilier(fiches.filter(f => getPilierKey(f.Pilier) === 'impact'),  'body-impact');
+  renderPilier(fiches.filter(f => getPilierKey(f.Pilier) === 'culture'), 'body-culture');
+}
+
+function selectFiche(id) {
+  selectedId = (selectedId === id) ? null : id;
+  if (selectedId) grist.setSelectedRows([selectedId]);
+  render();
+}
+
+// ── Init UI ──
+document.getElementById('lock-btn').addEventListener('click', toggleLayoutLock);
+updateLockButton();
+
+// ── Grist ──
+grist.ready({ requiredAccess: 'full' });
+
+grist.onRecords(records => {
+  fiches = records;
+  document.getElementById('app-loading').style.display = 'none';
+  const maison = document.getElementById('maison');
+  maison.style.display = 'flex';
+  scaleToFit();
+  setTimeout(render, 50);
+});
+
+grist.onRecord(rec => {
+  if (rec && rec.id && rec.id !== selectedId) {
+    selectedId = rec.id;
+    render();
+  }
+});
+</script>
+</body>
+</html>
