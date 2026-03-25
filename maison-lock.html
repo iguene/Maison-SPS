@@ -64,24 +64,10 @@ body {
   font-weight: 700;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  transition: transform 0.15s, box-shadow 0.15s, background 0.15s, color 0.15s;
 }
-.lock-btn:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-}
-.lock-btn.locked {
-  background: #2c3e50;
-  color: white;
-}
-.lock-btn:active {
-  transform: translateY(-50%) scale(0.98);
-}
-body.layout-locked .fiche-card {
-  cursor: default;
-}
-body.layout-locked .fiche-card:hover {
-  border-color: transparent;
-}
+.lock-btn.locked { background: #2c3e50; color: white; }
+body.layout-locked .fiche-card { cursor: default; }
+body.layout-locked .fiche-card:hover { border-color: transparent; }
 
 /* ── TRIANGLE ── */
 .triangle-wrap { width: 100%; display: flex; justify-content: center; flex-shrink: 0; }
@@ -397,9 +383,7 @@ function updateLockButton() {
   btn.textContent = layoutLocked ? '🔒 Disposition verrouillée' : '🔓 Disposition libre';
   btn.classList.toggle('locked', layoutLocked);
   btn.setAttribute('aria-pressed', layoutLocked ? 'true' : 'false');
-  btn.title = layoutLocked
-    ? 'Déverrouiller pour déplacer les fiches'
-    : 'Verrouiller le déplacement des fiches';
+  btn.title = layoutLocked ? 'Déverrouiller pour déplacer les fiches' : 'Verrouiller le déplacement des fiches';
   document.body.classList.toggle('layout-locked', layoutLocked);
 }
 
@@ -592,8 +576,11 @@ function selectFiche(id) {
 }
 
 // ── Init UI ──
-document.getElementById('lock-btn').addEventListener('click', toggleLayoutLock);
-updateLockButton();
+(function initLockUi() {
+  const btn = document.getElementById('lock-btn');
+  if (btn) btn.addEventListener('click', toggleLayoutLock);
+  updateLockButton();
+})();
 
 // ── Grist ──
 grist.ready({ requiredAccess: 'full' });
