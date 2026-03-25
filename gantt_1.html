@@ -886,7 +886,7 @@ function populateProgFilter() {
   programs.forEach(p => {
     const opt = document.createElement('option');
     opt.value = p.id;
-    opt.textContent = p.Libelle || p.Programme_Nom || ('Programme '+p.id);
+    opt.textContent = p.Libelle || p. || ('Programme '+p.id);
     sel.appendChild(opt);
   });
   sel.value = filterProgram;
@@ -1104,7 +1104,7 @@ function render() {
     pLeft.className = 'prog-row'+(selectedId===prog.id?' selected':'');
     pLeft.style.setProperty('--prog-color', color);
     pLeft.style.borderLeft = '3px solid '+color;
-    const pName = prog.Libelle || prog.Programme_Nom || 'Programme '+prog.id;
+    const pName = prog.Libelle || prog. || 'Programme '+prog.id;
     pLeft.innerHTML = `
       <span class="collapse-btn ${isOpen?'open':''}" onclick="toggleCollapse(${prog.id},event)">▶</span>
       <span class="prog-dot" style="background:${color}"></span>
@@ -1404,7 +1404,7 @@ function getInitiativeChoices() {
 
     const key = String(id);
     const label =
-      r.Programme_Nom ||
+      r. ||
       r.Programme ||
       r.Libelle ||
       r.Nom ||
@@ -1488,7 +1488,7 @@ function syncCreateLinkedFields() {
   const parentOptions = getParentProjectOptions(selectedProgramId);
   parentSel.innerHTML = '<option value="">Sélectionner…</option>' + parentOptions.map(p => {
     const selected = String(p.id) === String(currentParent) ? 'selected' : '';
-    const label = esc(p.Libelle || p.Programme_Nom || ('Projet ' + p.id));
+    const label = esc(p.Libelle || p. || ('Projet ' + p.id));
     return `<option value="${p.id}" ${selected}>${label}</option>`;
   }).join('');
 
@@ -1654,7 +1654,7 @@ function formHtml(item, mode) {
   const parentProjects = getParentProjectOptions(initiativeVal);
   const projectOptions = ['<option value="">Sélectionner…</option>'].concat(parentProjects.map(p => {
     const selected = String(p.id) === String(parentVal) ? 'selected' : '';
-    const label = esc(p.Libelle || p.Programme_Nom || ('Projet ' + p.id));
+    const label = esc(p.Libelle || p. || ('Projet ' + p.id));
     return `<option value="${p.id}" ${selected}>${label}</option>`;
   })).join('');
 
