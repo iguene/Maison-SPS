@@ -1,0 +1,2340 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gantt – Actions & Programmes</title>
+<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════
+   TOKENS & RESET
+══════════════════════════════════════════════ */
+:root {
+  --bg:        #ffffff;
+  --surface:   #ffffff;
+  --surface2:  #f8fafc;
+  --surface3:  #eef2f7;
+  --border:    #d8dee9;
+  --border2:   #bcc7d6;
+  --text:      #172033;
+  --text2:     #475569;
+  --text3:     #64748b;
+  --accent:    #4f7cff;
+  --accent2:   #7c4dff;
+  --success:   #22c55e;
+  --warning:   #f59e0b;
+  --danger:    #ef4444;
+  --done:      #22c55e;
+  --inprog:    #4f7cff;
+  --todo:      #8b92a8;
+  --radius:    8px;
+  --radius-sm: 5px;
+  --shadow:    0 10px 30px rgba(15,23,42,.10);
+  --font:      'DM Sans', sans-serif;
+  --mono:      'DM Mono', monospace;
+
+  --row-h:     42px;
+  --hdr-h:     28px;
+  --left-w:    280px;
+  --header-h:  52px;
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--text); font-family:var(--font); font-size:13px; }
+body { background:#ffffff; }
+
+/* ══════════════════════════════════════════════
+   TOOLBAR
+══════════════════════════════════════════════ */
+.toolbar {
+  height: var(--header-h);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 40;
+}
+.toolbar-brand {
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: -.3px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-right: 8px;
+}
+.toolbar-brand svg { color: var(--accent); }
+.sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+
+/* NAV BUTTONS */
+.nav-group { display:flex; align-items:center; gap:3px; }
+.btn-icon {
+  width: 30px; height: 30px;
+  border: 1px solid var(--border);
+  background: transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text2);
+  cursor: pointer;
+  display: flex; align-items:center; justify-content:center;
+  font-size: 14px;
+  transition: all .15s;
+}
+.btn-icon:hover { background:var(--surface3); color:var(--text); border-color:var(--border2); }
+
+.period-label {
+  font-weight: 600;
+  font-size: 13px;
+  min-width: 120px;
+  text-align: center;
+  color: var(--text);
+  font-family: var(--mono);
+  letter-spacing: -.2px;
+}
+
+/* ZOOM TOGGLE */
+.zoom-group { display:flex; background:var(--surface3); border-radius:var(--radius-sm); padding:2px; gap:2px; border:1px solid var(--border); }
+.zoom-btn {
+  padding: 4px 11px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text2);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .15s;
+}
+.zoom-btn.active { background: var(--accent); color: #fff; }
+.zoom-btn:hover:not(.active) { color: var(--text); }
+
+/* FILTERS */
+.filter-group { display:flex; align-items:center; gap:6px; margin-left:auto; }
+.filter-label { font-size:11px; color:var(--text3); font-weight:500; text-transform:uppercase; letter-spacing:.6px; }
+.filter-select {
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 12px;
+  padding: 5px 9px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  outline: none;
+  transition: border-color .15s;
+}
+.filter-select:focus { border-color: var(--accent); }
+.filter-select option { background: var(--surface2); }
+
+/* UNDO & SAVE */
+.save-area { display:flex; align-items:center; gap:6px; }
+.btn-undo {
+  padding: 5px 10px;
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--warning);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  gap: 5px;
+  transition: all .15s;
+}
+.btn-undo.visible { display:flex; }
+.btn-undo:hover { background:rgba(245,158,11,.08); }
+
+.save-pill {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .3px;
+  display: none;
+  align-items: center;
+  gap: 5px;
+}
+.save-pill.saving  { display:flex; background:rgba(79,124,255,.15); color:var(--accent); }
+.save-pill.saved   { display:flex; background:rgba(34,197,94,.12); color:var(--success); }
+.save-pill.error   { display:flex; background:rgba(239,68,68,.12); color:var(--danger); }
+
+/* ══════════════════════════════════════════════
+   GANTT LAYOUT
+══════════════════════════════════════════════ */
+.gantt-wrap {
+  display: flex;
+  flex-direction: column;
+  height: calc(100% - var(--header-h));
+  overflow: hidden;
+}
+/* Header row (months + days) */
+.gantt-head {
+  display: flex;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  user-select: none;
+}
+.head-left {
+  width: var(--left-w);
+  min-width: var(--left-w);
+  border-right: 1px solid var(--border);
+  padding: 0 14px;
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: var(--text3);
+}
+.head-right {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.month-row { display:flex; border-bottom: 1px solid var(--border); }
+.month-cell {
+  border-right: 1px dashed var(--border);
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text3);
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+.day-row { display:flex; }
+.day-cell {
+  flex-shrink: 0;
+  height: var(--hdr-h);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--text3);
+  font-family: var(--mono);
+  border-right: 1px solid transparent;
+  position: relative;
+}
+.day-cell.weekend { color: #94a3b8; }
+.day-cell.today-col { color: var(--accent); font-weight: 700; }
+.day-cell.month-sep::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 1px;
+  background: var(--border2);
+}
+
+/* ══════════════════════════════════════════════
+   BODY
+══════════════════════════════════════════════ */
+.gantt-body { display:flex; flex:1; min-height:0; overflow:hidden; }
+
+.gantt-left {
+  width: var(--left-w);
+  min-width: var(--left-w);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--surface);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+.gantt-left::-webkit-scrollbar { width:5px; }
+.gantt-left::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+
+.gantt-scroll {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+.gantt-scroll::-webkit-scrollbar { height:5px; width:5px; }
+.gantt-scroll::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+
+.gantt-grid { position:relative; }
+
+/* ══════════════════════════════════════════════
+   LEFT PANEL ROWS
+══════════════════════════════════════════════ */
+.prog-row {
+  height: var(--row-h);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  background: var(--surface2);
+  transition: background .1s;
+  position: relative;
+}
+.prog-row::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+}
+.prog-row:hover { background: var(--surface3); }
+.prog-row.selected { background: var(--surface3); }
+
+.collapse-btn {
+  width: 18px; height: 18px;
+  border-radius: 4px;
+  display: flex; align-items:center; justify-content:center;
+  color: var(--text3);
+  font-size: 10px;
+  flex-shrink: 0;
+  transition: transform .2s;
+}
+.collapse-btn.open { transform: rotate(90deg); }
+
+.prog-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.prog-name {
+  flex: 1;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+.prog-count {
+  font-size: 10px;
+  color: var(--text3);
+  font-family: var(--mono);
+  background: var(--surface3);
+  padding: 2px 6px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+/* Task rows */
+.task-left-row {
+  height: var(--row-h);
+  display: flex;
+  align-items: center;
+  padding: 0 12px 0 32px;
+  gap: 7px;
+  border-bottom: 1px solid rgba(148,163,184,.16);
+  cursor: pointer;
+  transition: background .1s;
+}
+.task-left-row:hover { background: rgba(79,124,255,.05); }
+.task-left-row.selected { background: rgba(79,124,255,.10); }
+
+.task-status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.task-left-name {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text2);
+}
+.task-left-dates {
+  font-size: 10px;
+  color: var(--text3);
+  font-family: var(--mono);
+  flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════════
+   GRID ROWS (RIGHT SIDE)
+══════════════════════════════════════════════ */
+.grid-row {
+  height: var(--row-h);
+  position: relative;
+  border-bottom: 1px solid rgba(148,163,184,.16);
+  display: flex;
+}
+.grid-row.prog-bg {
+  background: rgba(148,163,184,.08);
+  border-bottom: 1px solid var(--border);
+}
+.grid-col {
+  flex-shrink: 0;
+  height: 100%;
+  border-right: 1px solid transparent;
+  position: relative;
+}
+.grid-col.weekend { background: rgba(148,163,184,.08); }
+.grid-col.today-col { background: rgba(79,124,255,.08); }
+.grid-col.month-sep { border-right: 1px dashed rgba(148,163,184,.28); }
+
+/* TODAY LINE */
+.today-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1.5px;
+  background: var(--accent);
+  z-index: 25;
+  pointer-events: none;
+  opacity: .55;
+}
+.today-line::before {
+  content: '●';
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 8px;
+  color: var(--accent);
+}
+
+/* ══════════════════════════════════════════════
+   BARS
+══════════════════════════════════════════════ */
+.prog-bar {
+  position: absolute;
+  height: 22px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: grab;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(15,23,42,.14);
+  transition: box-shadow .15s, opacity .15s;
+  min-width: 20px;
+  user-select: none;
+}
+.prog-bar:active { cursor:grabbing; box-shadow:0 6px 20px rgba(0,0,0,.5); }
+.prog-bar.overdue {
+  box-shadow: 0 0 0 2px var(--danger), 0 2px 8px rgba(0,0,0,.3);
+  animation: pulse-warn 2s ease-in-out infinite;
+}
+@keyframes pulse-warn {
+  0%,100% { box-shadow:0 0 0 2px rgba(239,68,68,.55), 0 2px 8px rgba(15,23,42,.14); }
+  50%      { box-shadow:0 0 0 4px rgba(239,68,68,.18), 0 2px 8px rgba(15,23,42,.14); }
+}
+.prog-bar-label { pointer-events:none; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.prog-bar-warn { margin-left:4px; font-size:12px; flex-shrink:0; pointer-events:none; }
+
+/* Task bar */
+.task-bar {
+  position: absolute;
+  height: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  cursor: grab;
+  z-index: 12;
+  min-width: 8px;
+  user-select: none;
+  transition: filter .1s, box-shadow .1s;
+}
+.task-bar:active { cursor:grabbing; }
+.task-bar:hover  { filter:brightness(1.05); z-index:20; box-shadow: 0 2px 8px rgba(15,23,42,.12); }
+
+.task-bar-fill {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  border-radius: 4px 0 0 4px;
+  background: rgba(255,255,255,.28);
+  pointer-events: none;
+}
+.task-bar-label {
+  position: relative;
+  z-index: 1;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: #ffffff;
+  padding: 0 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+/* Resize handles */
+.resize-handle {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 7px;
+  cursor: ew-resize;
+  z-index: 15;
+  border-radius: inherit;
+}
+.resize-handle.left  { left: 0; }
+.resize-handle.right { right: 0; }
+.resize-handle:hover { background: rgba(255,255,255,.15); }
+
+/* ══════════════════════════════════════════════
+   SVG ARROWS
+══════════════════════════════════════════════ */
+.dep-svg {
+  position: absolute;
+  top: 0; left: 0;
+  pointer-events: none;
+  z-index: 8;
+  overflow: visible;
+}
+
+/* ══════════════════════════════════════════════
+   TOOLTIP
+══════════════════════════════════════════════ */
+.tooltip {
+  position: fixed;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 10px 13px;
+  font-size: 12px;
+  box-shadow: 0 10px 30px rgba(15,23,42,.10);
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity .15s, transform .15s;
+  min-width: 180px;
+  max-width: 260px;
+}
+.tooltip.show { opacity:1; transform:translateY(0); }
+.tooltip-name { font-weight:700; color:var(--text); margin-bottom:7px; font-size:13px; }
+.tooltip-row { display:flex; justify-content:space-between; gap:16px; margin-top:4px; }
+.tooltip-key { color:var(--text3); font-size:11px; }
+.tooltip-val { color:var(--text2); font-size:11px; font-family:var(--mono); }
+.tooltip-status { display:inline-block; padding:2px 7px; border-radius:10px; font-size:10px; font-weight:600; margin-top:6px; }
+
+/* ══════════════════════════════════════════════
+   DRAG GHOST / SELECTION
+══════════════════════════════════════════════ */
+.dragging { opacity:.6; filter:brightness(1.3); cursor:grabbing !important; z-index:100 !important; }
+
+/* ══════════════════════════════════════════════
+   EMPTY STATE
+══════════════════════════════════════════════ */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text3);
+  gap: 10px;
+  font-size: 13px;
+}
+.empty-state svg { opacity:.3; }
+
+/* ══════════════════════════════════════════════
+   LEGEND
+══════════════════════════════════════════════ */
+.legend {
+  position: absolute;
+  bottom: 10px;
+  right: 14px;
+  display: flex;
+  gap: 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 7px 12px;
+  z-index: 30;
+}
+.legend-item { display:flex; align-items:center; gap:5px; font-size:10.5px; color:var(--text3); }
+.legend-dot  { width:8px; height:8px; border-radius:50%; }
+.legend-bar  { width:18px; height:5px; border-radius:2px; }
+
+
+/* RIGHT PANEL + ACTION BUTTONS */
+.btn-primary {
+  padding: 7px 12px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-primary:hover { filter: brightness(1.03); }
+.btn-secondary {
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.btn-secondary:hover { background: var(--surface3); }
+.gantt-main { display:flex; flex:1; min-height:0; }
+.side-panel {
+  width: 0;
+  border-left: 1px solid transparent;
+  background: var(--surface);
+  overflow: hidden;
+  transition: width .18s ease, border-color .18s ease;
+  flex-shrink: 0;
+}
+.side-panel.open { width: 360px; border-color: var(--border); }
+.side-panel-inner { width: 360px; height: 100%; display:flex; flex-direction:column; }
+.panel-head {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.panel-title { font-weight:700; font-size:14px; }
+.panel-close { background:none; border:none; font-size:18px; cursor:pointer; color:var(--text3); }
+.panel-body { padding: 14px 16px 18px; overflow:auto; display:flex; flex-direction:column; gap:12px; }
+.form-row { display:flex; flex-direction:column; gap:6px; }
+.form-grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+.form-label { font-size:11px; color:var(--text3); font-weight:600; text-transform:uppercase; letter-spacing:.5px; }
+.form-input, .form-select, .form-textarea {
+  width:100%; border:1px solid var(--border); background:var(--surface); color:var(--text);
+  border-radius: var(--radius-sm); padding: 9px 10px; font: inherit; outline:none;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); }
+.form-textarea { min-height: 90px; resize: vertical; }
+.panel-meta { font-size:12px; color:var(--text3); display:flex; gap:10px; flex-wrap:wrap; }
+.panel-actions { margin-top:auto; display:flex; gap:8px; padding-top:4px; }
+.panel-empty { color:var(--text3); font-size:12px; line-height:1.5; }
+
+</style>
+</head>
+<body>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <div class="toolbar-brand">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+      <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+      <line x1="8" y1="14" x2="14" y2="14"/><line x1="8" y1="18" x2="16" y2="18"/>
+    </svg>
+    Gantt
+  </div>
+  <div class="sep"></div>
+  <!-- NAV -->
+  <div class="nav-group">
+    <button class="btn-icon" onclick="navigate(-1)" title="Précédent">‹</button>
+    <span class="period-label" id="periodLabel">—</span>
+    <button class="btn-icon" onclick="navigate(1)" title="Suivant">›</button>
+  </div>
+  <button class="btn-icon" onclick="goToday()" title="Aujourd'hui" style="font-size:11px;padding:0 8px;width:auto;">Auj.</button>
+  <div class="sep"></div>
+  <!-- ZOOM -->
+  <div class="zoom-group">
+    <button class="zoom-btn" data-zoom="week" onclick="setZoom('week')">Semaine</button>
+    <button class="zoom-btn active" data-zoom="month" onclick="setZoom('month')">Mois</button>
+    <button class="zoom-btn" data-zoom="quarter" onclick="setZoom('quarter')">Trimestre</button>
+    <button class="zoom-btn" data-zoom="halfyear" onclick="setZoom('halfyear')">6 mois</button>
+    <button class="zoom-btn" data-zoom="year" onclick="setZoom('year')">1 an</button>
+  </div>
+  <!-- FILTERS -->
+  <div class="filter-group">
+    <span class="filter-label">Statut</span>
+    <select class="filter-select" id="filterStatus" onchange="applyFilters()">
+      <option value="">Tous</option>
+      <option value="En Cours">En Cours</option>
+      <option value="A faire">À faire</option>
+      <option value="Terminé">Terminé</option>
+    </select>
+    <span class="filter-label" style="margin-left:6px">Programme</span>
+    <select class="filter-select" id="filterProg" onchange="applyFilters()">
+      <option value="">Tous</option>
+    </select>
+    <span class="filter-label" style="margin-left:6px">Pilote</span>
+    <select class="filter-select" id="filterPilot" onchange="applyFilters()">
+      <option value="">Tous</option>
+    </select>
+  </div>
+  <button class="btn-secondary" onclick="fitAndRender()" title="Afficher tout le planning">Ajuster</button>
+  <button class="btn-primary" onclick="openCreateTaskPanel()">+ Tâche</button>
+  <!-- SAVE -->
+  <div class="save-area">
+    <button class="btn-undo" id="undoBtn" onclick="undoChanges()">↺ Annuler</button>
+    <div class="save-pill" id="savePill"></div>
+  </div>
+</div>
+
+<!-- GANTT -->
+<div class="gantt-wrap">
+  <div class="gantt-head" id="ganttHead">
+    <div class="head-left">Libellé</div>
+    <div class="head-right" id="headRight">
+      <div class="month-row" id="monthRow"></div>
+      <div class="day-row"   id="dayRow"></div>
+    </div>
+  </div>
+  <div class="gantt-main">
+    <div class="gantt-body">
+      <div class="gantt-left" id="ganttLeft"></div>
+      <div class="gantt-scroll" id="ganttScroll">
+        <div class="gantt-grid" id="ganttGrid"></div>
+      </div>
+    </div>
+    <aside class="side-panel" id="sidePanel">
+      <div class="side-panel-inner">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title" id="panelTitle">Détails</div>
+            <div class="panel-meta" id="panelMeta"></div>
+          </div>
+          <button class="panel-close" onclick="closePanel()">×</button>
+        </div>
+        <div class="panel-body" id="panelBody">
+          <div class="panel-empty">Sélectionne un élément du Gantt ou clique sur + Tâche pour créer une nouvelle tâche.</div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- TOOLTIP -->
+<div class="tooltip" id="tooltip">
+  <div class="tooltip-name" id="ttName"></div>
+  <div id="ttRows"></div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════ */
+let allActions = [];          // raw from Grist
+let programs   = [];          // niveau 1 (projects)
+let tasksByProg= {};          // progId → [tasks]
+let membersRows = [];         // table Membres
+let programSheetRows = [];    // table Fiches Programmes
+let collapsed  = {};          // progId → bool
+let filterStatus  = '';
+let filterProgram = '';
+let filterPilot = '';
+let selectedId = null;
+let panelMode = 'view';
+
+let zoom = 'month';
+let viewStart;               // Date (first day shown)
+let hasAutoFittedView = false;
+
+const PALETTE = [
+  '#4f7cff','#7c4dff','#00bcd4','#e91e8c','#ff6b35',
+  '#26c6da','#66bb6a','#ffa726','#ef5350','#ab47bc'
+];
+let progColors = {};
+
+/* ════════════════════════════════════════════
+   ZOOM CONFIG
+════════════════════════════════════════════ */
+const ZOOM_CFG = {
+  week:     { cellW: 48, days: 21,  navDays: 7  },
+  month:    { cellW: 30, days: 60,  navDays: 14 },
+  quarter:  { cellW: 12, days: 120, navDays: 30 },
+  halfyear: { cellW: 8,  days: 183, navDays: 45 },
+  year:     { cellW: 4,  days: 365, navDays: 90 },
+};
+
+function cellWidth()  { return ZOOM_CFG[zoom].cellW; }
+function visibleDays(){ return ZOOM_CFG[zoom].days;  }
+
+/* ════════════════════════════════════════════
+   DATE UTILS
+════════════════════════════════════════════ */
+const MS_DAY = 86400000;
+const fmtSh = d => d ? d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}) : '—';
+const fmtFull = d => d ? d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+const isWE = d => { const day = d.getDay(); return day===0||day===6; };
+const isToday = d => d.toDateString()===new Date().toDateString();
+const daysDiff = (a,b) => Math.round((b-a)/MS_DAY);
+const addDays  = (d,n) => new Date(d.getTime()+n*MS_DAY);
+const startOfMonth = d => new Date(d.getFullYear(),d.getMonth(),1);
+const startOfWeek  = d => { const r=new Date(d); r.setDate(r.getDate()-((r.getDay()+6)%7)); return r; };
+
+function gristTs(ts) {
+  if (ts == null || ts === '') return null;
+  if (ts instanceof Date) return new Date(ts.getTime());
+
+  if (typeof ts === 'string') {
+    const raw = ts.trim();
+    if (!raw) return null;
+    if (!Number.isNaN(Number(raw))) {
+      ts = Number(raw);
+    } else {
+      const parsed = new Date(raw);
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+  }
+
+  const n = Number(ts);
+  if (Number.isNaN(n)) return null;
+
+  // Grist stocke généralement les dates en timestamp Unix (secondes).
+  // On garde quand même des garde-fous pour d'autres formats éventuels.
+  if (Math.abs(n) >= 1e12) return new Date(n);          // millisecondes
+  if (Math.abs(n) >= 1e8)  return new Date(n * 1000);   // secondes Unix
+  if (Math.abs(n) >= 1000) return new Date(n * MS_DAY); // ancien fallback en jours
+  return null;
+}
+function toGristTs(d) {
+  if (!d) return null;
+  return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 1000);
+}
+
+function leftPx(date) {
+  return daysDiff(viewStart, date) * cellWidth();
+}
+function widthPx(start, end) {
+  return Math.max(daysDiff(start, end)+1, 1) * cellWidth();
+}
+
+/* ════════════════════════════════════════════
+   DATA PROCESSING
+════════════════════════════════════════════ */
+function buildProgramStructure(rawActions) {
+  // Identify programs (niveau 1) and tasks (niveau 2)
+  programs = [];
+  tasksByProg = {};
+  progColors = {};
+
+  const projs = rawActions.filter(a => {
+    const niv = String(a.Niveau||'').toLowerCase();
+    return niv.includes('1') || niv.includes('projet') || niv.includes('project');
+  });
+  const tasks = rawActions.filter(a => {
+    const niv = String(a.Niveau||'').toLowerCase();
+    return niv.includes('2') || niv.includes('tâche') || niv.includes('tache') || niv.includes('task');
+  });
+
+  // Assign colors
+  projs.forEach((p,i) => {
+    progColors[p.id] = PALETTE[i % PALETTE.length];
+    if (!collapsed.hasOwnProperty(p.id)) collapsed[p.id] = false;
+  });
+
+  programs = projs;
+
+  // Map tasks to programs
+  programs.forEach(p => { tasksByProg[p.id] = []; });
+
+  tasks.forEach(t => {
+    // Action_Parent is a ref to another action (the project)
+    const parentId = refIdOf(t.Action_Parent) || null;
+    if (parentId && tasksByProg[parentId] !== undefined) {
+      tasksByProg[parentId].push(t);
+    } else if (parentId) {
+      // try to find it
+      const prog = programs.find(p => p.id === parentId);
+      if (prog) {
+        if (!tasksByProg[prog.id]) tasksByProg[prog.id] = [];
+        tasksByProg[prog.id].push(t);
+      } else {
+        // add to first program or orphan
+        if (programs.length > 0) {
+          tasksByProg[programs[0].id] = tasksByProg[programs[0].id]||[];
+          tasksByProg[programs[0].id].push(t);
+        }
+      }
+    }
+  });
+
+  // Build Tache_précédente chains within each program
+  programs.forEach(p => {
+    const tks = tasksByProg[p.id]||[];
+    // Resolve predecessor refs
+    tks.forEach(t => {
+      const prevRaw = t.Tache_precedente || t['Tache_précédente'] || t.Tache_prev || null;
+      t._prevId = refIdOf(prevRaw) || null;
+    });
+  });
+
+  populateProgFilter();
+  populatePilotFilter();
+  if (!hasAutoFittedView) initViewStart();
+}
+
+function populateProgFilter() {
+  const sel = document.getElementById('filterProg');
+  sel.innerHTML = '<option value="">Tous</option>';
+  programs.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.Libelle || p.Programme_Nom || ('Programme '+p.id);
+    sel.appendChild(opt);
+  });
+  sel.value = filterProgram;
+}
+
+function populatePilotFilter() {
+  const sel = document.getElementById('filterPilot');
+  const pilots = [...new Set(allActions.map(a => pilotNameOf(a)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fr'));
+  sel.innerHTML = '<option value="">Tous</option>';
+  pilots.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  });
+  sel.value = filterPilot;
+}
+
+function getFilteredPrograms() {
+  return programs.filter(p => {
+    if (filterProgram && String(p.id) !== String(filterProgram)) return false;
+    return true;
+  });
+}
+function getFilteredTasks(progId) {
+  const tks = tasksByProg[progId]||[];
+  return tks.filter(t => {
+    if (filterStatus && t.Statut !== filterStatus) return false;
+    if (filterPilot && pilotNameOf(t) !== filterPilot) return false;
+    return true;
+  });
+}
+
+/* ════════════════════════════════════════════
+   VIEW START
+════════════════════════════════════════════ */
+function getTimelineBounds() {
+  let earliest = null;
+  let latest = null;
+  allActions.forEach(a => {
+    const s = gristTs(a.Date_Demarrage);
+    const e = gristTs(a.Date_Fin);
+    if (s && (!earliest || s < earliest)) earliest = s;
+    if (e && (!latest || e > latest)) latest = e;
+  });
+  if (!earliest && !latest) {
+    const today = new Date();
+    return { earliest: today, latest: addDays(today, 30) };
+  }
+  if (!earliest) earliest = latest;
+  if (!latest) latest = earliest;
+  return { earliest, latest };
+}
+
+function fitTimelineToAll() {
+  const { earliest, latest } = getTimelineBounds();
+  const totalDays = Math.max(daysDiff(earliest, latest) + 1, 1);
+  const withMargin = totalDays + 14;
+
+  if (withMargin <= ZOOM_CFG.week.days) zoom = 'week';
+  else if (withMargin <= ZOOM_CFG.month.days) zoom = 'month';
+  else if (withMargin <= ZOOM_CFG.quarter.days) zoom = 'quarter';
+  else if (withMargin <= ZOOM_CFG.halfyear.days) zoom = 'halfyear';
+  else zoom = 'year';
+
+  document.querySelectorAll('.zoom-btn').forEach(b => b.classList.toggle('active', b.dataset.zoom===zoom));
+  viewStart = startOfMonth(addDays(earliest, -7));
+  updatePeriodLabel();
+}
+
+function initViewStart() {
+  fitTimelineToAll();
+}
+
+function navigate(dir) {
+  const navDays = ZOOM_CFG[zoom].navDays;
+  viewStart = addDays(viewStart, dir * navDays);
+  updatePeriodLabel();
+  render();
+}
+function goToday() {
+  viewStart = startOfMonth(addDays(new Date(), -14));
+  updatePeriodLabel();
+  render();
+}
+function setZoom(z) {
+  zoom = z;
+  document.querySelectorAll('.zoom-btn').forEach(b => b.classList.toggle('active', b.dataset.zoom===z));
+  updatePeriodLabel();
+  render();
+}
+function updatePeriodLabel() {
+  const end = addDays(viewStart, visibleDays());
+  const fmt = d => d.toLocaleDateString('fr-FR',{month:'short',year:'numeric'});
+  document.getElementById('periodLabel').textContent = fmt(viewStart)+' – '+fmt(end);
+}
+
+/* ════════════════════════════════════════════
+   PROG BAR METRICS
+════════════════════════════════════════════ */
+function computeProgDates(progId) {
+  const p = programs.find(x=>x.id===progId);
+  if (!p) return null;
+  const tks = tasksByProg[progId]||[];
+  let minS = gristTs(p.Date_Demarrage);
+  let maxE = gristTs(p.Date_Fin);
+  tks.forEach(t => {
+    const s = gristTs(t.Date_Demarrage);
+    const e = gristTs(t.Date_Fin);
+    if (s && (!minS||s<minS)) minS=s;
+    if (e && (!maxE||e>maxE)) maxE=e;
+  });
+  const progEnd = gristTs(p.Date_Fin);
+  const overdue = progEnd && maxE && maxE > progEnd;
+  return { start:minS, end:maxE, overdue };
+}
+
+/* ════════════════════════════════════════════
+   RENDER HEADER
+════════════════════════════════════════════ */
+function renderHeader() {
+  const days = visibleDays();
+  const cw   = cellWidth();
+  const totalW = days * cw;
+
+  // Month row
+  const monthRow = document.getElementById('monthRow');
+  const dayRow   = document.getElementById('dayRow');
+  monthRow.innerHTML = '';
+  dayRow.innerHTML   = '';
+
+  // Build month spans
+  const months = {};
+  for (let i=0; i<days; i++) {
+    const d = addDays(viewStart, i);
+    const key = d.getFullYear()*100+d.getMonth();
+    if (!months[key]) months[key]={label:d.toLocaleDateString('fr-FR',{month:'short',year:'numeric'}), count:0};
+    months[key].count++;
+  }
+  Object.values(months).forEach(m => {
+    const el = document.createElement('div');
+    el.className = 'month-cell';
+    el.style.width = (m.count*cw)+'px';
+    el.textContent = m.label.toUpperCase();
+    monthRow.appendChild(el);
+  });
+
+  // Day row
+  for (let i=0; i<days; i++) {
+    const d = addDays(viewStart, i);
+    const el = document.createElement('div');
+    el.className = 'day-cell';
+    el.style.width = cw+'px';
+    if (isWE(d)) el.classList.add('weekend');
+    if (isToday(d)) el.classList.add('today-col');
+    if (d.getDate()===1) el.classList.add('month-sep');
+
+    if (zoom==='week') el.textContent = d.getDate();
+    else if (zoom==='month') el.textContent = d.getDate()%2===1 ? d.getDate() : '';
+    else el.textContent = d.getDate()===1 ? d.getDate() : '';
+    dayRow.appendChild(el);
+  }
+}
+
+/* ════════════════════════════════════════════
+   RENDER ROWS (LEFT + GRID)
+════════════════════════════════════════════ */
+function render() {
+  renderHeader();
+  const leftEl  = document.getElementById('ganttLeft');
+  const gridEl  = document.getElementById('ganttGrid');
+  leftEl.innerHTML  = '';
+  gridEl.innerHTML  = '';
+
+  const days  = visibleDays();
+  const cw    = cellWidth();
+  const totalW = days * cw;
+  gridEl.style.width  = totalW+'px';
+
+  // Today line
+  const todayOff = daysDiff(viewStart, new Date());
+  if (todayOff>=0 && todayOff<days) {
+    const tl = document.createElement('div');
+    tl.className = 'today-line';
+    tl.style.left = (todayOff*cw + cw/2)+'px';
+    tl.style.height = '100%';
+    gridEl.appendChild(tl);
+  }
+
+  const progs = getFilteredPrograms();
+  if (!progs.length) {
+    leftEl.innerHTML = '<div class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7h18M3 12h18M3 17h18"/></svg><div>Aucun programme trouvé</div></div>';
+    return;
+  }
+
+  // SVG layer for arrows
+  const svgEl = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svgEl.classList.add('dep-svg');
+  svgEl.style.width = totalW+'px';
+  svgEl.setAttribute('height','10'); // will grow
+  gridEl.appendChild(svgEl);
+
+  let rowIndex = 0;
+  let rowPositions = {};  // taskId → {y, barLeft, barRight, rowTop}
+
+  progs.forEach((prog) => {
+    const color    = progColors[prog.id] || '#4f7cff';
+    const tks      = getFilteredTasks(prog.id);
+    const isOpen   = !collapsed[prog.id];
+    const pDates   = computeProgDates(prog.id);
+    const rowH     = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--row-h')) || 42;
+
+    // ── PROGRAM ROW (left) ──
+    const pLeft = document.createElement('div');
+    pLeft.className = 'prog-row'+(selectedId===prog.id?' selected':'');
+    pLeft.style.setProperty('--prog-color', color);
+    pLeft.style.borderLeft = '3px solid '+color;
+    const pName = prog.Libelle || prog.Programme_Nom || 'Programme '+prog.id;
+    pLeft.innerHTML = `
+      <span class="collapse-btn ${isOpen?'open':''}" onclick="toggleCollapse(${prog.id},event)">▶</span>
+      <span class="prog-dot" style="background:${color}"></span>
+      <span class="prog-name">${esc(pName)}</span>
+      <span class="prog-count">${tks.length}</span>
+    `;
+    pLeft.onclick = () => { panelMode='view'; selectedId=prog.id; render(); };
+    leftEl.appendChild(pLeft);
+
+    // ── PROGRAM GRID ROW ──
+    const pGrid = buildGridRow(days, cw, true);
+    gridEl.appendChild(pGrid);
+
+    // Program bar
+    if (pDates && pDates.start && pDates.end) {
+      const left = leftPx(pDates.start);
+      const w    = widthPx(pDates.start, pDates.end);
+      const bar  = document.createElement('div');
+      bar.className = 'prog-bar'+(pDates.overdue?' overdue':'');
+      bar.style.cssText = `left:${left}px;width:${w}px;background:${color};`;
+      bar.innerHTML = `<span class="prog-bar-label">${esc(pName)}</span>${pDates.overdue?'<span class="prog-bar-warn">⚠</span>':''}`;
+      bar.setAttribute('data-type','prog');
+      bar.setAttribute('data-id',prog.id);
+      bar.setAttribute('data-start',pDates.start.getTime());
+      bar.setAttribute('data-end',pDates.end.getTime());
+      bar.onclick = (e) => { e.stopPropagation(); panelMode='view'; selectedId=prog.id; renderSidePanel(); render(); };
+      setupTooltip(bar, {
+        name: pName,
+        rows: [
+          ['Début',fmtFull(pDates.start)],
+          ['Fin',fmtFull(pDates.end)],
+          ['Tâches',tks.length],
+          pDates.overdue?['⚠ Dépassement','Fin réelle > Date prévue']:null,
+        ].filter(Boolean),
+        status: prog.Statut,
+        color,
+      });
+      setupProgDrag(bar, prog.id);
+      pGrid.appendChild(bar);
+    }
+    rowIndex++;
+
+    if (!isOpen) return;
+
+    // ── TASK ROWS ──
+    tks.forEach((task) => {
+      const rowTop = rowIndex * rowH;
+      const tStart = gristTs(task.Date_Demarrage);
+      const tEnd   = gristTs(task.Date_Fin);
+
+      // Left row
+      const tLeft = document.createElement('div');
+      tLeft.className = 'task-left-row'+(selectedId===task.id?' selected':'');
+      const tName = task.Libelle||'Tâche '+task.id;
+      tLeft.innerHTML = `
+        <span class="task-status-dot" style="background:${statusColor(task.Statut)}"></span>
+        <span class="task-left-name">${esc(tName)}</span>
+        <span class="task-left-dates">${tStart?fmtSh(tStart):''}</span>
+      `;
+      tLeft.onclick = () => { panelMode='view'; selectedId=task.id; render(); };
+      leftEl.appendChild(tLeft);
+
+      // Grid row
+      const tGrid = buildGridRow(days, cw, false);
+      gridEl.appendChild(tGrid);
+
+      // Bar
+      if (tStart && tEnd) {
+        const left = leftPx(tStart);
+        const w    = widthPx(tStart, tEnd);
+        const bar  = document.createElement('div');
+        bar.className = 'task-bar';
+        bar.style.cssText = `left:${left}px;width:${w}px;background:${color};`;
+        bar.setAttribute('data-type','task');
+        bar.setAttribute('data-id',task.id);
+        bar.setAttribute('data-progid',prog.id);
+        bar.setAttribute('data-start',tStart.getTime());
+        bar.setAttribute('data-end',tEnd.getTime());
+
+        const prog_pct = task.PDCA||0;
+        bar.innerHTML = `
+          <div class="task-bar-fill" style="width:${prog_pct}%"></div>
+          <div class="resize-handle left" data-type="task" data-id="${task.id}" data-side="left"></div>
+          <span class="task-bar-label">${esc(tName)}</span>
+          <div class="resize-handle right" data-type="task" data-id="${task.id}" data-side="right"></div>
+        `;
+        bar.onclick = (e) => { e.stopPropagation(); panelMode='view'; selectedId=task.id; renderSidePanel(); render(); };
+        setupTooltip(bar, {
+          name: tName,
+          rows:[
+            ['Début',fmtFull(tStart)],
+            ['Fin',fmtFull(tEnd)],
+            ['Pilote',task.Pilote_Nom||task.Pilote||'—'],
+            ['Avancement',(prog_pct||0)+'%'],
+          ],
+          status: task.Statut,
+          color,
+        });
+        setupTaskDrag(bar, task.id, prog.id);
+        tGrid.appendChild(bar);
+
+        rowPositions[task.id] = {
+          y: rowTop + rowH/2,
+          barLeft:  left,
+          barRight: left+w,
+        };
+      }
+      rowIndex++;
+    });
+
+    // Draw dep arrows
+    tks.forEach(t => {
+      if (!t._prevId) return;
+      const from = rowPositions[t._prevId];
+      const to   = rowPositions[t.id];
+      if (!from||!to) return;
+      drawArrow(svgEl, from.barRight, from.y, to.barLeft, to.y, color);
+    });
+  });
+
+  const totalH = rowIndex * (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--row-h'))||42);
+  gridEl.style.height = totalH+'px';
+  svgEl.setAttribute('height', totalH);
+  svgEl.style.height = totalH+'px';
+
+  // Sync vertical scroll
+  syncScroll();
+
+  if (!hasAutoFittedView) {
+    requestAnimationFrame(() => {
+      const scrollEl = document.getElementById('ganttScroll');
+      const leftEl = document.getElementById('ganttLeft');
+      scrollEl.scrollTop = 0;
+      leftEl.scrollTop = 0;
+      scrollEl.scrollLeft = 0;
+    });
+    hasAutoFittedView = true;
+  }
+  renderSidePanel();
+}
+
+/* ════════════════════════════════════════════
+   HELPERS
+════════════════════════════════════════════ */
+function buildGridRow(days, cw, isProg) {
+  const row = document.createElement('div');
+  row.className = 'grid-row'+(isProg?' prog-bg':'');
+  row.style.width = (days*cw)+'px';
+  for (let i=0; i<days; i++) {
+    const d = addDays(viewStart, i);
+    const col = document.createElement('div');
+    col.className = 'grid-col';
+    col.style.width = cw+'px';
+    if (isWE(d)) col.classList.add('weekend');
+    if (isToday(d)) col.classList.add('today-col');
+    if (d.getDate()===1) col.classList.add('month-sep');
+    row.appendChild(col);
+  }
+  return row;
+}
+
+function drawArrow(svgEl, x1,y1,x2,y2, color) {
+  const mid = (x1+x2)/2;
+  const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+  path.setAttribute('d',`M${x1},${y1} C${mid},${y1} ${mid},${y2} ${x2},${y2}`);
+  path.setAttribute('fill','none');
+  path.setAttribute('stroke', hexToRgba(color,0.45));
+  path.setAttribute('stroke-width','1.5');
+  path.setAttribute('stroke-dasharray','4 3');
+  path.setAttribute('marker-end','url(#arrow-'+color.replace('#','')+ ')');
+  svgEl.appendChild(path);
+
+  // Arrow marker
+  const defs = svgEl.querySelector('defs') || (() => {
+    const d=document.createElementNS('http://www.w3.org/2000/svg','defs');
+    svgEl.insertBefore(d,svgEl.firstChild);
+    return d;
+  })();
+  const mid_id = 'arrow-'+color.replace('#','');
+  if (!defs.querySelector('#'+mid_id)) {
+    const marker = document.createElementNS('http://www.w3.org/2000/svg','marker');
+    marker.setAttribute('id',mid_id);
+    marker.setAttribute('markerWidth','6');
+    marker.setAttribute('markerHeight','6');
+    marker.setAttribute('refX','5');
+    marker.setAttribute('refY','3');
+    marker.setAttribute('orient','auto');
+    const poly = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+    poly.setAttribute('points','0 0, 6 3, 0 6');
+    poly.setAttribute('fill', hexToRgba(color,0.6));
+    marker.appendChild(poly);
+    defs.appendChild(marker);
+  }
+}
+
+function hexToRgba(hex, a) {
+  const r=parseInt(hex.slice(1,3),16)||79;
+  const g=parseInt(hex.slice(3,5),16)||124;
+  const b=parseInt(hex.slice(5,7),16)||255;
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+const esc = s => {
+  if (!s) return '';
+  const d=document.createElement('div');d.textContent=String(s);return d.innerHTML;
+};
+
+function statusColor(s) {
+  if (!s) return '#555e7a';
+  const sl = s.toLowerCase();
+  if (sl.includes('cours')) return '#4f7cff';
+  if (sl.includes('terminé')||sl.includes('termine')) return '#22c55e';
+  if (sl.includes('faire')) return '#8b92a8';
+  return '#8b92a8';
+}
+
+function pilotNameOf(item) {
+  if (!item) return '';
+  if (Array.isArray(item.Pilote_Nom)) return item.Pilote_Nom[0] || '';
+  if (item.Pilote_Nom) return String(item.Pilote_Nom);
+  if (Array.isArray(item.Pilote)) return item.Pilote[0] || String(item.Pilote[1]||'');
+  return item.Pilote ? String(item.Pilote) : '';
+}
+
+function pilotRefIdOf(item) {
+  if (!item) return null;
+  if (Array.isArray(item.Pilote)) return item.Pilote[1] ?? null;
+  if (typeof item.Pilote === 'number') return item.Pilote;
+  return null;
+}
+
+function normalizeRefValue(val) {
+  if (val == null || val === '') return null;
+  if (typeof val === 'object' && !Array.isArray(val)) {
+    if ('id' in val) return normalizeRefValue(val.id);
+    if ('rowId' in val) return normalizeRefValue(val.rowId);
+  }
+  const n = Number(val);
+  return Number.isFinite(n) ? n : val;
+}
+
+function refIdOf(val) {
+  if (val == null || val === '') return null;
+  if (Array.isArray(val)) return val[1] ?? null;
+  if (typeof val === 'object') {
+    if ('id' in val) return normalizeRefValue(val.id);
+    if ('rowId' in val) return normalizeRefValue(val.rowId);
+    if ('recordId' in val) return normalizeRefValue(val.recordId);
+  }
+  if (typeof val === 'number') return val;
+  const n = Number(val);
+  return Number.isFinite(n) ? n : null;
+}
+
+function refLabelOf(val) {
+  if (val == null || val === '') return '';
+  if (Array.isArray(val)) return val[0] || '';
+  if (typeof val === 'object') {
+    if ('label' in val) return String(val.label || '');
+    if ('displayValue' in val) return String(val.displayValue || '');
+    if ('name' in val) return String(val.name || '');
+  }
+  return String(val);
+}
+
+function memberName(row) {
+  return String(row.Nom || row.name || row.Name || '').trim();
+}
+
+function programSheetName(row) {
+  return String(row.Programme_Nom || row.Programme || row.Libelle || row.Nom || '').trim();
+}
+
+function directInitiativeIdOf(action) {
+  if (!action) return null;
+  const direct = refIdOf(action.Initiative_ID);
+  if (direct != null) return direct;
+  const raw = action.Initiative_ID;
+  if (typeof raw === 'string' && raw.trim()) {
+    const n = Number(raw);
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
+}
+
+function directInitiativeLabelOf(action) {
+  return refLabelOf(action?.Initiative_ID).trim();
+}
+
+function getInitiativeChoices() {
+  const seen = new Map();
+
+  // 1) Toutes les lignes de la table liée Fiches Programmes
+  //    On cherche d'abord Programme_Nom (colonne formule dans Fiches Programmes),
+  //    puis les autres variantes de nom pour rester robuste.
+  programSheetRows.forEach(r => {
+    const id = normalizeRefValue(r.id);
+    if (id == null) return;
+
+    const key = String(id);
+    // Ordre de priorité : Programme_Nom > Programme > Libelle > Nom
+    const label =
+      (typeof r.Programme_Nom === 'string' && r.Programme_Nom.trim() ? r.Programme_Nom.trim() : null) ||
+      (typeof r.Programme     === 'string' && r.Programme.trim()     ? r.Programme.trim()     : null) ||
+      (typeof r.Libelle       === 'string' && r.Libelle.trim()       ? r.Libelle.trim()       : null) ||
+      (typeof r.Nom           === 'string' && r.Nom.trim()           ? r.Nom.trim()           : null) ||
+      `Programme ${id}`;
+
+    if (!seen.has(key)) {
+      seen.set(key, { id, label });
+    } else {
+      // Si on a déjà l'entrée mais avec un label qui ressemble à un id brut, on améliore
+      const existing = seen.get(key);
+      if (/^\d+$/.test(String(existing.label))) {
+        seen.set(key, { id, label });
+      }
+    }
+  });
+
+  // 2) Complément depuis les valeurs déjà présentes dans Actions.Initiative_ID
+  //    On ne l'utilise que si le label du programSheetRow n'est pas disponible.
+  allActions.forEach(a => {
+    const id = directInitiativeIdOf(a);
+    if (id == null) return;
+
+    const key = String(id);
+
+    // Chercher d'abord dans programSheetRows le vrai nom
+    const sheetRow = programSheetRows.find(r => String(normalizeRefValue(r.id)) === key);
+    if (sheetRow) {
+      // Déjà géré ci-dessus ; on s'assure juste que le label n'est pas un id brut
+      if (!seen.has(key) || /^\d+$/.test(String(seen.get(key).label))) {
+        const label = programSheetName(sheetRow) || `Programme ${id}`;
+        seen.set(key, { id, label });
+      }
+      return;
+    }
+
+    if (seen.has(key)) return;
+
+    // Pas de ligne dans Fiches Programmes : utiliser le label stocké dans la ref
+    const refLabel = refLabelOf(a?.Initiative_ID);
+    const label = (refLabel && !/^\d+$/.test(refLabel) ? refLabel : null) ||
+                  directInitiativeLabelOf(a) ||
+                  `Programme ${id}`;
+
+    seen.set(key, { id, label });
+  });
+
+  return Array.from(seen.values()).sort((a, b) =>
+    String(a.label).localeCompare(String(b.label), 'fr')
+  );
+}
+
+function linkedProgramIdForAction(action) {
+  const direct = directInitiativeIdOf(action);
+  if (direct != null) return direct;
+  const parentId = refIdOf(action && action.Action_Parent);
+  if (parentId != null) {
+    const parent = allActions.find(a => String(a.id) === String(parentId));
+    if (parent) return linkedProgramIdForAction(parent);
+  }
+  return null;
+}
+
+function linkedProgramLabelForAction(action) {
+  const pid = linkedProgramIdForAction(action);
+  if (pid != null) {
+    // Chercher le vrai nom dans programSheetRows en priorité
+    const row = programSheetRows.find(r => String(normalizeRefValue(r.id)) === String(pid));
+    if (row) {
+      const name = programSheetName(row);
+      if (name) return name;
+    }
+  }
+  // Fallback : label stocké dans la ref, seulement s'il n'est pas un id numérique brut
+  const directLabel = refLabelOf(action && action.Initiative_ID);
+  if (directLabel && !/^\d+$/.test(directLabel)) return directLabel;
+  const parentId = refIdOf(action && action.Action_Parent);
+  if (parentId != null) {
+    const parent = allActions.find(a => String(a.id) === String(parentId));
+    if (parent) return linkedProgramLabelForAction(parent);
+  }
+  return '';
+}
+
+function getParentProjectOptions(selectedProgramId='') {
+  return programs.filter(p => {
+    if (!selectedProgramId) return true;
+    const projectInitiativeId = directInitiativeIdOf(p);
+    return String(projectInitiativeId || '') === String(selectedProgramId);
+  }).sort((a,b)=> String(a.Libelle||'').localeCompare(String(b.Libelle||''), 'fr'));
+}
+
+function getTaskPredecessorOptions(parentId, excludeId=null) {
+  if (!parentId) return [];
+  return (tasksByProg[parentId] || []).filter(t => String(t.id) !== String(excludeId));
+}
+
+function syncCreateLinkedFields() {
+  const progSel = document.getElementById('panelInitiative');
+  const parentSel = document.getElementById('panelParent');
+  const predSel = document.getElementById('panelPrev');
+  if (!progSel || !parentSel || !predSel) return;
+
+  const selectedProgramId = progSel.value || '';
+  const currentParent = parentSel.value || '';
+  const parentOptions = getParentProjectOptions(selectedProgramId);
+  parentSel.innerHTML = '<option value="">Sélectionner…</option>' + parentOptions.map(p => {
+    const selected = String(p.id) === String(currentParent) ? 'selected' : '';
+    const label = esc(p.Libelle || p.Programme_Nom || ('Projet ' + p.id));
+    return `<option value="${p.id}" ${selected}>${label}</option>`;
+  }).join('');
+
+  if (currentParent && !parentOptions.some(p => String(p.id) === String(currentParent))) {
+    parentSel.value = '';
+  }
+  if (!parentSel.value && parentOptions.length === 1) {
+    parentSel.value = String(parentOptions[0].id);
+  }
+
+  const selectedParentId = parentSel.value || '';
+  const currentPrev = predSel.value || '';
+  const predOptions = getTaskPredecessorOptions(selectedParentId);
+  predSel.innerHTML = '<option value="">Aucune</option>' + predOptions.map(t => {
+    const selected = String(t.id) === String(currentPrev) ? 'selected' : '';
+    return `<option value="${t.id}" ${selected}>${esc(t.Libelle || ('Tâche ' + t.id))}</option>`;
+  }).join('');
+
+  if (currentPrev && !predOptions.some(t => String(t.id) === String(currentPrev))) {
+    predSel.value = '';
+  }
+}
+
+function syncEditTaskPredecessors(excludeId=null) {
+  const parentSel = document.getElementById('panelParent');
+  const predSel = document.getElementById('panelPrev');
+  if (!parentSel || !predSel) return;
+  const currentPrev = predSel.value || '';
+  const options = getTaskPredecessorOptions(parentSel.value || '', excludeId);
+  predSel.innerHTML = '<option value="">Aucune</option>' + options.map(t => {
+    const selected = String(t.id) === String(currentPrev) ? 'selected' : '';
+    return `<option value="${t.id}" ${selected}>${esc(t.Libelle || ('Tâche ' + t.id))}</option>`;
+  }).join('');
+  if (currentPrev && !options.some(t => String(t.id) === String(currentPrev))) predSel.value = '';
+}
+
+function resolvePilotFieldForSave(obj, pilotLabel) {
+  const clean = (pilotLabel || '').trim();
+  const currentRefId = pilotRefIdOf(obj);
+
+  if (!clean) {
+    if ('Pilote' in obj) return { field: 'Pilote', value: null };
+    if ('Pilote_Nom' in obj && !('Pilote' in obj)) return { field: 'Pilote_Nom', value: '' };
+    return null;
+  }
+
+  if (currentRefId != null && pilotNameOf(obj) === clean) {
+    return { field: 'Pilote', value: currentRefId };
+  }
+
+  const matched = allActions.find(a => pilotRefIdOf(a) != null && pilotNameOf(a) === clean);
+  if (matched) {
+    return { field: 'Pilote', value: pilotRefIdOf(matched) };
+  }
+
+  if ('Pilote' in obj && (Array.isArray(obj.Pilote) || typeof obj.Pilote === 'number')) {
+    return { unresolved: true, label: clean };
+  }
+
+  if ('Pilote' in obj) return { field: 'Pilote', value: clean };
+  if ('Pilote_Nom' in obj) return { field: 'Pilote_Nom', value: clean };
+  return null;
+}
+
+function selectedItem() {
+  if (selectedId == null) return null;
+  const prog = programs.find(p => String(p.id) === String(selectedId));
+  if (prog) return { type:'prog', item: prog };
+  const task = findTask(selectedId);
+  if (task) return { type:'task', item: task };
+  return null;
+}
+
+function toInputDate(val) {
+  const d = gristTs(val);
+  if (!d) return '';
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+function fromInputDate(val) {
+  if (!val) return null;
+  const [y, m, d] = val.split('-').map(Number);
+  if (!y || !m || !d) return null;
+  return Math.floor(Date.UTC(y, m - 1, d) / 1000);
+}
+
+function fitAndRender() {
+  fitTimelineToAll();
+  render();
+}
+
+function closePanel() {
+  panelMode = 'view';
+  selectedId = null;
+  renderSidePanel();
+  render();
+}
+
+function openCreateTaskPanel() {
+  panelMode = 'create';
+  selectedId = null;
+  renderSidePanel();
+}
+
+function renderSidePanel() {
+  const panel = document.getElementById('sidePanel');
+  const title = document.getElementById('panelTitle');
+  const meta  = document.getElementById('panelMeta');
+  const body  = document.getElementById('panelBody');
+
+  if (panelMode === 'create') {
+    panel.classList.add('open');
+    title.textContent = 'Nouvelle tâche';
+    meta.innerHTML = '<span>Création</span>';
+
+    const selected = selectedItem();
+    const selectedProg = selected?.type === 'prog' ? selected.item : null;
+    const selectedTask = selected?.type === 'task' ? selected.item : null;
+    const defaultParent = selectedProg?.id || refIdOf(selectedTask?.Action_Parent) || filterProgram || (programs[0] ? programs[0].id : '');
+    const defaultParentObj = programs.find(p => String(p.id) === String(defaultParent)) || {};
+    const defaultInitiative = selectedProg ? (directInitiativeIdOf(selectedProg) || linkedProgramIdForAction(selectedProg)) : (selectedTask ? (directInitiativeIdOf(selectedTask) || linkedProgramIdForAction(selectedTask)) : (defaultParent ? (directInitiativeIdOf(defaultParentObj) || linkedProgramIdForAction(defaultParentObj)) : ''));
+
+    body.innerHTML = formHtml({
+      Libelle:'', Statut:'A faire', PDCA:0, Description:'', Pilote:null, Initiative_ID: defaultInitiative || '',
+      Tache_precedente: selectedTask?.id || null, Date_Demarrage:'', Date_Fin:'', Action_Parent: defaultParent, Niveau:'2 - Tâche'
+    }, 'create');
+    if (typeof syncCreateLinkedFields === 'function') setTimeout(syncCreateLinkedFields, 0);
+    return;
+  }
+
+  const sel = selectedItem();
+  if (!sel) {
+    panel.classList.remove('open');
+    title.textContent = 'Détails';
+    meta.innerHTML = '';
+    body.innerHTML = '<div class="panel-empty">Sélectionne un élément du Gantt ou clique sur + Tâche pour créer une nouvelle tâche.</div>';
+    return;
+  }
+
+  panel.classList.add('open');
+  const item = sel.item;
+  title.textContent = sel.type === 'prog' ? 'Programme' : 'Tâche';
+  meta.innerHTML = `<span>ID ${item.id}</span><span>${esc(sel.type === 'prog' ? 'Projet' : 'Action')}</span>`;
+  body.innerHTML = formHtml(item, sel.type);
+}
+
+function formHtml(item, mode) {
+  const isCreate = mode === 'create';
+  const isProg = mode === 'prog';
+  const parentVal = refIdOf(item.Action_Parent) || '';
+  const prevVal = refIdOf(item.Tache_precedente || item['Tache_précédente']) || '';
+  const initiativeVal = directInitiativeIdOf(item) || linkedProgramIdForAction(item) || '';
+
+  const initiativeChoices = getInitiativeChoices();
+  const initiativeOptions = ['<option value="">Sélectionner…</option>'].concat(initiativeChoices.map(r => {
+    const selected = String(r.id) === String(initiativeVal) ? 'selected' : '';
+    return `<option value="${r.id}" ${selected}>${esc(r.label || ('Programme ' + r.id))}</option>`;
+  })).join('');
+
+  const parentProjects = getParentProjectOptions(initiativeVal);
+  const projectOptions = ['<option value="">Sélectionner…</option>'].concat(parentProjects.map(p => {
+    const selected = String(p.id) === String(parentVal) ? 'selected' : '';
+    const label = esc(p.Libelle || p.Programme_Nom || ('Projet ' + p.id));
+    return `<option value="${p.id}" ${selected}>${label}</option>`;
+  })).join('');
+
+  const predecessorOptions = ['<option value="">Aucune</option>'].concat(getTaskPredecessorOptions(parentVal, item.id).map(t => {
+    const selected = String(t.id) === String(prevVal) ? 'selected' : '';
+    return `<option value="${t.id}" ${selected}>${esc(t.Libelle || ('Tâche ' + t.id))}</option>`;
+  })).join('');
+
+  const pilotCurrentId = pilotRefIdOf(item);
+  const pilotOptions = ['<option value="">Sélectionner…</option>'].concat(membersRows.map(m => {
+    const selected = String(m.id) === String(pilotCurrentId) ? 'selected' : '';
+    return `<option value="${m.id}" ${selected}>${esc(memberName(m) || ('Membre ' + m.id))}</option>`;
+  })).join('');
+
+  return `
+    <div class="form-row">
+      <label class="form-label">Libellé</label>
+      <input class="form-input" id="panelLibelle" value="${esc(item.Libelle || '')}" />
+    </div>
+    <div class="form-grid-2">
+      <div class="form-row">
+        <label class="form-label">Statut</label>
+        <select class="form-select" id="panelStatut">
+          ${['A faire','En Cours','Terminé'].map(v=>`<option value="${v}" ${(item.Statut||'')===v?'selected':''}>${v}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Avancement %</label>
+        <input class="form-input" id="panelPDCA" type="number" min="0" max="100" value="${item.PDCA ?? 0}" />
+      </div>
+    </div>
+    <div class="form-grid-2">
+      <div class="form-row">
+        <label class="form-label">Début</label>
+        <input class="form-input" id="panelDateStart" type="date" value="${toInputDate(item.Date_Demarrage)}" />
+      </div>
+      <div class="form-row">
+        <label class="form-label">Fin</label>
+        <input class="form-input" id="panelDateEnd" type="date" value="${toInputDate(item.Date_Fin)}" />
+      </div>
+    </div>
+    ${!isProg ? `
+    <div class="form-grid-2">
+      <div class="form-row">
+        <label class="form-label">Programme lié (Programme_Nom)</label>
+        <select class="form-select" id="panelInitiative" onchange="syncCreateLinkedFields()">${initiativeOptions}</select>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Projet parent (Action_Parent)</label>
+        <select class="form-select" id="panelParent" onchange="${isCreate ? 'syncCreateLinkedFields()' : `syncEditTaskPredecessors(${item.id})`}">${projectOptions}</select>
+      </div>
+    </div>
+    <div class="form-grid-2">
+      <div class="form-row">
+        <label class="form-label">Tâche précédente (Tache_précédente)</label>
+        <select class="form-select" id="panelPrev">${predecessorOptions}</select>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Pilote (réf. Membres)</label>
+        <select class="form-select" id="panelPilot">${pilotOptions}</select>
+      </div>
+    </div>` : `
+    <div class="form-grid-2">
+      <div class="form-row">
+        <label class="form-label">Programme lié (Programme_Nom)</label>
+        <select class="form-select" id="panelInitiative">${initiativeOptions}</select>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Pilote (réf. Membres)</label>
+        <select class="form-select" id="panelPilot">${pilotOptions}</select>
+      </div>
+    </div>`}
+    <div class="form-row">
+      <label class="form-label">Description</label>
+      <textarea class="form-textarea" id="panelDescription">${esc(item.Description || '')}</textarea>
+    </div>
+    <div class="panel-actions">
+      <button class="btn-primary" onclick="${isCreate ? 'createTaskFromPanel()' : `saveSelectedFromPanel(${item.id}, '${mode}')`}">${isCreate ? 'Créer la tâche' : 'Enregistrer'}</button>
+      <button class="btn-secondary" onclick="closePanel()">Fermer</button>
+    </div>`;
+}
+
+async function saveSelectedFromPanel(id, mode) {
+  const obj = mode === 'prog' ? programs.find(p => String(p.id) === String(id)) : findTask(id);
+  if (!obj) return;
+  obj.Libelle = document.getElementById('panelLibelle').value.trim();
+  obj.Statut = document.getElementById('panelStatut').value;
+  obj.PDCA = Number(document.getElementById('panelPDCA').value || 0);
+  obj.Date_Demarrage = fromInputDate(document.getElementById('panelDateStart').value);
+  obj.Date_Fin = fromInputDate(document.getElementById('panelDateEnd').value);
+  obj.Description = document.getElementById('panelDescription').value;
+  obj._pilotEditId = normalizeRefValue(document.getElementById('panelPilot')?.value || '');
+  obj._initiativeEditId = normalizeRefValue(document.getElementById('panelInitiative')?.value || '');
+  if (mode !== 'prog') {
+    obj.Action_Parent = normalizeRefValue(document.getElementById('panelParent').value);
+    obj['Tache_précédente'] = normalizeRefValue(document.getElementById('panelPrev')?.value || '');
+  }
+  render();
+  await saveFullRecord(obj);
+}
+
+async function createTaskFromPanel() {
+  let initiativeId = normalizeRefValue(document.getElementById('panelInitiative')?.value || '');
+  const parentId = normalizeRefValue(document.getElementById('panelParent').value);
+  const prevId = normalizeRefValue(document.getElementById('panelPrev')?.value || '');
+  const pilotId = normalizeRefValue(document.getElementById('panelPilot')?.value || '');
+
+  if (!initiativeId && parentId) {
+    const parent = programs.find(p => String(p.id) === String(parentId)) || allActions.find(a => String(a.id) === String(parentId));
+    initiativeId = normalizeRefValue(linkedProgramIdForAction(parent || {}));
+  }
+
+  const payload = {
+    Libelle: document.getElementById('panelLibelle').value.trim() || 'Nouvelle tâche',
+    Niveau: '2 - Tâche',
+    Statut: document.getElementById('panelStatut').value,
+    PDCA: Number(document.getElementById('panelPDCA').value || 0),
+    Date_Demarrage: fromInputDate(document.getElementById('panelDateStart').value),
+    Date_Fin: fromInputDate(document.getElementById('panelDateEnd').value),
+    Description: document.getElementById('panelDescription').value,
+    Action_Parent: parentId,
+    'Tache_précédente': prevId,
+    Initiative_ID: initiativeId,
+    Pilote: pilotId,
+  };
+  if (!gristReady) return;
+  try {
+    setSavePill('saving');
+    suppressNextRecordRefresh = true;
+    await grist.docApi.applyUserActions([[ 'AddRecord', currentActionsTable(), null, payload ]]);
+    panelMode = 'view';
+    await refreshFromGrist();
+    setSavePill('saved');
+    setTimeout(()=>setSavePill(''),2500);
+  } catch (err) {
+    console.error('Create task error', err);
+    setSavePill('error', err && err.message ? err.message : 'Erreur de création');
+  }
+}
+
+async function saveFullRecord(obj) {
+  if (!gristReady) return;
+  const fields = {
+    Libelle: obj.Libelle || '',
+    Statut: obj.Statut || '',
+    PDCA: Number(obj.PDCA || 0),
+    Date_Demarrage: obj.Date_Demarrage,
+    Date_Fin: obj.Date_Fin,
+    Description: obj.Description || '',
+  };
+  if ('Niveau' in obj) fields.Niveau = obj.Niveau;
+  if ('Action_Parent' in obj) fields.Action_Parent = normalizeRefValue(obj.Action_Parent);
+  if ('Tache_precedente' in obj || 'Tache_précédente' in obj) fields['Tache_précédente'] = normalizeRefValue(obj.Tache_precedente || obj['Tache_précédente']);
+  if (obj._initiativeEditId != null || 'Initiative_ID' in obj) fields.Initiative_ID = normalizeRefValue(obj._initiativeEditId ?? refIdOf(obj.Initiative_ID));
+  if (obj._pilotEditId != null || 'Pilote' in obj) fields.Pilote = normalizeRefValue(obj._pilotEditId ?? pilotRefIdOf(obj));
+
+  try {
+    setSavePill('saving');
+    suppressNextRecordRefresh = true;
+    await grist.docApi.applyUserActions([[ 'UpdateRecord', currentActionsTable(), obj.id, fields ]]);
+    delete obj._pilotEditId;
+    delete obj._initiativeEditId;
+    await refreshFromGrist();
+    setSavePill('saved');
+    setTimeout(()=>setSavePill(''),2500);
+  } catch (err) {
+    console.error('Panel save error', err);
+    setSavePill('error', err && err.message ? err.message : 'Erreur de sauvegarde');
+  }
+}
+
+function toggleCollapse(progId, e) {
+  if (e) e.stopPropagation();
+  collapsed[progId] = !collapsed[progId];
+  render();
+}
+
+function applyFilters() {
+  filterStatus  = document.getElementById('filterStatus').value;
+  filterProgram = document.getElementById('filterProg').value;
+  filterPilot   = document.getElementById('filterPilot').value;
+  render();
+}
+
+/* ════════════════════════════════════════════
+   SCROLL SYNC
+════════════════════════════════════════════ */
+function syncScroll() {
+  const leftEl   = document.getElementById('ganttLeft');
+  const scrollEl = document.getElementById('ganttScroll');
+  // vertical sync
+  scrollEl.onscroll = () => { leftEl.scrollTop = scrollEl.scrollTop; };
+  leftEl.onscroll   = () => { scrollEl.scrollTop = leftEl.scrollTop; };
+}
+
+/* ════════════════════════════════════════════
+   TOOLTIP
+════════════════════════════════════════════ */
+function setupTooltip(el, data) {
+  el.addEventListener('mouseenter', e => showTooltip(e, data));
+  el.addEventListener('mousemove',  e => moveTooltip(e));
+  el.addEventListener('mouseleave', hideTooltip);
+}
+function showTooltip(e, data) {
+  const tt = document.getElementById('tooltip');
+  document.getElementById('ttName').textContent = data.name;
+  const rowsEl = document.getElementById('ttRows');
+  rowsEl.innerHTML = data.rows.map(r=>`
+    <div class="tooltip-row">
+      <span class="tooltip-key">${r[0]}</span>
+      <span class="tooltip-val">${r[1]}</span>
+    </div>`).join('');
+  if (data.status) {
+    rowsEl.innerHTML += `<span class="tooltip-status" style="background:${hexToRgba(data.color||'#4f7cff',.15)};color:${data.color||'#4f7cff'}">${data.status}</span>`;
+  }
+  tt.classList.add('show');
+  moveTooltip(e);
+}
+function moveTooltip(e) {
+  const tt = document.getElementById('tooltip');
+  const x = e.clientX+14, y = e.clientY+14;
+  tt.style.left = Math.min(x, window.innerWidth-280)+'px';
+  tt.style.top  = Math.min(y, window.innerHeight-200)+'px';
+}
+function hideTooltip() {
+  document.getElementById('tooltip').classList.remove('show');
+}
+
+/* ════════════════════════════════════════════
+   DRAG & DROP – TASK BAR
+════════════════════════════════════════════ */
+let dragCtx = null;
+let undoSnapshot = null;
+let saveTimer = null;
+
+function setupTaskDrag(bar, taskId, progId) {
+  bar.addEventListener('mousedown', e => {
+    if (e.button!==0) return;
+    if (e.target.classList.contains('resize-handle')) return;
+    e.preventDefault();
+    const task = findTask(taskId);
+    if (!task) return;
+    startDrag(e, { type:'task', taskId, progId, bar,
+      origStart: gristTs(task.Date_Demarrage),
+      origEnd:   gristTs(task.Date_Fin),
+    });
+  });
+  // Resize handles
+  bar.querySelectorAll('.resize-handle').forEach(h => {
+    h.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      const task = findTask(taskId);
+      if (!task) return;
+      startDrag(e, { type:'resize', side:h.dataset.side, taskId, progId, bar,
+        origStart: gristTs(task.Date_Demarrage),
+        origEnd:   gristTs(task.Date_Fin),
+      });
+    });
+  });
+}
+
+function setupProgDrag(bar, progId) {
+  bar.addEventListener('mousedown', e => {
+    if (e.button!==0) return;
+    e.preventDefault();
+    const prog = programs.find(p=>p.id===progId);
+    if (!prog) return;
+    const tks = tasksByProg[progId]||[];
+    startDrag(e, { type:'prog', progId, bar,
+      origProgStart: gristTs(prog.Date_Demarrage),
+      origProgEnd:   gristTs(prog.Date_Fin),
+      taskSnapshots: tks.map(t=>({ id:t.id, start:gristTs(t.Date_Demarrage), end:gristTs(t.Date_Fin) })),
+    });
+  });
+}
+
+function startDrag(e, ctx) {
+  hideTooltip();
+  if (!undoSnapshot) takeSnapshot();
+  ctx.startX = e.clientX;
+  ctx.cw     = cellWidth();
+  ctx.bar.classList.add('dragging');
+  dragCtx = ctx;
+  document.addEventListener('mousemove', onDragMove);
+  document.addEventListener('mouseup',   onDragEnd);
+}
+
+function onDragMove(e) {
+  if (!dragCtx) return;
+  const dx    = e.clientX - dragCtx.startX;
+  const days  = Math.round(dx / dragCtx.cw);
+  const bar   = dragCtx.bar;
+
+  if (dragCtx.type === 'task') {
+    const ns = addDays(dragCtx.origStart, days);
+    const ne = addDays(dragCtx.origEnd,   days);
+    bar.style.left  = leftPx(ns)+'px';
+    bar.style.width = widthPx(ns,ne)+'px';
+    bar.setAttribute('data-start',ns.getTime());
+    bar.setAttribute('data-end',ne.getTime());
+
+  } else if (dragCtx.type === 'resize') {
+    let ns = dragCtx.origStart, ne = dragCtx.origEnd;
+    if (dragCtx.side==='right')  ne = addDays(dragCtx.origEnd,   days);
+    else                          ns = addDays(dragCtx.origStart, days);
+    if (daysDiff(ns,ne)<0) return;
+    bar.style.left  = leftPx(ns)+'px';
+    bar.style.width = widthPx(ns,ne)+'px';
+    bar.setAttribute('data-start',ns.getTime());
+    bar.setAttribute('data-end',ne.getTime());
+
+  } else if (dragCtx.type === 'prog') {
+    // Move entire program + all tasks
+    const progBar = bar;
+    const ns = addDays(dragCtx.origProgStart, days);
+    const ne = addDays(dragCtx.origProgEnd,   days);
+    progBar.style.left  = leftPx(ns)+'px';
+    // Also move task bars live
+    dragCtx.taskSnapshots.forEach(snap => {
+      const tBar = document.querySelector(`.task-bar[data-id="${snap.id}"]`);
+      if (!tBar) return;
+      const ts = addDays(snap.start, days);
+      const te = addDays(snap.end,   days);
+      tBar.style.left  = leftPx(ts)+'px';
+      tBar.setAttribute('data-start',ts.getTime());
+      tBar.setAttribute('data-end',te.getTime());
+    });
+  }
+}
+
+function onDragEnd(e) {
+  document.removeEventListener('mousemove', onDragMove);
+  document.removeEventListener('mouseup',   onDragEnd);
+  if (!dragCtx) return;
+  const dx   = e.clientX - dragCtx.startX;
+  const days = Math.round(dx / dragCtx.cw);
+  dragCtx.bar.classList.remove('dragging');
+
+  if (days===0) { dragCtx=null; return; }
+
+  if (dragCtx.type==='task' || dragCtx.type==='resize') {
+    const task = findTask(dragCtx.taskId);
+    if (task) {
+      let ns = dragCtx.origStart, ne = dragCtx.origEnd;
+      if (dragCtx.type==='task') {
+        ns = addDays(ns, days); ne = addDays(ne, days);
+      } else {
+        if (dragCtx.side==='right') ne = addDays(ne, days);
+        else ns = addDays(ns, days);
+      }
+      if (daysDiff(ns,ne)<0) { dragCtx=null; render(); return; }
+      task.Date_Demarrage = toGristTs(ns);
+      task.Date_Fin       = toGristTs(ne);
+      // Cascade: push successor tasks that now overlap
+      cascadeTasksAfter(task, dragCtx.progId);
+      scheduleSave(task.id, 'task');
+    }
+  } else if (dragCtx.type==='prog') {
+    const prog = programs.find(p=>p.id===dragCtx.progId);
+    if (prog) {
+      prog.Date_Demarrage = toGristTs(addDays(dragCtx.origProgStart, days));
+      prog.Date_Fin       = toGristTs(addDays(dragCtx.origProgEnd,   days));
+      dragCtx.taskSnapshots.forEach(snap => {
+        const t = findTask(snap.id);
+        if (t) {
+          t.Date_Demarrage = toGristTs(addDays(snap.start, days));
+          t.Date_Fin       = toGristTs(addDays(snap.end,   days));
+        }
+      });
+      scheduleSave(prog.id, 'prog');
+    }
+  }
+
+  dragCtx = null;
+  render();
+  showUndoBtn();
+}
+
+/* ════════════════════════════════════════════
+   CASCADE (push successor tasks)
+════════════════════════════════════════════ */
+function cascadeTasksAfter(movedTask, progId) {
+  const tks = tasksByProg[progId]||[];
+  // Build successor map: who has movedTask as _prevId?
+  let changed = [movedTask];
+  let safety  = 0;
+  while (changed.length && safety++<20) {
+    const next = [];
+    changed.forEach(t => {
+      const successors = tks.filter(s => s._prevId === t.id);
+      successors.forEach(s => {
+        const tEnd = gristTs(t.Date_Fin);
+        const sStart = gristTs(s.Date_Demarrage);
+        const sEnd   = gristTs(s.Date_Fin);
+        if (!tEnd||!sStart) return;
+        if (sStart <= tEnd) {
+          const gap = daysDiff(sStart, tEnd)+1;
+          const newS = addDays(sStart, gap);
+          const newE = addDays(sEnd,   gap);
+          s.Date_Demarrage = toGristTs(newS);
+          s.Date_Fin       = toGristTs(newE);
+          next.push(s);
+        }
+      });
+    });
+    changed = next;
+  }
+}
+
+/* ════════════════════════════════════════════
+   UNDO
+════════════════════════════════════════════ */
+function takeSnapshot() {
+  undoSnapshot = {
+    actions: JSON.parse(JSON.stringify(allActions)),
+    programs: JSON.parse(JSON.stringify(programs)),
+    tasksByProg: JSON.parse(JSON.stringify(tasksByProg)),
+  };
+}
+
+function undoChanges() {
+  if (!undoSnapshot) return;
+  clearTimeout(saveTimer);
+  allActions  = undoSnapshot.actions;
+  programs    = undoSnapshot.programs;
+  tasksByProg = undoSnapshot.tasksByProg;
+  // Restore _prevId
+  programs.forEach(p=>{
+    (tasksByProg[p.id]||[]).forEach(t=>{
+      const prevRaw = t.Tache_precedente||t['Tache_précédente']||null;
+      t._prevId = Array.isArray(prevRaw)?prevRaw[1]:(prevRaw||null);
+    });
+  });
+  undoSnapshot = null;
+  setSavePill('');
+  hideUndoBtn();
+  render();
+}
+
+function showUndoBtn() { document.getElementById('undoBtn').classList.add('visible'); }
+function hideUndoBtn() { document.getElementById('undoBtn').classList.remove('visible'); }
+
+/* ════════════════════════════════════════════
+   SAVE (debounced, 800ms)
+════════════════════════════════════════════ */
+function scheduleSave(id, type) {
+  clearTimeout(saveTimer);
+  setSavePill('saving');
+  saveTimer = setTimeout(()=>doSave(id,type), 800);
+}
+
+async function doSave(id, type) {
+  if (!gristReady) { setSavePill('saved'); undoSnapshot=null; hideUndoBtn(); return; }
+  setSavePill('saving');
+  try {
+    suppressNextRecordRefresh = true;
+    if (type==='task') {
+      // Collect all modified tasks in the cascade
+      const allTasks = Object.values(tasksByProg).flat();
+      const actions_grist = allTasks.map(t=>([
+        'UpdateRecord','Actions',t.id,{
+          Date_Demarrage: t.Date_Demarrage,
+          Date_Fin: t.Date_Fin,
+        }
+      ]));
+      const prog_actions = programs.map(p=>([
+        'UpdateRecord','Actions',p.id,{
+          Date_Demarrage: p.Date_Demarrage,
+          Date_Fin: p.Date_Fin,
+        }
+      ]));
+      await grist.docApi.applyUserActions([...actions_grist, ...prog_actions]);
+    } else {
+      // prog move: update prog + tasks
+      const prog = programs.find(p=>p.id===id);
+      const tks  = tasksByProg[id]||[];
+      const acts = [
+        ['UpdateRecord','Actions',prog.id,{Date_Demarrage:prog.Date_Demarrage, Date_Fin:prog.Date_Fin}],
+        ...tks.map(t=>(['UpdateRecord','Actions',t.id,{Date_Demarrage:t.Date_Demarrage, Date_Fin:t.Date_Fin}]))
+      ];
+      await grist.docApi.applyUserActions(acts);
+    }
+    await refreshFromGrist();
+    setSavePill('saved');
+    undoSnapshot = null;
+    hideUndoBtn();
+    setTimeout(()=>setSavePill(''),2500);
+  } catch(err) {
+    console.error('Save error', err);
+    setSavePill('error', err && err.message ? err.message : 'Erreur de sauvegarde');
+  }
+}
+
+function setSavePill(state, message='') {
+  const pill = document.getElementById('savePill');
+  pill.className = 'save-pill';
+  pill.title = message || '';
+  if (state==='saving') { pill.classList.add('saving'); pill.innerHTML='<span>↺</span> Sauvegarde…'; }
+  else if (state==='saved')  { pill.classList.add('saved');  pill.innerHTML='<span>✓</span> Sauvegardé'; }
+  else if (state==='error')  { pill.classList.add('error');  pill.innerHTML=`<span>!</span> ${esc(message || 'Erreur')}`; }
+}
+
+/* ════════════════════════════════════════════
+   HELPERS
+════════════════════════════════════════════ */
+function findTask(id) {
+  for (const arr of Object.values(tasksByProg)) {
+    const t = arr.find(x=>x.id===id);
+    if (t) return t;
+  }
+  return null;
+}
+
+/* ════════════════════════════════════════════
+   GRIST INTEGRATION
+════════════════════════════════════════════ */
+let gristReady = false;
+const ACTIONS_TABLE_CANDIDATES = ['Actions'];
+const MEMBERS_TABLE_CANDIDATES = ['Membres', 'Table1'];
+const PROGRAMS_TABLE_CANDIDATES = ['Fiches Programmes'];
+let resolvedTableNames = { Actions:'Actions', Membres:null, Programmes:null };
+
+function convertColumnar(data) {
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  const cols = Object.keys(data);
+  if (!cols.length) return [];
+  const n = data[cols[0]]?.length||0;
+  return Array.from({length:n},(_,i)=>{
+    const r={};
+    cols.forEach(c=>r[c]=data[c][i]);
+    return r;
+  });
+}
+
+let suppressNextRecordRefresh = false;
+
+async function fetchFirstAvailableTable(candidates) {
+  let lastErr = null;
+  for (const name of candidates) {
+    try {
+      const raw = await grist.docApi.fetchTable(name);
+      return { name, rows: convertColumnar(raw) };
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  if (lastErr) console.warn('Table introuvable parmi', candidates, lastErr);
+  return { name: null, rows: [] };
+}
+
+function currentActionsTable() {
+  return resolvedTableNames.Actions || ACTIONS_TABLE_CANDIDATES[0];
+}
+
+async function refreshFromGrist() {
+  const actionsResult = await fetchFirstAvailableTable(ACTIONS_TABLE_CANDIDATES);
+  resolvedTableNames.Actions = actionsResult.name || ACTIONS_TABLE_CANDIDATES[0];
+  allActions = actionsResult.rows;
+
+  const membersResult = await fetchFirstAvailableTable(MEMBERS_TABLE_CANDIDATES);
+  resolvedTableNames.Membres = membersResult.name;
+  membersRows = membersResult.rows;
+
+  const programsResult = await fetchFirstAvailableTable(PROGRAMS_TABLE_CANDIDATES);
+  resolvedTableNames.Programmes = programsResult.name;
+  programSheetRows = programsResult.rows;
+
+  buildProgramStructure(allActions);
+  if (!hasAutoFittedView) fitTimelineToAll();
+  render();
+}
+
+async function initGrist() {
+  try {
+    await grist.ready({ requiredAccess:'full' });
+    gristReady = true;
+    await refreshFromGrist();
+
+    grist.onRecords(async (records) => {
+      if (suppressNextRecordRefresh) {
+        suppressNextRecordRefresh = false;
+        return;
+      }
+      if (records && Array.isArray(records) && records.length) {
+        allActions = records;
+        buildProgramStructure(allActions);
+        render();
+      } else {
+        await refreshFromGrist();
+      }
+    });
+  } catch(err) {
+    console.warn('Grist unavailable, loading demo data', err);
+    loadDemo();
+  }
+}
+
+/* ════════════════════════════════════════════
+   DEMO DATA
+════════════════════════════════════════════ */
+function loadDemo() {
+  const today = new Date();
+  const d  = n => Math.floor(addDays(today,n).getTime()/MS_DAY);
+
+  membersRows = [{id:1,Nom:'Emilie RIV.'},{id:2,Nom:'Claire PRIN'},{id:3,Nom:'Emmanuelle B.'}];
+  programSheetRows = [{id:1,Programme:'Satisfaction client'},{id:2,Programme:'Réduction des coûts'},{id:3,Programme:'Formation équipe'}];
+
+  allActions = [
+    // Programme 1
+    { id:1, Libelle:'Satisfaction client', Niveau:'1 - Projet', Action_Parent:null,
+      Date_Demarrage:d(-30), Date_Fin:d(90), Statut:'En Cours', Pilote_Nom:'Claire PRIN', PDCA:40 },
+    // Tâches du prog 1
+    { id:2, Libelle:'Former les assistants SC', Niveau:'2 - Tâche', Action_Parent:1,
+      Tache_precedente:null, Date_Demarrage:d(-30), Date_Fin:d(60), Statut:'En Cours', Pilote_Nom:'Emilie RIV.', PDCA:50 },
+    { id:3, Libelle:'Envoyer communications ciblées', Niveau:'2 - Tâche', Action_Parent:1,
+      Tache_precedente:null, Date_Demarrage:d(-20), Date_Fin:d(30), Statut:'A faire', Pilote_Nom:'Claire PRIN', PDCA:0 },
+    { id:4, Libelle:'Préparer le support de formation', Niveau:'2 - Tâche', Action_Parent:1,
+      Tache_precedente:2, Date_Demarrage:d(5), Date_Fin:d(40), Statut:'Terminé', Pilote_Nom:'Emmanuelle B.', PDCA:100 },
+    { id:5, Libelle:'test_act', Niveau:'2 - Tâche', Action_Parent:1,
+      Tache_precedente:4, Date_Demarrage:d(41), Date_Fin:d(70), Statut:'En Cours', Pilote_Nom:'Claire PRIN', PDCA:20 },
+
+    // Programme 2
+    { id:6, Libelle:'Réduction des coûts', Niveau:'1 - Projet', Action_Parent:null,
+      Date_Demarrage:d(-10), Date_Fin:d(60), Statut:'En Cours', Pilote_Nom:'Emilie RIV.', PDCA:30 },
+    { id:7, Libelle:'Audit fournisseurs', Niveau:'2 - Tâche', Action_Parent:6,
+      Tache_precedente:null, Date_Demarrage:d(-10), Date_Fin:d(10), Statut:'Terminé', Pilote_Nom:'Emilie RIV.', PDCA:100 },
+    { id:8, Libelle:'Renégociation contrats', Niveau:'2 - Tâche', Action_Parent:6,
+      Tache_precedente:7, Date_Demarrage:d(11), Date_Fin:d(40), Statut:'En Cours', Pilote_Nom:'Emilie RIV.', PDCA:35 },
+    { id:9, Libelle:'Déploiement nouveaux process', Niveau:'2 - Tâche', Action_Parent:6,
+      Tache_precedente:8, Date_Demarrage:d(41), Date_Fin:d(60), Statut:'A faire', Pilote_Nom:'Emilie RIV.', PDCA:0 },
+
+    // Programme 3
+    { id:10, Libelle:'Formation équipe', Niveau:'1 - Projet', Action_Parent:null,
+      Date_Demarrage:d(-5), Date_Fin:d(45), Statut:'A venir', Pilote_Nom:'Emmanuelle B.', PDCA:15 },
+    { id:11, Libelle:'Plan de formation', Niveau:'2 - Tâche', Action_Parent:10,
+      Tache_precedente:null, Date_Demarrage:d(-5), Date_Fin:d(10), Statut:'En Cours', Pilote_Nom:'Emmanuelle B.', PDCA:60 },
+    { id:12, Libelle:'Sessions présentiel', Niveau:'2 - Tâche', Action_Parent:10,
+      Tache_precedente:11, Date_Demarrage:d(11), Date_Fin:d(30), Statut:'A faire', Pilote_Nom:'Emmanuelle B.', PDCA:0 },
+    { id:13, Libelle:'Évaluation post-formation', Niveau:'2 - Tâche', Action_Parent:10,
+      Tache_precedente:12, Date_Demarrage:d(31), Date_Fin:d(45), Statut:'A faire', Pilote_Nom:'Emmanuelle B.', PDCA:0 },
+  ];
+
+  buildProgramStructure(allActions);
+  render();
+  // show demo badge
+  const badge = document.createElement('div');
+  badge.style.cssText='position:fixed;bottom:8px;left:8px;background:#f59e0b;color:#000;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;z-index:9999;letter-spacing:.5px;';
+  badge.textContent='DÉMO';
+  document.body.appendChild(badge);
+}
+
+initGrist();
+</script>
+</body>
+</html>
