@@ -734,6 +734,8 @@ let programs   = [];          // niveau 1 (projects)
 let tasksByProg= {};          // progId → [tasks]
 let membersRows = [];         // table Membres
 let programSheetRows = [];    // table Fiches Programmes
+let programSheetById = {};   // id -> nom du programme
+let _detectedProgramNameCol = null; // colonne detectee auto
 let collapsed  = {};          // progId → bool
 let filterStatus  = '';
 let filterProgram = '';
@@ -745,10 +747,8 @@ let zoom = 'month';
 let viewStart;               // Date (first day shown)
 let hasAutoFittedView = false;
 
-const PALETTE = [
-  '#4f7cff','#7c4dff','#00bcd4','#e91e8c','#ff6b35',
-  '#26c6da','#66bb6a','#ffa726','#ef5350','#ab47bc'
-];
+const LEVEL1_COLOR = '#2563eb'; // bleu
+const LEVEL2_COLOR = '#16a34a'; // vert
 let progColors = {};
 
 /* ════════════════════════════════════════════
@@ -834,8 +834,8 @@ function buildProgramStructure(rawActions) {
   });
 
   // Assign colors
-  projs.forEach((p,i) => {
-    progColors[p.id] = PALETTE[i % PALETTE.length];
+  projs.forEach((p) => {
+    progColors[p.id] = LEVEL1_COLOR;
     if (!collapsed.hasOwnProperty(p.id)) collapsed[p.id] = false;
   });
 
@@ -1160,7 +1160,7 @@ function render() {
       tLeft.className = 'task-left-row'+(selectedId===task.id?' selected':'');
       const tName = task.Libelle||'Tâche '+task.id;
       tLeft.innerHTML = `
-        <span class="task-status-dot" style="background:${statusColor(task.Statut)}"></span>
+        <span class="task-status-dot" style="background:${LEVEL2_COLOR}"></span>
         <span class="task-left-name">${esc(tName)}</span>
         <span class="task-left-dates">${tStart?fmtSh(tStart):''}</span>
       `;
@@ -1177,7 +1177,7 @@ function render() {
         const w    = widthPx(tStart, tEnd);
         const bar  = document.createElement('div');
         bar.className = 'task-bar';
-        bar.style.cssText = `left:${left}px;width:${w}px;background:${color};`;
+        bar.style.cssText = `left:${left}px;width:${w}px;background:${LEVEL2_COLOR};`;
         bar.setAttribute('data-type','task');
         bar.setAttribute('data-id',task.id);
         bar.setAttribute('data-progid',prog.id);
@@ -1221,7 +1221,7 @@ function render() {
       const from = rowPositions[t._prevId];
       const to   = rowPositions[t.id];
       if (!from||!to) return;
-      drawArrow(svgEl, from.barRight, from.y, to.barLeft, to.y, color);
+      drawArrow(svgEl, from.barRight, from.y, to.barLeft, to.y, LEVEL2_COLOR);
     });
   });
 
@@ -1337,13 +1337,15 @@ function pilotRefIdOf(item) {
 }
 
 function normalizeRefValue(val) {
-  if (val == null || val === '') return null;
+  if (val == null || val === '' || val === '0' || val === 0) return null;
   if (typeof val === 'object' && !Array.isArray(val)) {
     if ('id' in val) return normalizeRefValue(val.id);
     if ('rowId' in val) return normalizeRefValue(val.rowId);
   }
   const n = Number(val);
-  return Number.isFinite(n) ? n : val;
+  // 0 = "aucune référence" en Grist — on traite comme null côté widget
+  if (n === 0) return null;
+  return Number.isFinite(n) ? n : (typeof val === 'string' && val.trim() ? val.trim() : null);
 }
 
 function refIdOf(val) {
@@ -1374,82 +1376,130 @@ function memberName(row) {
   return String(row.Nom || row.name || row.Name || '').trim();
 }
 
+// Nom d'une ligne de Fiches Programmes.
 function programSheetName(row) {
-  return String(row.Programme_Nom || row.Programme || row.Libelle || row.Nom || '').trim();
+  if (!row) return '';
+  // Si la colonne a été auto-détectée, l'utiliser en priorité
+  if (_detectedProgramNameCol && row[_detectedProgramNameCol] !== undefined) {
+    const v = row[_detectedProgramNameCol];
+    if (typeof v === 'string' && v.trim()) return v.trim();
+  }
+  // Fallback : essayer toutes les variantes connues
+  for (const col of ['Programme','Programme_Nom','Libelle','Nom','name','Name']) {
+    const v = row[col];
+    if (typeof v === 'string' && v.trim()) return v.trim();
+  }
+  return '';
 }
 
-function directInitiativeIdOf(action) {
-  if (!action) return null;
-  const direct = refIdOf(action.Initiative_ID);
-  if (direct != null) return direct;
-  const raw = action.Initiative_ID;
-  if (typeof raw === 'string' && raw.trim()) {
-    const n = Number(raw);
-    if (Number.isFinite(n)) return n;
+// Index id (rowId de Fiches Programmes) -> nom, reconstruit à chaque refresh.
+function detectProgramNameColumn() {
+  if (!programSheetRows.length) return null;
+  const firstRow = programSheetRows[0];
+  const cols = Object.keys(firstRow).filter(c => c !== 'id' && c !== 'manualSort');
+  console.log('[Gantt] Fiches Programmes columns:', cols);
+
+  // Priorité 1 : correspondance exacte sur les noms attendus
+  const priority = ['Programme','Programme_Nom','Libelle','Nom','name','Name','label','Label'];
+  for (const p of priority) {
+    if (cols.includes(p)) {
+      const v = firstRow[p];
+      if (typeof v === 'string' && v.trim()) return p;
+    }
   }
+
+  // Priorité 2 : première colonne string non vide qui ressemble à un nom
+  for (const col of cols) {
+    const v = firstRow[col];
+    if (typeof v === 'string' && v.trim().length > 1) return col;
+  }
+
   return null;
 }
 
-function directInitiativeLabelOf(action) {
-  return refLabelOf(action?.Initiative_ID).trim();
-}
+function rebuildProgramSheetIndex() {
+  programSheetById = {};
+  _detectedProgramNameCol = detectProgramNameColumn();
+  console.log('[Gantt] detected programme name column:', _detectedProgramNameCol,
+    '| rows:', programSheetRows.length);
 
-function getInitiativeChoices() {
-  const seen = new Map();
-
-  // 1) Toutes les lignes de la table liée Fiches Programmes
-  //    On cherche d'abord Programme_Nom (colonne formule dans Fiches Programmes),
-  //    puis les autres variantes de nom pour rester robuste.
   programSheetRows.forEach(r => {
     const id = normalizeRefValue(r.id);
     if (id == null) return;
-
-    const key = String(id);
-    // Ordre de priorité : Programme_Nom > Programme > Libelle > Nom
-    const label =
-      (typeof r.Programme_Nom === 'string' && r.Programme_Nom.trim() ? r.Programme_Nom.trim() : null) ||
-      (typeof r.Programme     === 'string' && r.Programme.trim()     ? r.Programme.trim()     : null) ||
-      (typeof r.Libelle       === 'string' && r.Libelle.trim()       ? r.Libelle.trim()       : null) ||
-      (typeof r.Nom           === 'string' && r.Nom.trim()           ? r.Nom.trim()           : null) ||
-      `Programme ${id}`;
-
-    if (!seen.has(key)) {
-      seen.set(key, { id, label });
-    } else {
-      // Si on a déjà l'entrée mais avec un label qui ressemble à un id brut, on améliore
-      const existing = seen.get(key);
-      if (/^\d+$/.test(String(existing.label))) {
-        seen.set(key, { id, label });
-      }
-    }
+    // Utiliser la colonne détectée en priorité, puis le fallback générique
+    let name = _detectedProgramNameCol ? String(r[_detectedProgramNameCol] || '').trim() : '';
+    if (!name) name = programSheetName(r);
+    if (name) programSheetById[String(id)] = name;
   });
 
-  // 2) Complément depuis les valeurs déjà présentes dans Actions.Initiative_ID
-  //    On ne l'utilise que si le label du programSheetRow n'est pas disponible.
+  console.log('[Gantt] programSheetById:', programSheetById);
+}
+
+// Initiative_ID est une Ref Grist -> Fiches Programmes.
+// Grist la renvoie comme un entier (rowId de la ligne liée).
+function directInitiativeIdOf(action) {
+  if (!action) return null;
+  const raw = action.Initiative_ID;
+  if (raw == null || raw === 0 || raw === '') return null;
+  if (typeof raw === 'number' && raw > 0) return raw;
+  if (Array.isArray(raw)) {
+    const n = raw.find(v => typeof v === 'number' && v > 0);
+    if (n != null) return n;
+  }
+  if (typeof raw === 'string') {
+    const n = Number(raw.trim());
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  const fromRef = refIdOf(raw);
+  if (fromRef != null && fromRef > 0) return fromRef;
+  return null;
+}
+
+// Nom du programme associé à Initiative_ID, via notre index.
+function directInitiativeLabelOf(action) {
+  if (!action) return '';
+  const id = directInitiativeIdOf(action);
+  if (id != null) {
+    const fromIndex = programSheetById[String(id)];
+    if (fromIndex) return fromIndex;
+  }
+  // Fallback : label stocké dans la valeur de ref (si Grist le fournit)
+  const raw = action.Initiative_ID;
+  if (Array.isArray(raw)) {
+    const str = raw.find(v => typeof v === 'string' && v.trim() && !/^\d+$/.test(v.trim()));
+    if (str) return str.trim();
+  }
+  return '';
+}
+
+function getInitiativeChoices() {
+  // Source principale : notre index id->nom construit depuis Fiches Programmes
+  // (rebuildProgramSheetIndex() est appelé à chaque refreshFromGrist).
+  const seen = new Map();
+
+  // 1) Toutes les lignes de Fiches Programmes, nom via programSheetById
+  programSheetRows.forEach(r => {
+    const id = normalizeRefValue(r.id);
+    if (id == null) return;
+    const key = String(id);
+    // programSheetById est déjà construit avec les bons noms
+    const label = programSheetById[key] || programSheetName(r) || `Programme ${id}`;
+    seen.set(key, { id, label });
+  });
+
+  // 2) Complément depuis Actions.Initiative_ID (cas où Fiches Programmes
+  //    n'aurait pas encore été chargé ou aurait des lignes supplémentaires)
   allActions.forEach(a => {
     const id = directInitiativeIdOf(a);
     if (id == null) return;
-
     const key = String(id);
+    if (seen.has(key)) return;   // déjà dans l'index
 
-    // Chercher d'abord dans programSheetRows le vrai nom
-    const sheetRow = programSheetRows.find(r => String(normalizeRefValue(r.id)) === key);
-    if (sheetRow) {
-      // Déjà géré ci-dessus ; on s'assure juste que le label n'est pas un id brut
-      if (!seen.has(key) || /^\d+$/.test(String(seen.get(key).label))) {
-        const label = programSheetName(sheetRow) || `Programme ${id}`;
-        seen.set(key, { id, label });
-      }
-      return;
-    }
-
-    if (seen.has(key)) return;
-
-    // Pas de ligne dans Fiches Programmes : utiliser le label stocké dans la ref
-    const refLabel = refLabelOf(a?.Initiative_ID);
-    const label = (refLabel && !/^\d+$/.test(refLabel) ? refLabel : null) ||
-                  directInitiativeLabelOf(a) ||
-                  `Programme ${id}`;
+    // Tenter de trouver la ligne dans programSheetRows
+    const row = programSheetRows.find(r => String(normalizeRefValue(r.id)) === key);
+    const label = row
+      ? (programSheetById[key] || programSheetName(row) || `Programme ${id}`)
+      : (directInitiativeLabelOf(a) || `Programme ${id}`);
 
     seen.set(key, { id, label });
   });
@@ -1473,16 +1523,19 @@ function linkedProgramIdForAction(action) {
 function linkedProgramLabelForAction(action) {
   const pid = linkedProgramIdForAction(action);
   if (pid != null) {
-    // Chercher le vrai nom dans programSheetRows en priorité
+    // 1) Index principal (construit depuis Fiches Programmes)
+    const fromIndex = programSheetById[String(pid)];
+    if (fromIndex) return fromIndex;
+    // 2) Fallback ligne directe
     const row = programSheetRows.find(r => String(normalizeRefValue(r.id)) === String(pid));
     if (row) {
       const name = programSheetName(row);
       if (name) return name;
     }
   }
-  // Fallback : label stocké dans la ref, seulement s'il n'est pas un id numérique brut
-  const directLabel = refLabelOf(action && action.Initiative_ID);
-  if (directLabel && !/^\d+$/.test(directLabel)) return directLabel;
+  // Fallback directInitiativeLabelOf (utilise aussi l'index)
+  const lbl = directInitiativeLabelOf(action);
+  if (lbl) return lbl;
   const parentId = refIdOf(action && action.Action_Parent);
   if (parentId != null) {
     const parent = allActions.find(a => String(a.id) === String(parentId));
@@ -1785,37 +1838,50 @@ async function saveSelectedFromPanel(id, mode) {
 
 async function createTaskFromPanel() {
   let initiativeId = normalizeRefValue(document.getElementById('panelInitiative')?.value || '');
-  const parentId = normalizeRefValue(document.getElementById('panelParent').value);
-  const prevId = normalizeRefValue(document.getElementById('panelPrev')?.value || '');
-  const pilotId = normalizeRefValue(document.getElementById('panelPilot')?.value || '');
+  const parentId   = normalizeRefValue(document.getElementById('panelParent')?.value || '');
+  const prevId     = normalizeRefValue(document.getElementById('panelPrev')?.value || '');
+  const pilotId    = normalizeRefValue(document.getElementById('panelPilot')?.value || '');
 
   if (!initiativeId && parentId) {
-    const parent = programs.find(p => String(p.id) === String(parentId)) || allActions.find(a => String(a.id) === String(parentId));
+    const parent = programs.find(p => String(p.id) === String(parentId))
+                || allActions.find(a => String(a.id) === String(parentId));
     initiativeId = normalizeRefValue(linkedProgramIdForAction(parent || {}));
   }
 
+  // Payload de base — champs toujours présents
   const payload = {
-    Libelle: document.getElementById('panelLibelle').value.trim() || 'Nouvelle tâche',
-    Niveau: '2 - Tâche',
-    Statut: document.getElementById('panelStatut').value,
-    PDCA: Number(document.getElementById('panelPDCA').value || 0),
-    Date_Demarrage: fromInputDate(document.getElementById('panelDateStart').value),
-    Date_Fin: fromInputDate(document.getElementById('panelDateEnd').value),
-    Description: document.getElementById('panelDescription').value,
-    Action_Parent: parentId,
-    'Tache_précédente': prevId,
-    Initiative_ID: initiativeId,
-    Pilote: pilotId,
+    Libelle:         document.getElementById('panelLibelle').value.trim() || 'Nouvelle tâche',
+    Niveau:          '2 - Tâche',
+    Statut:          document.getElementById('panelStatut').value || 'A faire',
+    PDCA:            Number(document.getElementById('panelPDCA').value || 0),
+    Description:     document.getElementById('panelDescription').value || '',
   };
-  if (!gristReady) return;
+
+  // Dates (omises si vides plutôt qu'envoyées null)
+  const dateStart = fromInputDate(document.getElementById('panelDateStart').value);
+  const dateEnd   = fromInputDate(document.getElementById('panelDateEnd').value);
+  if (dateStart != null) payload.Date_Demarrage = dateStart;
+  if (dateEnd   != null) payload.Date_Fin       = dateEnd;
+
+  // Colonnes Référence : n'envoyer que si une vraie valeur est sélectionnée
+  // (0 ou null causerait une KeyError côté Grist sur les colonnes Ref)
+  if (parentId)     payload.Action_Parent    = parentId;
+  if (prevId)       payload.Tache_precedente = prevId;   // nom SANS accent = nom interne Grist
+  if (initiativeId) payload.Initiative_ID    = initiativeId;
+  if (pilotId)      payload.Pilote           = pilotId;
+
+  if (!gristReady) {
+    setSavePill('error', 'Grist non disponible');
+    return;
+  }
   try {
     setSavePill('saving');
     suppressNextRecordRefresh = true;
-    await grist.docApi.applyUserActions([[ 'AddRecord', currentActionsTable(), null, payload ]]);
+    await grist.docApi.applyUserActions([['AddRecord', currentActionsTable(), null, payload]]);
     panelMode = 'view';
     await refreshFromGrist();
     setSavePill('saved');
-    setTimeout(()=>setSavePill(''),2500);
+    setTimeout(() => setSavePill(''), 2500);
   } catch (err) {
     console.error('Create task error', err);
     setSavePill('error', err && err.message ? err.message : 'Erreur de création');
@@ -1833,10 +1899,24 @@ async function saveFullRecord(obj) {
     Description: obj.Description || '',
   };
   if ('Niveau' in obj) fields.Niveau = obj.Niveau;
-  if ('Action_Parent' in obj) fields.Action_Parent = normalizeRefValue(obj.Action_Parent);
-  if ('Tache_precedente' in obj || 'Tache_précédente' in obj) fields['Tache_précédente'] = normalizeRefValue(obj.Tache_precedente || obj['Tache_précédente']);
-  if (obj._initiativeEditId != null || 'Initiative_ID' in obj) fields.Initiative_ID = normalizeRefValue(obj._initiativeEditId ?? refIdOf(obj.Initiative_ID));
-  if (obj._pilotEditId != null || 'Pilote' in obj) fields.Pilote = normalizeRefValue(obj._pilotEditId ?? pilotRefIdOf(obj));
+
+  // Colonnes Référence : Grist accepte 0 pour "effacer" mais rejette null/undefined.
+  // On envoie la valeur numérique si elle existe, sinon 0 (= aucune ref).
+  const refVal = (v) => { const n = normalizeRefValue(v); return (n != null && n > 0) ? n : 0; };
+
+  if ('Action_Parent' in obj) fields.Action_Parent = refVal(obj.Action_Parent);
+
+  const prevRaw = obj.Tache_precedente ?? obj['Tache_précédente'];
+  if ('Tache_precedente' in obj || 'Tache_précédente' in obj) {
+    fields['Tache_precedente'] = refVal(prevRaw);
+  }
+
+  if (obj._initiativeEditId != null || 'Initiative_ID' in obj) {
+    fields.Initiative_ID = refVal(obj._initiativeEditId ?? refIdOf(obj.Initiative_ID));
+  }
+  if (obj._pilotEditId != null || 'Pilote' in obj) {
+    fields.Pilote = refVal(obj._pilotEditId ?? pilotRefIdOf(obj));
+  }
 
   try {
     setSavePill('saving');
@@ -2201,7 +2281,7 @@ function findTask(id) {
 let gristReady = false;
 const ACTIONS_TABLE_CANDIDATES = ['Actions'];
 const MEMBERS_TABLE_CANDIDATES = ['Membres', 'Table1'];
-const PROGRAMS_TABLE_CANDIDATES = ['Fiches Programmes'];
+const PROGRAMS_TABLE_CANDIDATES = ['Fiches_Programmes','Fiches Programmes','Fiches_programmes','FichesProgrammes','fiches_programmes'];
 let resolvedTableNames = { Actions:'Actions', Membres:null, Programmes:null };
 
 function convertColumnar(data) {
@@ -2220,16 +2300,32 @@ function convertColumnar(data) {
 let suppressNextRecordRefresh = false;
 
 async function fetchFirstAvailableTable(candidates) {
-  let lastErr = null;
+  // 1) Try exact candidates first
   for (const name of candidates) {
     try {
       const raw = await grist.docApi.fetchTable(name);
       return { name, rows: convertColumnar(raw) };
-    } catch (err) {
-      lastErr = err;
-    }
+    } catch (err) { /* continue */ }
   }
-  if (lastErr) console.warn('Table introuvable parmi', candidates, lastErr);
+
+  // 2) List all tables in the document and fuzzy-match
+  try {
+    const allTables = await grist.docApi.listTables();
+    // Normalize: lowercase, no spaces/underscores
+    const normalize = s => String(s).toLowerCase().replace(/[\s_]/g, '');
+    const candidateNorms = candidates.map(normalize);
+    const match = allTables.find(t => candidateNorms.includes(normalize(t)));
+    if (match) {
+      try {
+        const raw = await grist.docApi.fetchTable(match);
+        return { name: match, rows: convertColumnar(raw) };
+      } catch (err) { /* continue */ }
+    }
+  } catch (err) {
+    console.warn('listTables failed:', err);
+  }
+
+  console.warn('Table introuvable parmi', candidates);
   return { name: null, rows: [] };
 }
 
@@ -2249,6 +2345,7 @@ async function refreshFromGrist() {
   const programsResult = await fetchFirstAvailableTable(PROGRAMS_TABLE_CANDIDATES);
   resolvedTableNames.Programmes = programsResult.name;
   programSheetRows = programsResult.rows;
+  rebuildProgramSheetIndex();   // reconstruit id→nom depuis la colonne "Programme"
 
   buildProgramStructure(allActions);
   if (!hasAutoFittedView) fitTimelineToAll();
@@ -2289,6 +2386,7 @@ function loadDemo() {
 
   membersRows = [{id:1,Nom:'Emilie RIV.'},{id:2,Nom:'Claire PRIN'},{id:3,Nom:'Emmanuelle B.'}];
   programSheetRows = [{id:1,Programme:'Satisfaction client'},{id:2,Programme:'Réduction des coûts'},{id:3,Programme:'Formation équipe'}];
+  rebuildProgramSheetIndex();
 
   allActions = [
     // Programme 1
