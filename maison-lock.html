@@ -65,9 +65,10 @@ body {
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
-.lock-btn.locked { background: #2c3e50; color: white; }
-body.layout-locked .fiche-card { cursor: default; }
-body.layout-locked .fiche-card:hover { border-color: transparent; }
+.lock-btn.locked {
+  background: #2c3e50;
+  color: white;
+}
 
 /* ── TRIANGLE ── */
 .triangle-wrap { width: 100%; display: flex; justify-content: center; flex-shrink: 0; }
@@ -282,7 +283,7 @@ body.layout-locked .fiche-card:hover { border-color: transparent; }
   <div class="header">
     <div class="logo">SPS<br><span class="logo-sub">MEDICAL</span></div>
     <div class="main-title">Maison SPS Medical &nbsp;(Vision 3 ans)</div>
-    <button class="lock-btn" id="lock-btn" type="button" aria-pressed="false" title="Verrouiller le déplacement des fiches">🔓 Disposition libre</button>
+    <button class="lock-btn" id="lock-btn" type="button" aria-pressed="false">🔓 Disposition libre</button>
   </div>
 
   <div class="triangle-wrap">
@@ -356,6 +357,7 @@ let dragState  = null;
 let saveTimer  = null;
 let toastTimer = null;
 let layoutLocked = false;
+let dataLoaded = false;
 const W = 1400, H = 860;
 
 // ── Scale ──
@@ -383,8 +385,6 @@ function updateLockButton() {
   btn.textContent = layoutLocked ? '🔒 Disposition verrouillée' : '🔓 Disposition libre';
   btn.classList.toggle('locked', layoutLocked);
   btn.setAttribute('aria-pressed', layoutLocked ? 'true' : 'false');
-  btn.title = layoutLocked ? 'Déverrouiller pour déplacer les fiches' : 'Verrouiller le déplacement des fiches';
-  document.body.classList.toggle('layout-locked', layoutLocked);
 }
 
 function toggleLayoutLock() {
@@ -392,6 +392,19 @@ function toggleLayoutLock() {
   updateLockButton();
   showToast(layoutLocked ? '🔒 Disposition verrouillée' : '🔓 Disposition déverrouillée');
 }
+
+window.addEventListener('error', (e) => {
+  const msg = e && e.message ? e.message : 'Erreur JavaScript';
+  const loading = document.getElementById('app-loading');
+  if (loading) loading.innerHTML = '<div style="color:#c0392b;text-align:center;padding:20px">Erreur de chargement : ' + msg + '</div>';
+});
+
+setTimeout(() => {
+  if (!dataLoaded) {
+    const loading = document.getElementById('app-loading');
+    if (loading) loading.innerHTML = '<div style="color:#c0392b;text-align:center;padding:20px">Le widget ne reçoit pas les données Grist.<br>Ouvre "Sélectionner les données" dans Grist puis choisis la table source.</div>';
+  }
+}, 5000);
 
 // ── Helpers ──
 function getPilierKey(pilier) {
@@ -576,7 +589,7 @@ function selectFiche(id) {
 }
 
 // ── Init UI ──
-(function initLockUi() {
+(function() {
   const btn = document.getElementById('lock-btn');
   if (btn) btn.addEventListener('click', toggleLayoutLock);
   updateLockButton();
@@ -586,6 +599,7 @@ function selectFiche(id) {
 grist.ready({ requiredAccess: 'full' });
 
 grist.onRecords(records => {
+  dataLoaded = true;
   fiches = records;
   document.getElementById('app-loading').style.display = 'none';
   const maison = document.getElementById('maison');
