@@ -747,10 +747,8 @@ let zoom = 'month';
 let viewStart;               // Date (first day shown)
 let hasAutoFittedView = false;
 
-const PALETTE = [
-  '#4f7cff','#7c4dff','#00bcd4','#e91e8c','#ff6b35',
-  '#26c6da','#66bb6a','#ffa726','#ef5350','#ab47bc'
-];
+const LEVEL1_COLOR = '#2563eb'; // bleu
+const LEVEL2_COLOR = '#16a34a'; // vert
 let progColors = {};
 
 /* ════════════════════════════════════════════
@@ -836,8 +834,8 @@ function buildProgramStructure(rawActions) {
   });
 
   // Assign colors
-  projs.forEach((p,i) => {
-    progColors[p.id] = PALETTE[i % PALETTE.length];
+  projs.forEach((p) => {
+    progColors[p.id] = LEVEL1_COLOR;
     if (!collapsed.hasOwnProperty(p.id)) collapsed[p.id] = false;
   });
 
@@ -1162,7 +1160,7 @@ function render() {
       tLeft.className = 'task-left-row'+(selectedId===task.id?' selected':'');
       const tName = task.Libelle||'Tâche '+task.id;
       tLeft.innerHTML = `
-        <span class="task-status-dot" style="background:${statusColor(task.Statut)}"></span>
+        <span class="task-status-dot" style="background:${LEVEL2_COLOR}"></span>
         <span class="task-left-name">${esc(tName)}</span>
         <span class="task-left-dates">${tStart?fmtSh(tStart):''}</span>
       `;
@@ -1179,7 +1177,7 @@ function render() {
         const w    = widthPx(tStart, tEnd);
         const bar  = document.createElement('div');
         bar.className = 'task-bar';
-        bar.style.cssText = `left:${left}px;width:${w}px;background:${color};`;
+        bar.style.cssText = `left:${left}px;width:${w}px;background:${LEVEL2_COLOR};`;
         bar.setAttribute('data-type','task');
         bar.setAttribute('data-id',task.id);
         bar.setAttribute('data-progid',prog.id);
@@ -1223,7 +1221,7 @@ function render() {
       const from = rowPositions[t._prevId];
       const to   = rowPositions[t.id];
       if (!from||!to) return;
-      drawArrow(svgEl, from.barRight, from.y, to.barLeft, to.y, color);
+      drawArrow(svgEl, from.barRight, from.y, to.barLeft, to.y, LEVEL2_COLOR);
     });
   });
 
@@ -1678,6 +1676,21 @@ function openCreateTaskPanel() {
   renderSidePanel();
 }
 
+function syncCreateLevelFields() {
+  const niveauSel = document.getElementById('panelNiveau');
+  const prevRow = document.getElementById('panelPrevRow');
+  const prevSel = document.getElementById('panelPrev');
+  const parentLabel = document.getElementById('panelParentLabel');
+  const niveau = (niveauSel?.value || '2 - Tâche');
+  const isLevel1 = niveau.startsWith('1');
+
+  if (prevRow) prevRow.style.display = isLevel1 ? 'none' : '';
+  if (prevSel && isLevel1) prevSel.value = '';
+  if (parentLabel) parentLabel.textContent = isLevel1
+    ? 'Action parent (optionnel)'
+    : 'Projet parent (Action_Parent)';
+}
+
 function renderSidePanel() {
   const panel = document.getElementById('sidePanel');
   const title = document.getElementById('panelTitle');
@@ -1701,6 +1714,7 @@ function renderSidePanel() {
       Tache_precedente: selectedTask?.id || null, Date_Demarrage:'', Date_Fin:'', Action_Parent: defaultParent, Niveau:'2 - Tâche'
     }, 'create');
     if (typeof syncCreateLinkedFields === 'function') setTimeout(syncCreateLinkedFields, 0);
+    if (typeof syncCreateLevelFields === 'function') setTimeout(syncCreateLevelFields, 0);
     return;
   }
 
@@ -1756,6 +1770,14 @@ function formHtml(item, mode) {
       <label class="form-label">Libellé</label>
       <input class="form-input" id="panelLibelle" value="${esc(item.Libelle || '')}" />
     </div>
+    ${isCreate ? `
+    <div class="form-row">
+      <label class="form-label">Niveau</label>
+      <select class="form-select" id="panelNiveau" onchange="syncCreateLevelFields()">
+        <option value="1 - Action" ${(item.Niveau||'')==='1 - Action'?'selected':''}>1 - Action</option>
+        <option value="2 - Tâche" ${(item.Niveau||'')==='2 - Tâche' || !(item.Niveau||'')?'selected':''}>2 - Tâche</option>
+      </select>
+    </div>` : ''}
     <div class="form-grid-2">
       <div class="form-row">
         <label class="form-label">Statut</label>
@@ -1784,14 +1806,14 @@ function formHtml(item, mode) {
         <label class="form-label">Programme lié (Programme_Nom)</label>
         <select class="form-select" id="panelInitiative" onchange="syncCreateLinkedFields()">${initiativeOptions}</select>
       </div>
-      <div class="form-row">
-        <label class="form-label">Projet parent (Action_Parent)</label>
+      <div class="form-row" id="panelParentRow">
+        <label class="form-label" id="panelParentLabel">Projet parent (Action_Parent)</label>
         <select class="form-select" id="panelParent" onchange="${isCreate ? 'syncCreateLinkedFields()' : `syncEditTaskPredecessors(${item.id})`}">${projectOptions}</select>
       </div>
     </div>
     <div class="form-grid-2">
-      <div class="form-row">
-        <label class="form-label">Tâche précédente (Tache_précédente)</label>
+      <div class="form-row" id="panelPrevRow">
+        <label class="form-label" id="panelPrevLabel">Tâche précédente (Tache_précédente)</label>
         <select class="form-select" id="panelPrev">${predecessorOptions}</select>
       </div>
       <div class="form-row">
@@ -1851,9 +1873,11 @@ async function createTaskFromPanel() {
   }
 
   // Payload de base — champs toujours présents
+  const selectedNiveau = document.getElementById('panelNiveau')?.value || '2 - Tâche';
+
   const payload = {
     Libelle:         document.getElementById('panelLibelle').value.trim() || 'Nouvelle tâche',
-    Niveau:          '2 - Tâche',
+    Niveau:          selectedNiveau,
     Statut:          document.getElementById('panelStatut').value || 'A faire',
     PDCA:            Number(document.getElementById('panelPDCA').value || 0),
     Description:     document.getElementById('panelDescription').value || '',
@@ -1868,7 +1892,7 @@ async function createTaskFromPanel() {
   // Colonnes Référence : n'envoyer que si une vraie valeur est sélectionnée
   // (0 ou null causerait une KeyError côté Grist sur les colonnes Ref)
   if (parentId)     payload.Action_Parent    = parentId;
-  if (prevId)       payload.Tache_precedente = prevId;   // nom SANS accent = nom interne Grist
+  if (!selectedNiveau.startsWith('1') && prevId) payload.Tache_precedente = prevId;   // nom SANS accent = nom interne Grist
   if (initiativeId) payload.Initiative_ID    = initiativeId;
   if (pilotId)      payload.Pilote           = pilotId;
 
