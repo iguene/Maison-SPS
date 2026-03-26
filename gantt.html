@@ -1004,6 +1004,99 @@ function computeProgDates(progId) {
   return { start:minS, end:maxE, overdue };
 }
 
+function taskDurationDays(task) {
+  const s = gristTs(task?.Date_Demarrage);
+  const e = gristTs(task?.Date_Fin);
+  if (!s || !e) return 1;
+  return Math.max(daysDiff(s, e) + 1, 1);
+}
+
+function setTaskDateRange(task, startDate, endDate) {
+  if (!task || !startDate || !endDate) return;
+  task.Date_Demarrage = toGristTs(startDate);
+  task.Date_Fin = toGristTs(endDate);
+}
+
+function shiftTaskToStart(task, newStart) {
+  if (!task || !newStart) return;
+  const duration = taskDurationDays(task);
+  const newEnd = addDays(newStart, duration - 1);
+  setTaskDateRange(task, newStart, newEnd);
+}
+
+function shiftTaskToEnd(task, newEnd) {
+  if (!task || !newEnd) return;
+  const duration = taskDurationDays(task);
+  const newStart = addDays(newEnd, -(duration - 1));
+  setTaskDateRange(task, newStart, newEnd);
+}
+
+function syncProgramDatesFromTasks(progId) {
+  const prog = programs.find(p => String(p.id) === String(progId));
+  const tks = (tasksByProg[progId] || []).filter(t => gristTs(t.Date_Demarrage) && gristTs(t.Date_Fin));
+  if (!prog || !tks.length) return;
+
+  let minTask = tks[0];
+  let maxTask = tks[0];
+  tks.forEach(t => {
+    if (gristTs(t.Date_Demarrage) < gristTs(minTask.Date_Demarrage)) minTask = t;
+    if (gristTs(t.Date_Fin) > gristTs(maxTask.Date_Fin)) maxTask = t;
+  });
+
+  prog.Date_Demarrage = toGristTs(gristTs(minTask.Date_Demarrage));
+  prog.Date_Fin = toGristTs(gristTs(maxTask.Date_Fin));
+}
+
+function alignBoundaryTasksToProgram(progId) {
+  const prog = programs.find(p => String(p.id) === String(progId));
+  const tks = (tasksByProg[progId] || []).filter(t => gristTs(t.Date_Demarrage) && gristTs(t.Date_Fin));
+  if (!prog || !tks.length) return;
+
+  const progStart = gristTs(prog.Date_Demarrage);
+  const progEnd = gristTs(prog.Date_Fin);
+  if (!progStart && !progEnd) return;
+
+  let firstTask = tks[0];
+  let lastTask = tks[0];
+  tks.forEach(t => {
+    if (gristTs(t.Date_Demarrage) < gristTs(firstTask.Date_Demarrage)) firstTask = t;
+    if (gristTs(t.Date_Fin) > gristTs(lastTask.Date_Fin)) lastTask = t;
+  });
+
+  if (progStart && progEnd && String(firstTask.id) === String(lastTask.id)) {
+    setTaskDateRange(firstTask, progStart, progEnd);
+    return;
+  }
+  if (progStart) shiftTaskToStart(firstTask, progStart);
+  if (progEnd) shiftTaskToEnd(lastTask, progEnd);
+}
+
+function enforceDependenciesInProgram(progId) {
+  const tks = tasksByProg[progId] || [];
+  if (!tks.length) return;
+
+  let changed = true;
+  let safety = 0;
+  while (changed && safety++ < 50) {
+    changed = false;
+    tks.forEach(task => {
+      if (!task._prevId) return;
+      const prev = tks.find(t => String(t.id) === String(task._prevId));
+      if (!prev) return;
+
+      const prevEnd = gristTs(prev.Date_Fin);
+      const taskStart = gristTs(task.Date_Demarrage);
+      if (!prevEnd || !taskStart) return;
+
+      const minStart = addDays(prevEnd, 1);
+      if (taskStart < minStart) {
+        shiftTaskToStart(task, minStart);
+        changed = true;
+      }
+    });
+  }
+}
+
 /* ════════════════════════════════════════════
    RENDER HEADER
 ════════════════════════════════════════════ */
@@ -1852,10 +1945,24 @@ async function saveSelectedFromPanel(id, mode) {
   obj.Description = document.getElementById('panelDescription').value;
   obj._pilotEditId = normalizeRefValue(document.getElementById('panelPilot')?.value || '');
   obj._initiativeEditId = normalizeRefValue(document.getElementById('panelInitiative')?.value || '');
+
   if (mode !== 'prog') {
     obj.Action_Parent = normalizeRefValue(document.getElementById('panelParent').value);
-    obj['Tache_précédente'] = normalizeRefValue(document.getElementById('panelPrev')?.value || '');
+    const prevId = normalizeRefValue(document.getElementById('panelPrev')?.value || '');
+    obj['Tache_précédente'] = prevId;
+    obj.Tache_precedente = prevId;
+    obj._prevId = prevId;
+
+    if (obj.Action_Parent) {
+      enforceDependenciesInProgram(obj.Action_Parent);
+      syncProgramDatesFromTasks(obj.Action_Parent);
+    }
+  } else {
+    alignBoundaryTasksToProgram(id);
+    enforceDependenciesInProgram(id);
+    syncProgramDatesFromTasks(id);
   }
+
   render();
   await saveFullRecord(obj);
 }
@@ -2157,6 +2264,9 @@ function onDragEnd(e) {
           t.Date_Fin       = toGristTs(addDays(snap.end,   days));
         }
       });
+      alignBoundaryTasksToProgram(prog.id);
+      enforceDependenciesInProgram(prog.id);
+      syncProgramDatesFromTasks(prog.id);
       scheduleSave(prog.id, 'prog');
     }
   }
@@ -2195,6 +2305,7 @@ function cascadeTasksAfter(movedTask, progId) {
     });
     changed = next;
   }
+  syncProgramDatesFromTasks(progId);
 }
 
 /* ════════════════════════════════════════════
@@ -2462,4 +2573,3 @@ initGrist();
 </script>
 </body>
 </html>
- 
