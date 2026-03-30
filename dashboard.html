@@ -138,8 +138,29 @@ html, body { height:100%; overflow:hidden; font-family:var(--font); background:v
   font-size: 12px;
   flex-shrink: 0;
 }
-.sr-icon.prog { background:var(--accent-lt); color:var(--accent); }
-.sr-icon.task { background:var(--grey-lt); color:var(--text2); }
+.sr-icon.prog   { background:var(--accent-lt); color:var(--accent); }
+.sr-icon.task   { background:var(--grey-lt); color:var(--text2); }
+.sr-icon.member { background:#f0fdf4; color:var(--green); }
+.sr-section {
+  padding: 5px 14px 3px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .7px;
+  color: var(--text3);
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  pointer-events: none;
+}
+.sr-member-chips { display:flex; gap:4px; flex-wrap:wrap; margin-top:3px; }
+.sr-chip {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: var(--grey-lt);
+  color: var(--text2);
+  font-weight: 500;
+}
 .sr-info { flex:1; min-width:0; }
 .sr-name { font-size:12.5px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .sr-meta { font-size:11px; color:var(--text3); margin-top:1px; }
@@ -939,17 +960,52 @@ function closeModal(e) {
 function onSearch(q) {
   searchQuery = q.trim().toLowerCase();
   if (!searchQuery) { hideSearchResults(); return; }
-  const results = allActions.filter(a =>
+
+  // ── Membres correspondants ──
+  const matchedMembers = membersRows.filter(m => {
+    const name = String(m.Nom || m.name || m.Name || '').toLowerCase();
+    return name.includes(searchQuery);
+  }).slice(0, 4);
+
+  // ── Actions / programmes correspondants ──
+  const matchedActions = allActions.filter(a =>
     (a.Libelle||'').toLowerCase().includes(searchQuery) ||
-    progNameOf(a).toLowerCase().includes(searchQuery) ||
-    pilotNameOf(a).toLowerCase().includes(searchQuery)
-  ).slice(0, 12);
+    progNameOf(a).toLowerCase().includes(searchQuery)
+  ).slice(0, 10);
 
   const el = document.getElementById('searchResults');
-  if (!results.length) {
-    el.innerHTML = '<div class="sr-empty">Aucun résultat</div>';
-  } else {
-    el.innerHTML = results.map(a => {
+  let html = '';
+
+  // Section membres
+  if (matchedMembers.length) {
+    html += '<div class="sr-section">👤 Membres</div>';
+    html += matchedMembers.map(m => {
+      const name = String(m.Nom || m.name || m.Name || '');
+      const myTasks    = allActions.filter(a => isTask(a)    && pilotNameOf(a) === name);
+      const myProjects = allActions.filter(a => isProject(a) && pilotNameOf(a) === name);
+      const inProg     = myTasks.filter(t => (t.Statut||'').toLowerCase().includes('cours')).length;
+      const late       = myTasks.filter(t => isLate(t)).length;
+      const chips = [
+        myTasks.length    ? `${myTasks.length} tâche${myTasks.length!==1?'s':''}` : null,
+        myProjects.length ? `${myProjects.length} projet${myProjects.length!==1?'s':''}` : null,
+        inProg            ? `${inProg} en cours` : null,
+        late              ? `${late} en retard`  : null,
+      ].filter(Boolean);
+      return `<div class="search-result-item" data-membername="${esc(name)}" onclick="selectMemberResult(this.dataset.membername)">
+        <div class="sr-icon member">👤</div>
+        <div class="sr-info">
+          <div class="sr-name">${esc(name)}</div>
+          <div class="sr-member-chips">${chips.map(c=>`<span class="sr-chip">${c}</span>`).join('')}</div>
+        </div>
+        <span class="badge en-cours" style="background:#f0fdf4;color:var(--green)">Voir</span>
+      </div>`;
+    }).join('');
+  }
+
+  // Section actions / programmes
+  if (matchedActions.length) {
+    html += '<div class="sr-section">📋 Actions & Programmes</div>';
+    html += matchedActions.map(a => {
       const prog = isProject(a);
       return `<div class="search-result-item" onclick="selectSearchResult(${a.id})">
         <div class="sr-icon ${prog?'prog':'task'}">${prog?'🗂':'📋'}</div>
@@ -961,14 +1017,23 @@ function onSearch(q) {
       </div>`;
     }).join('');
   }
+
+  if (!html) {
+    html = '<div class="sr-empty">Aucun résultat pour "' + esc(searchQuery) + '"</div>';
+  }
+
+  el.innerHTML = html;
   el.classList.add('open');
 }
+
 function showSearchResults() {
   if (searchQuery) onSearch(searchQuery);
 }
 function hideSearchResults() {
   document.getElementById('searchResults').classList.remove('open');
 }
+
+// Clic sur un résultat action/programme → ouvre le détail
 function selectSearchResult(id) {
   hideSearchResults();
   document.getElementById('searchInput').value = '';
@@ -976,6 +1041,17 @@ function selectSearchResult(id) {
   openDetail(id);
 }
 
+// Clic sur un membre → filtre le dashboard sur ce pilote
+function selectMemberResult(name) {
+  hideSearchResults();
+  document.getElementById('searchInput').value = '';
+  searchQuery = '';
+  currentPilot = name;
+  // Met à jour le select pilote
+  const sel = document.getElementById('pilotSelect');
+  if (sel) sel.value = name;
+  render();
+}
 // Click outside to close search
 document.addEventListener('click', e => {
   if (!e.target.closest('.search-wrap')) hideSearchResults();
