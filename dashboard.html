@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mon Espace</title>
+<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════════ */
+:root {
+  --bg:         #f5f6fa;
+  --card:       #ffffff;
+  --card2:      #f9fafb;
+  --border:     #e8ecf2;
+  --border2:    #d1d9e6;
+  --text:       #111827;
+  --text2:      #4b5563;
+  --text3:      #9ca3af;
+  --accent:     #2563eb;
+  --accent-lt:  #dbeafe;
+  --accent-dk:  #1d4ed8;
+  --green:      #16a34a;
+  --green-lt:   #dcfce7;
+  --orange:     #d97706;
+  --orange-lt:  #fef3c7;
+  --red:        #dc2626;
+  --red-lt:     #fee2e2;
+  --grey-lt:    #f3f4f6;
+  --font:       'Sora', sans-serif;
+  --mono:       'JetBrains Mono', monospace;
+  --radius:     12px;
+  --radius-sm:  8px;
+  --shadow:     0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.06);
+  --shadow-hover: 0 2px 6px rgba(0,0,0,.08), 0 8px 24px rgba(0,0,0,.1);
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; overflow:hidden; font-family:var(--font); background:var(--bg); color:var(--text); font-size:13px; }
+
+/* ═══════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════ */
+.app { display:flex; flex-direction:column; height:100%; overflow:hidden; }
+
+/* ── TOP BAR ── */
+.topbar {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+  z-index: 30;
+}
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: -.4px;
+  color: var(--text);
+}
+.brand-icon {
+  width: 30px; height: 30px;
+  background: var(--accent);
+  border-radius: 8px;
+  display: flex; align-items:center; justify-content:center;
+  color: #fff;
+  font-size: 14px;
+}
+.topbar-sep { flex:1; }
+
+/* Search */
+.search-wrap {
+  position: relative;
+  width: 280px;
+}
+.search-icon {
+  position: absolute;
+  left: 11px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--text3);
+  font-size: 13px;
+  pointer-events: none;
+}
+.search-input {
+  width: 100%;
+  padding: 8px 12px 8px 33px;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  font-family: var(--font);
+  font-size: 12.5px;
+  color: var(--text);
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.search-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(37,99,235,.1); }
+.search-input::placeholder { color:var(--text3); }
+
+/* Search results dropdown */
+.search-results {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0; right: 0;
+  background: var(--card);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-hover);
+  z-index: 100;
+  max-height: 320px;
+  overflow-y: auto;
+  display: none;
+}
+.search-results.open { display:block; }
+.search-result-item {
+  padding: 9px 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+  transition: background .1s;
+}
+.search-result-item:last-child { border-bottom:none; }
+.search-result-item:hover { background:var(--grey-lt); }
+.sr-icon {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  display: flex; align-items:center; justify-content:center;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.sr-icon.prog { background:var(--accent-lt); color:var(--accent); }
+.sr-icon.task { background:var(--grey-lt); color:var(--text2); }
+.sr-info { flex:1; min-width:0; }
+.sr-name { font-size:12.5px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sr-meta { font-size:11px; color:var(--text3); margin-top:1px; }
+.sr-empty { padding:16px; text-align:center; color:var(--text3); font-size:12px; }
+
+/* Pilot selector */
+.pilot-select {
+  padding: 7px 10px;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: 12px;
+  color: var(--text);
+  background: var(--bg);
+  outline: none;
+  cursor: pointer;
+  max-width: 180px;
+}
+.pilot-select:focus { border-color:var(--accent); }
+
+/* date label */
+.topbar-date {
+  font-size: 11.5px;
+  color: var(--text3);
+  font-family: var(--mono);
+  white-space: nowrap;
+}
+
+/* ── MAIN SCROLL ── */
+.main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* ── WELCOME BANNER ── */
+.welcome {
+  background: linear-gradient(135deg, var(--accent) 0%, #1e40af 100%);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  position: relative;
+  overflow: hidden;
+}
+.welcome::before {
+  content: '';
+  position: absolute;
+  right: -30px; top: -40px;
+  width: 180px; height: 180px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.06);
+}
+.welcome::after {
+  content: '';
+  position: absolute;
+  right: 60px; bottom: -50px;
+  width: 120px; height: 120px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.04);
+}
+.welcome-avatar {
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.2);
+  display: flex; align-items:center; justify-content:center;
+  font-size: 18px;
+  font-weight: 700;
+  flex-shrink: 0;
+  border: 2px solid rgba(255,255,255,.4);
+}
+.welcome-text h2 { font-size:16px; font-weight:700; margin-bottom:3px; }
+.welcome-text p  { font-size:12px; opacity:.8; }
+
+/* ── KPI ROW ── */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+.kpi-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: box-shadow .15s, transform .15s;
+  cursor: default;
+}
+.kpi-card:hover { box-shadow:var(--shadow-hover); transform:translateY(-1px); }
+.kpi-icon {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  display: flex; align-items:center; justify-content:center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.kpi-body { min-width:0; }
+.kpi-val {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -.5px;
+  line-height: 1;
+  font-family: var(--mono);
+}
+.kpi-lbl { font-size: 11px; color:var(--text2); margin-top:3px; font-weight:500; }
+
+/* ── SECTION TITLE ── */
+.section-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: var(--text3);
+  margin-bottom: 2px;
+}
+
+/* ── TWO COLUMNS ── */
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.three-col { display:grid; grid-template-columns:1.3fr 1fr 1fr; gap:14px; }
+
+/* ── PANEL CARD ── */
+.panel-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.panel-head {
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.panel-head-title { font-size:13px; font-weight:700; }
+.panel-head-count {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-family: var(--mono);
+}
+.panel-body-scroll { overflow-y:auto; max-height:260px; flex:1; }
+
+/* ── TASK LIST ITEMS ── */
+.task-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background .1s;
+}
+.task-item:last-child { border-bottom:none; }
+.task-item:hover { background:var(--grey-lt); }
+
+.task-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+.task-content { flex:1; min-width:0; }
+.task-name {
+  font-size: 12.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+.task-prog-label { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.task-sub {
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.task-sub-prog { font-weight:500; color:var(--text2); }
+
+/* progress mini bar */
+.prog-mini { flex:1; height:4px; background:var(--border); border-radius:2px; overflow:hidden; max-width:60px; }
+.prog-mini-fill { height:100%; border-radius:2px; transition:width .3s; }
+
+.task-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.task-date {
+  font-size: 10.5px;
+  font-family: var(--mono);
+  color: var(--text3);
+  white-space: nowrap;
+}
+.badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.badge.en-cours  { background:var(--accent-lt); color:var(--accent-dk); }
+.badge.a-faire   { background:var(--grey-lt); color:var(--text2); }
+.badge.termine   { background:var(--green-lt); color:var(--green); }
+.badge.retard    { background:var(--red-lt); color:var(--red); }
+
+/* ── DEADLINE ITEMS ── */
+.deadline-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background .1s;
+}
+.deadline-item:last-child { border-bottom:none; }
+.deadline-item:hover { background:var(--grey-lt); }
+.dl-days {
+  width: 42px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.dl-num {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+  font-family: var(--mono);
+}
+.dl-unit { font-size: 9px; text-transform:uppercase; letter-spacing:.5px; color:var(--text3); margin-top:1px; }
+.dl-content { flex:1; min-width:0; }
+.dl-name { font-size:12px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dl-sub  { font-size:11px; color:var(--text3); margin-top:2px; }
+.dl-bar  {
+  width: 3px;
+  height: 36px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* ── PROGRAM CARDS ── */
+.prog-cards { display:flex; flex-direction:column; gap:0; }
+.prog-item {
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background .1s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.prog-item:last-child { border-bottom:none; }
+.prog-item:hover { background:var(--grey-lt); }
+.prog-color-stripe { width:3px; height:32px; border-radius:2px; flex-shrink:0; }
+.prog-content { flex:1; min-width:0; }
+.prog-name { font-size:12.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.prog-sub  { font-size:11px; color:var(--text3); margin-top:2px; display:flex; gap:8px; }
+.prog-right { display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0; }
+.prog-pct { font-size:13px; font-weight:700; font-family:var(--mono); }
+.prog-bar-wrap { width:60px; height:5px; background:var(--border); border-radius:3px; overflow:hidden; }
+.prog-bar-fill { height:100%; border-radius:3px; }
+
+/* ── EMPTY STATE ── */
+.empty-list {
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--text3);
+  font-size: 12px;
+}
+.empty-icon { font-size:24px; margin-bottom:6px; opacity:.4; }
+
+/* ── SCROLLBAR ── */
+* { scrollbar-width:thin; scrollbar-color:var(--border2) transparent; }
+*::-webkit-scrollbar { width:5px; height:5px; }
+*::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(8px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.kpi-card     { animation: fadeUp .3s ease both; }
+.kpi-card:nth-child(1) { animation-delay:.04s; }
+.kpi-card:nth-child(2) { animation-delay:.08s; }
+.kpi-card:nth-child(3) { animation-delay:.12s; }
+.kpi-card:nth-child(4) { animation-delay:.16s; }
+.kpi-card:nth-child(5) { animation-delay:.20s; }
+
+.panel-card   { animation: fadeUp .35s ease both; animation-delay:.18s; }
+
+/* DEMO BADGE */
+.demo-badge {
+  position: fixed; bottom:8px; right:8px;
+  background: var(--orange); color:#fff;
+  padding: 3px 10px; border-radius:20px;
+  font-size: 10px; font-weight:700; z-index:9999;
+  letter-spacing:.5px;
+}
+
+/* DETAIL TOOLTIP / MODAL */
+.modal-overlay {
+  position: fixed; inset:0;
+  background: rgba(0,0,0,.35);
+  z-index: 200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.open { display:flex; }
+.modal {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 24px;
+  max-width: 440px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0,0,0,.2);
+  animation: fadeUp .2s ease;
+}
+.modal-title { font-size:15px; font-weight:700; margin-bottom:4px; }
+.modal-sub   { font-size:12px; color:var(--text3); margin-bottom:18px; }
+.modal-row   { display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--border); font-size:12.5px; }
+.modal-row:last-child { border-bottom:none; }
+.modal-key   { color:var(--text3); font-weight:500; }
+.modal-val   { font-weight:600; text-align:right; }
+.modal-close {
+  margin-top:18px; width:100%;
+  padding: 9px;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-family: var(--font);
+  font-size:13px;
+  cursor:pointer;
+  color:var(--text2);
+  transition: background .15s;
+}
+.modal-close:hover { background:var(--grey-lt); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ══ TOP BAR ══ -->
+  <div class="topbar">
+    <div class="topbar-brand">
+      <div class="brand-icon">◈</div>
+      Mon Espace
+    </div>
+    <div class="topbar-sep"></div>
+
+    <!-- Search -->
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="searchInput" type="text"
+             placeholder="Rechercher une action, programme…"
+             oninput="onSearch(this.value)"
+             onfocus="showSearchResults()"
+             autocomplete="off">
+      <div class="search-results" id="searchResults"></div>
+    </div>
+
+    <!-- Pilot filter -->
+    <select class="pilot-select" id="pilotSelect" onchange="onPilotChange(this.value)">
+      <option value="">Toute l'équipe</option>
+    </select>
+
+    <span class="topbar-date" id="topbarDate"></span>
+  </div>
+
+  <!-- ══ MAIN ══ -->
+  <div class="main" id="mainContent">
+    <div class="empty-list"><div class="empty-icon">⏳</div>Chargement…</div>
+  </div>
+
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <div class="modal-title" id="modalTitle"></div>
+    <div class="modal-sub"  id="modalSub"></div>
+    <div id="modalRows"></div>
+    <button class="modal-close" onclick="closeModal()">Fermer</button>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════ */
+let allActions     = [];
+let membersRows    = [];
+let programSheetRows = [];
+let programSheetById = {};
+let gristReady     = false;
+let currentPilot   = '';   // nom du pilote filtré
+let searchQuery    = '';
+
+const MS_DAY = 86400000;
+const today  = new Date(); today.setHours(0,0,0,0);
+
+// Palette couleurs programmes
+const PALETTE = ['#2563eb','#7c3aed','#059669','#dc2626','#d97706',
+                 '#0891b2','#65a30d','#e11d48','#6366f1','#14b8a6'];
+let progColors = {};
+
+/* ═══════════════════════════════════════════
+   UTILS
+═══════════════════════════════════════════ */
+const esc   = s => { if (!s) return ''; const d=document.createElement('div'); d.textContent=String(s); return d.innerHTML; };
+const fmtD  = d => d ? d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+const fmtSh = d => d ? d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short'}) : '—';
+
+function gristTs(ts) {
+  if (ts == null || ts === '' || ts === 0) return null;
+  if (ts instanceof Date) return new Date(ts.getTime());
+  const n = Number(ts);
+  if (isNaN(n)) return null;
+  if (Math.abs(n) >= 1e12) return new Date(n);
+  if (Math.abs(n) >= 1e8)  return new Date(n * 1000);
+  return null;
+}
+
+function daysDiffFromToday(d) {
+  if (!d) return null;
+  const t = new Date(d); t.setHours(0,0,0,0);
+  return Math.round((t - today) / MS_DAY);
+}
+
+function isLate(action) {
+  const e = gristTs(action.Date_Fin);
+  if (!e) return false;
+  if (action.Statut === 'Terminé' || String(action.Statut||'').toLowerCase().includes('termin')) return false;
+  return e < today;
+}
+
+function isTask(a) {
+  const niv = String(a.Niveau||'').toLowerCase();
+  return niv.includes('2') || niv.includes('tâche') || niv.includes('tache') || niv.includes('task');
+}
+function isProject(a) {
+  const niv = String(a.Niveau||'').toLowerCase();
+  return niv.includes('1') || niv.includes('projet') || niv.includes('project');
+}
+
+function pilotNameOf(item) {
+  if (!item) return '';
+  if (Array.isArray(item.Pilote_Nom)) return item.Pilote_Nom[0] || '';
+  if (item.Pilote_Nom) return String(item.Pilote_Nom);
+  if (Array.isArray(item.Pilote)) return item.Pilote[0] || '';
+  if (item.Pilote && typeof item.Pilote === 'string') return item.Pilote;
+  return '';
+}
+
+function refIdOf(val) {
+  if (val == null) return null;
+  if (Array.isArray(val)) return val[1] ?? null;
+  if (typeof val === 'number') return val;
+  const n = Number(val);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function progNameOf(action) {
+  // Via Initiative_ID → Fiches Programmes
+  const raw = action.Initiative_ID;
+  let id = null;
+  if (typeof raw === 'number' && raw > 0) id = raw;
+  else if (Array.isArray(raw)) id = raw.find(v => typeof v==='number' && v>0) ?? null;
+  if (id && programSheetById[String(id)]) return programSheetById[String(id)];
+  // Via Action_Parent → libellé du projet parent
+  const parentId = refIdOf(action.Action_Parent);
+  if (parentId) {
+    const parent = allActions.find(a => a.id === parentId);
+    if (parent) return parent.Libelle || '';
+  }
+  return '';
+}
+
+function statusLabel(s) {
+  if (!s) return 'A faire';
+  const sl = s.toLowerCase();
+  if (sl.includes('cours'))   return 'En cours';
+  if (sl.includes('termin'))  return 'Terminé';
+  if (sl.includes('faire'))   return 'A faire';
+  return s;
+}
+function statusClass(s, late) {
+  if (late) return 'retard';
+  if (!s) return 'a-faire';
+  const sl = s.toLowerCase();
+  if (sl.includes('cours'))  return 'en-cours';
+  if (sl.includes('termin')) return 'termine';
+  return 'a-faire';
+}
+function statusDot(s, late) {
+  if (late) return '#dc2626';
+  if (!s) return '#9ca3af';
+  const sl = s.toLowerCase();
+  if (sl.includes('cours'))  return '#2563eb';
+  if (sl.includes('termin')) return '#16a34a';
+  return '#9ca3af';
+}
+function progColor(id) {
+  if (!progColors[id]) progColors[id] = PALETTE[Object.keys(progColors).length % PALETTE.length];
+  return progColors[id];
+}
+
+/* ═══════════════════════════════════════════
+   DATA FILTERING
+═══════════════════════════════════════════ */
+function getMyTasks() {
+  return allActions.filter(a => isTask(a) && (currentPilot ? pilotNameOf(a) === currentPilot : true));
+}
+function getMyProjects() {
+  // Projets (niveau 1) pilotés par moi OU qui ont au moins une tâche pilotée par moi
+  return allActions.filter(a => {
+    if (!isProject(a)) return false;
+    if (!currentPilot) return true;
+    if (pilotNameOf(a) === currentPilot) return true;
+    // A-t-il des tâches pour ce pilote ?
+    const tasks = allActions.filter(t => isTask(t) && refIdOf(t.Action_Parent) === a.id && pilotNameOf(t) === currentPilot);
+    return tasks.length > 0;
+  });
+}
+
+function computeStats() {
+  const tasks    = getMyTasks();
+  const projects = getMyProjects();
+  const total    = tasks.length;
+  const inProg   = tasks.filter(t => { const sl=(t.Statut||'').toLowerCase(); return sl.includes('cours'); }).length;
+  const done     = tasks.filter(t => { const sl=(t.Statut||'').toLowerCase(); return sl.includes('termin'); }).length;
+  const late     = tasks.filter(t => isLate(t)).length;
+  const upcoming = tasks.filter(t => {
+    const d = daysDiffFromToday(gristTs(t.Date_Fin));
+    return d != null && d >= 0 && d <= 14 && !isLate(t) && !String(t.Statut||'').toLowerCase().includes('termin');
+  }).length;
+  return { total, inProg, done, late, upcoming, totalProjects: projects.length };
+}
+
+/* ═══════════════════════════════════════════
+   RENDER
+═══════════════════════════════════════════ */
+function render() {
+  const s = computeStats();
+  const tasks = getMyTasks();
+  const projects = getMyProjects();
+  const pilotLabel = currentPilot || 'Toute l\'équipe';
+
+  const main = document.getElementById('mainContent');
+  main.innerHTML = `
+    ${renderWelcome(pilotLabel)}
+    ${renderKPIs(s)}
+    <div class="three-col">
+      ${renderInProgress(tasks)}
+      ${renderLate(tasks)}
+      ${renderUpcoming(tasks)}
+    </div>
+    <div class="two-col">
+      ${renderAllTasks(tasks)}
+      ${renderPrograms(projects)}
+    </div>
+  `;
+}
+
+function renderWelcome(pilotLabel) {
+  const initials = pilotLabel === "Toute l'équipe" ? '👥'
+    : pilotLabel.split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2);
+  const dateStr = today.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  return `
+    <div class="welcome">
+      <div class="welcome-avatar">${initials}</div>
+      <div class="welcome-text">
+        <h2>Bonjour${pilotLabel !== "Toute l'équipe" ? ', '+pilotLabel.split(' ')[0] : ''} 👋</h2>
+        <p>${dateStr.charAt(0).toUpperCase()+dateStr.slice(1)}</p>
+      </div>
+    </div>`;
+}
+
+function renderKPIs(s) {
+  const kpis = [
+    { icon:'📋', val:s.total,         lbl:'Mes tâches',    bg:'#eff6ff', ic:'#2563eb' },
+    { icon:'⚡', val:s.inProg,        lbl:'En cours',      bg:'#eff6ff', ic:'#2563eb' },
+    { icon:'✅', val:s.done,          lbl:'Terminées',     bg:'#f0fdf4', ic:'#16a34a' },
+    { icon:'🔴', val:s.late,          lbl:'En retard',     bg:'#fef2f2', ic:'#dc2626' },
+    { icon:'📅', val:s.upcoming,      lbl:'Échéances 14j', bg:'#fffbeb', ic:'#d97706' },
+  ];
+  return `<div class="kpi-row">${kpis.map(k=>`
+    <div class="kpi-card">
+      <div class="kpi-icon" style="background:${k.bg};color:${k.ic}">${k.icon}</div>
+      <div class="kpi-body">
+        <div class="kpi-val" style="color:${k.ic}">${k.val}</div>
+        <div class="kpi-lbl">${k.lbl}</div>
+      </div>
+    </div>`).join('')}</div>`;
+}
+
+function renderInProgress(tasks) {
+  const items = tasks.filter(t => { const sl=(t.Statut||'').toLowerCase(); return sl.includes('cours') && !isLate(t); })
+                     .sort((a,b)=> (gristTs(a.Date_Fin)||0)-(gristTs(b.Date_Fin)||0))
+                     .slice(0,8);
+  return `<div class="panel-card">
+    <div class="panel-head">
+      <span class="panel-head-title">⚡ En cours</span>
+      <span class="panel-head-count" style="background:var(--accent-lt);color:var(--accent)">${items.length}</span>
+    </div>
+    <div class="panel-body-scroll">
+      ${items.length ? items.map(t=>taskItemHtml(t)).join('') : emptyList('Aucune tâche en cours')}
+    </div>
+  </div>`;
+}
+
+function renderLate(tasks) {
+  const items = tasks.filter(t => isLate(t))
+                     .sort((a,b)=> (gristTs(a.Date_Fin)||0)-(gristTs(b.Date_Fin)||0));
+  return `<div class="panel-card">
+    <div class="panel-head">
+      <span class="panel-head-title">🔴 En retard</span>
+      <span class="panel-head-count" style="background:var(--red-lt);color:var(--red)">${items.length}</span>
+    </div>
+    <div class="panel-body-scroll">
+      ${items.length ? items.map(t=>taskItemHtml(t,true)).join('') : emptyList('Aucun retard 🎉')}
+    </div>
+  </div>`;
+}
+
+function renderUpcoming(tasks) {
+  const items = tasks
+    .filter(t => {
+      const d = daysDiffFromToday(gristTs(t.Date_Fin));
+      return d != null && d >= 0 && d <= 30 && !String(t.Statut||'').toLowerCase().includes('termin');
+    })
+    .sort((a,b)=> (gristTs(a.Date_Fin)||0)-(gristTs(b.Date_Fin)||0))
+    .slice(0, 8);
+
+  return `<div class="panel-card">
+    <div class="panel-head">
+      <span class="panel-head-title">📅 Échéances à venir</span>
+      <span class="panel-head-count" style="background:var(--orange-lt);color:var(--orange)">${items.length}</span>
+    </div>
+    <div class="panel-body-scroll">
+      ${items.length ? items.map(t => {
+        const e = gristTs(t.Date_Fin);
+        const diff = daysDiffFromToday(e);
+        const late = isLate(t);
+        const color = diff <= 3 ? 'var(--red)' : diff <= 7 ? 'var(--orange)' : 'var(--accent)';
+        return `<div class="deadline-item" onclick="openDetail(${t.id})">
+          <div class="dl-days" style="color:${color}">
+            <div class="dl-num">${diff}</div>
+            <div class="dl-unit">jours</div>
+          </div>
+          <div class="dl-bar" style="background:${color}"></div>
+          <div class="dl-content">
+            <div class="dl-name">${esc(t.Libelle||'Sans titre')}</div>
+            <div class="dl-sub">${esc(progNameOf(t)||'')}</div>
+          </div>
+          <span class="badge ${statusClass(t.Statut,late)}">${statusLabel(t.Statut)}</span>
+        </div>`;
+      }).join('') : emptyList('Aucune échéance proche')}
+    </div>
+  </div>`;
+}
+
+function renderAllTasks(tasks) {
+  const sorted = [...tasks].sort((a,b) => {
+    // Retard → En cours → À faire → Terminé
+    const order = t => isLate(t)?0 : (t.Statut||'').toLowerCase().includes('cours')?1 : (t.Statut||'').toLowerCase().includes('termin')?3 : 2;
+    return order(a) - order(b) || (gristTs(a.Date_Fin)||0)-(gristTs(b.Date_Fin)||0);
+  });
+  return `<div class="panel-card">
+    <div class="panel-head">
+      <span class="panel-head-title">📋 Toutes mes tâches</span>
+      <span class="panel-head-count" style="background:var(--grey-lt);color:var(--text2)">${sorted.length}</span>
+    </div>
+    <div class="panel-body-scroll" style="max-height:320px">
+      ${sorted.length ? sorted.map(t=>taskItemHtml(t,isLate(t))).join('') : emptyList('Aucune tâche assignée')}
+    </div>
+  </div>`;
+}
+
+function renderPrograms(projects) {
+  const items = projects.map(p => {
+    const tasks = allActions.filter(t => isTask(t) && refIdOf(t.Action_Parent) === p.id);
+    const done  = tasks.filter(t => String(t.Statut||'').toLowerCase().includes('termin')).length;
+    const pct   = p.PDCA != null ? Number(p.PDCA) : (tasks.length ? Math.round(done/tasks.length*100) : 0);
+    const color = progColor(p.id);
+    const late  = isLate(p);
+    return { p, tasks, pct, color, late };
+  }).sort((a,b) => b.pct - a.pct === 0 ? a.p.Libelle?.localeCompare(b.p.Libelle,'fr') : b.pct - a.pct);
+
+  return `<div class="panel-card">
+    <div class="panel-head">
+      <span class="panel-head-title">🗂 Mes programmes / projets</span>
+      <span class="panel-head-count" style="background:var(--grey-lt);color:var(--text2)">${items.length}</span>
+    </div>
+    <div class="panel-body-scroll" style="max-height:320px">
+      <div class="prog-cards">
+        ${items.length ? items.map(({p,tasks,pct,color,late}) => `
+          <div class="prog-item" onclick="openDetail(${p.id})">
+            <div class="prog-color-stripe" style="background:${color}"></div>
+            <div class="prog-content">
+              <div class="prog-name">${esc(p.Libelle||'Sans nom')}</div>
+              <div class="prog-sub">
+                <span>${tasks.length} tâche${tasks.length!==1?'s':''}</span>
+                <span>${esc(pilotNameOf(p)||'—')}</span>
+              </div>
+            </div>
+            <div class="prog-right">
+              <div class="prog-pct" style="color:${color}">${pct}%</div>
+              <div class="prog-bar-wrap">
+                <div class="prog-bar-fill" style="width:${pct}%;background:${color}"></div>
+              </div>
+              ${late ? '<span class="badge retard">Retard</span>' : `<span class="badge ${statusClass(p.Statut,false)}">${statusLabel(p.Statut)}</span>`}
+            </div>
+          </div>`).join('') : emptyList('Aucun projet associé')}
+      </div>
+    </div>
+  </div>`;
+}
+
+function taskItemHtml(t, forceLate=false) {
+  const e    = gristTs(t.Date_Fin);
+  const late = forceLate || isLate(t);
+  const pct  = Number(t.PDCA)||0;
+  const prog = progNameOf(t);
+  const color= statusDot(t.Statut, late);
+  return `<div class="task-item" onclick="openDetail(${t.id})">
+    <div class="task-dot" style="background:${color}"></div>
+    <div class="task-content">
+      <div class="task-name">${esc(t.Libelle||'Sans titre')}</div>
+      <div class="task-sub">
+        ${prog ? `<span class="task-sub-prog">${esc(prog)}</span>` : ''}
+        <div class="prog-mini"><div class="prog-mini-fill" style="width:${pct}%;background:${color}"></div></div>
+        <span>${pct}%</span>
+      </div>
+    </div>
+    <div class="task-right">
+      <div class="task-date">${fmtSh(e)}</div>
+      <span class="badge ${statusClass(t.Statut,late)}">${late?'Retard':statusLabel(t.Statut)}</span>
+    </div>
+  </div>`;
+}
+
+function emptyList(msg) {
+  return `<div class="empty-list"><div class="empty-icon">✓</div>${msg}</div>`;
+}
+
+/* ═══════════════════════════════════════════
+   DETAIL MODAL
+═══════════════════════════════════════════ */
+function openDetail(id) {
+  const item = allActions.find(a => a.id === id);
+  if (!item) return;
+  const late = isLate(item);
+  const rows = [
+    ['Libellé',    item.Libelle||'—'],
+    ['Niveau',     item.Niveau||'—'],
+    ['Statut',     late ? '🔴 En retard' : statusLabel(item.Statut)],
+    ['Avancement', (item.PDCA||0)+'%'],
+    ['Début',      fmtD(gristTs(item.Date_Demarrage))],
+    ['Fin',        fmtD(gristTs(item.Date_Fin))],
+    ['Pilote',     pilotNameOf(item)||'—'],
+    ['Programme',  progNameOf(item)||'—'],
+  ];
+  document.getElementById('modalTitle').textContent = item.Libelle||'Détail';
+  document.getElementById('modalSub').textContent   = isProject(item)?'Projet / Programme':'Tâche';
+  document.getElementById('modalRows').innerHTML    = rows.map(([k,v])=>
+    `<div class="modal-row"><span class="modal-key">${k}</span><span class="modal-val">${esc(String(v))}</span></div>`
+  ).join('');
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modalOverlay')) return;
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+/* ═══════════════════════════════════════════
+   SEARCH
+═══════════════════════════════════════════ */
+function onSearch(q) {
+  searchQuery = q.trim().toLowerCase();
+  if (!searchQuery) { hideSearchResults(); return; }
+  const results = allActions.filter(a =>
+    (a.Libelle||'').toLowerCase().includes(searchQuery) ||
+    progNameOf(a).toLowerCase().includes(searchQuery) ||
+    pilotNameOf(a).toLowerCase().includes(searchQuery)
+  ).slice(0, 12);
+
+  const el = document.getElementById('searchResults');
+  if (!results.length) {
+    el.innerHTML = '<div class="sr-empty">Aucun résultat</div>';
+  } else {
+    el.innerHTML = results.map(a => {
+      const prog = isProject(a);
+      return `<div class="search-result-item" onclick="selectSearchResult(${a.id})">
+        <div class="sr-icon ${prog?'prog':'task'}">${prog?'🗂':'📋'}</div>
+        <div class="sr-info">
+          <div class="sr-name">${esc(a.Libelle||'Sans titre')}</div>
+          <div class="sr-meta">${esc(progNameOf(a)||pilotNameOf(a)||'')}</div>
+        </div>
+        <span class="badge ${statusClass(a.Statut,isLate(a))}">${isLate(a)?'Retard':statusLabel(a.Statut)}</span>
+      </div>`;
+    }).join('');
+  }
+  el.classList.add('open');
+}
+function showSearchResults() {
+  if (searchQuery) onSearch(searchQuery);
+}
+function hideSearchResults() {
+  document.getElementById('searchResults').classList.remove('open');
+}
+function selectSearchResult(id) {
+  hideSearchResults();
+  document.getElementById('searchInput').value = '';
+  searchQuery = '';
+  openDetail(id);
+}
+
+// Click outside to close search
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-wrap')) hideSearchResults();
+});
+
+/* ═══════════════════════════════════════════
+   PILOT FILTER
+═══════════════════════════════════════════ */
+function onPilotChange(val) {
+  currentPilot = val;
+  render();
+}
+
+function populatePilotSelect() {
+  const pilots = [...new Set(allActions.map(a=>pilotNameOf(a)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fr'));
+  const sel = document.getElementById('pilotSelect');
+  sel.innerHTML = '<option value="">Toute l\'équipe</option>' +
+    pilots.map(p => `<option value="${esc(p)}" ${p===currentPilot?'selected':''}>${esc(p)}</option>`).join('');
+}
+
+/* ═══════════════════════════════════════════
+   DATE LABEL
+═══════════════════════════════════════════ */
+function updateDateLabel() {
+  document.getElementById('topbarDate').textContent =
+    today.toLocaleDateString('fr-FR',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}).toUpperCase();
+}
+
+/* ═══════════════════════════════════════════
+   GRIST INTEGRATION
+═══════════════════════════════════════════ */
+const ACTIONS_TABLE_CANDIDATES  = ['Actions'];
+const MEMBERS_TABLE_CANDIDATES  = ['Membres','Table1'];
+const PROGRAMS_TABLE_CANDIDATES = ['Fiches_Programmes','Fiches Programmes','FichesProgrammes','fiches_programmes'];
+
+function convertColumnar(data) {
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  const cols = Object.keys(data);
+  if (!cols.length) return [];
+  const n = data[cols[0]]?.length || 0;
+  return Array.from({length:n},(_,i) => { const r={}; cols.forEach(c=>r[c]=data[c][i]); return r; });
+}
+
+async function fetchFirstAvailable(candidates) {
+  for (const name of candidates) {
+    try { return { name, rows: convertColumnar(await grist.docApi.fetchTable(name)) }; }
+    catch(e) {}
+  }
+  try {
+    const all = await grist.docApi.listTables();
+    const norm = s => String(s).toLowerCase().replace(/[\s_]/g,'');
+    const cands = candidates.map(norm);
+    const match = all.find(t => cands.includes(norm(t)));
+    if (match) return { name:match, rows: convertColumnar(await grist.docApi.fetchTable(match)) };
+  } catch(e) {}
+  return { name:null, rows:[] };
+}
+
+function buildProgramIndex() {
+  programSheetById = {};
+  // Detect name column
+  const firstRow = programSheetRows[0];
+  if (!firstRow) return;
+  const cols = Object.keys(firstRow).filter(c => c!=='id'&&c!=='manualSort');
+  let nameCol = null;
+  for (const p of ['Programme','Programme_Nom','Libelle','Nom','name','Name']) {
+    if (cols.includes(p) && typeof firstRow[p]==='string' && firstRow[p].trim()) { nameCol=p; break; }
+  }
+  if (!nameCol) nameCol = cols.find(c => typeof firstRow[c]==='string' && firstRow[c].trim().length>1);
+  programSheetRows.forEach(r => {
+    const id = Number(r.id); if (!id) return;
+    const name = nameCol ? String(r[nameCol]||'').trim() : '';
+    if (name) programSheetById[String(id)] = name;
+  });
+}
+
+async function loadAll() {
+  const [ar, mr, pr] = await Promise.all([
+    fetchFirstAvailable(ACTIONS_TABLE_CANDIDATES),
+    fetchFirstAvailable(MEMBERS_TABLE_CANDIDATES),
+    fetchFirstAvailable(PROGRAMS_TABLE_CANDIDATES),
+  ]);
+  allActions      = ar.rows;
+  membersRows     = mr.rows;
+  programSheetRows= pr.rows;
+  buildProgramIndex();
+  populatePilotSelect();
+  render();
+}
+
+async function initGrist() {
+  try {
+    await grist.ready({ requiredAccess:'full' });
+    gristReady = true;
+    await loadAll();
+    grist.onRecords(async records => {
+      if (records && Array.isArray(records) && records.length) {
+        allActions = records;
+        populatePilotSelect();
+        render();
+      } else {
+        await loadAll();
+      }
+    });
+  } catch(err) {
+    console.warn('Grist unavailable → demo mode');
+    loadDemo();
+  }
+}
+
+/* ═══════════════════════════════════════════
+   DEMO DATA
+═══════════════════════════════════════════ */
+function loadDemo() {
+  const d = n => { const dt=new Date(today); dt.setDate(dt.getDate()+n); return Math.floor(dt.getTime()/1000); };
+
+  membersRows     = [{id:1,Nom:'Emilie RIVELOIS'},{id:2,Nom:'Claire PRIN'},{id:3,Nom:'Emmanuelle B.'}];
+  programSheetRows= [{id:1,Programme:'Satisfaction client'},{id:2,Programme:'Réduction de nos déchets'},{id:3,Programme:'Formation équipes'}];
+  buildProgramIndex();
+
+  allActions = [
+    {id:1,Libelle:'Satisfaction client',        Niveau:'1 - Projet',  Initiative_ID:1, Action_Parent:0, Statut:'En Cours', PDCA:45, Date_Demarrage:d(-60), Date_Fin:d(60),  Pilote_Nom:'Claire PRIN'},
+    {id:2,Libelle:'Former les assistants SC',   Niveau:'2 - Tâche',   Initiative_ID:1, Action_Parent:1, Statut:'En Cours', PDCA:50, Date_Demarrage:d(-30), Date_Fin:d(30),  Pilote_Nom:'Emilie RIVELOIS'},
+    {id:3,Libelle:'Envoyer communications',     Niveau:'2 - Tâche',   Initiative_ID:1, Action_Parent:1, Statut:'Terminé',  PDCA:100,Date_Demarrage:d(-20), Date_Fin:d(-5),  Pilote_Nom:'Claire PRIN'},
+    {id:4,Libelle:'Préparer support formation', Niveau:'2 - Tâche',   Initiative_ID:1, Action_Parent:1, Statut:'A faire',  PDCA:10, Date_Demarrage:d(5),   Date_Fin:d(20),  Pilote_Nom:'Emmanuelle B.'},
+    {id:5,Libelle:'Test qualité livraison',     Niveau:'2 - Tâche',   Initiative_ID:1, Action_Parent:1, Statut:'En Cours', PDCA:30, Date_Demarrage:d(-10), Date_Fin:d(-2),  Pilote_Nom:'Emilie RIVELOIS'},
+    {id:6,Libelle:'Réduction de nos déchets',   Niveau:'1 - Projet',  Initiative_ID:2, Action_Parent:0, Statut:'En Cours', PDCA:30, Date_Demarrage:d(-10), Date_Fin:d(90),  Pilote_Nom:'Emilie RIVELOIS'},
+    {id:7,Libelle:'Audit fournisseurs',         Niveau:'2 - Tâche',   Initiative_ID:2, Action_Parent:6, Statut:'Terminé',  PDCA:100,Date_Demarrage:d(-10), Date_Fin:d(5),   Pilote_Nom:'Emilie RIVELOIS'},
+    {id:8,Libelle:'Renégociation contrats',     Niveau:'2 - Tâche',   Initiative_ID:2, Action_Parent:6, Statut:'En Cours', PDCA:35, Date_Demarrage:d(6),   Date_Fin:d(40),  Pilote_Nom:'Emilie RIVELOIS'},
+    {id:9,Libelle:'Déploiement nouveaux process',Niveau:'2 - Tâche',  Initiative_ID:2, Action_Parent:6, Statut:'A faire',  PDCA:0,  Date_Demarrage:d(41),  Date_Fin:d(90),  Pilote_Nom:'Claire PRIN'},
+    {id:10,Libelle:'Formation équipes',         Niveau:'1 - Projet',  Initiative_ID:3, Action_Parent:0, Statut:'A venir',  PDCA:15, Date_Demarrage:d(-5),  Date_Fin:d(45),  Pilote_Nom:'Emmanuelle B.'},
+    {id:11,Libelle:'Plan de formation',         Niveau:'2 - Tâche',   Initiative_ID:3, Action_Parent:10,Statut:'En Cours', PDCA:60, Date_Demarrage:d(-5),  Date_Fin:d(8),   Pilote_Nom:'Emmanuelle B.'},
+    {id:12,Libelle:'Sessions présentiel',       Niveau:'2 - Tâche',   Initiative_ID:3, Action_Parent:10,Statut:'A faire',  PDCA:0,  Date_Demarrage:d(9),   Date_Fin:d(25),  Pilote_Nom:'Claire PRIN'},
+    {id:13,Libelle:'Évaluation post-formation', Niveau:'2 - Tâche',   Initiative_ID:3, Action_Parent:10,Statut:'A faire',  PDCA:0,  Date_Demarrage:d(26),  Date_Fin:d(45),  Pilote_Nom:'Emilie RIVELOIS'},
+    {id:14,Libelle:'Rapport bilan annuel',      Niveau:'2 - Tâche',   Initiative_ID:1, Action_Parent:1, Statut:'A faire',  PDCA:5,  Date_Demarrage:d(-15), Date_Fin:d(-1),  Pilote_Nom:'Claire PRIN'},
+  ];
+
+  document.body.insertAdjacentHTML('beforeend','<div class="demo-badge">DÉMO</div>');
+  populatePilotSelect();
+  render();
+}
+
+/* ═══════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════ */
+updateDateLabel();
+initGrist();
+</script>
+</body>
+</html>
