@@ -282,9 +282,24 @@ body {
 .fiche-card.selected {
   background: white;
   border-color: #3e5de7;
+  border-width: 2px;
   color: #3e5de7;
-  box-shadow: 0 2px 10px rgba(62,93,231,0.3);
+  box-shadow: 0 4px 16px rgba(62,93,231,0.35);
   z-index: 10;
+}
+/* Indicateur "→ voir la fiche" au survol de la carte sélectionnée */
+.fiche-card.selected::after {
+  content: '→ Fiche';
+  position: absolute;
+  bottom: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: #3e5de7;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0.8;
 }
 .fiche-card.dragging-card {
   cursor: grabbing !important;
@@ -797,17 +812,45 @@ function savePosition(id, pctX, pctY) {
    SÉLECTION (clic simple)
 ═══════════════════════════════════════════════════════ */
 function selectFiche(id) {
-  // Ne jamais re-rendre pendant un drag (ça détruirait les éléments DOM du drag)
   if (dragState && dragState.active) return;
-  selectedId = (selectedId === id) ? null : id;
-  if (selectedId) {
-    try { grist.setSelectedRows([selectedId]); } catch(e) {}
+
+  // Désélection si on reclique sur la même carte
+  if (selectedId === id) {
+    selectedId = null;
+    try { grist.setSelectedRows([]); } catch(e) {}
+    highlightSelected();
+    return;
   }
-  // Mettre à jour visuellement sans recréer tout le DOM
+
+  selectedId = id;
+  const fiche = fiches.find(f => f.id === id);
+  const nom   = fiche ? (fiche.Programme || 'Sans titre') : '—';
+
+  // Notifier Grist → toutes les vues liées (dont fiche.html) se synchronisent
+  try { grist.setSelectedRows([id]); } catch(e) {}
+
+  // Toast guidant l'utilisateur
+  showToast(`📄 "${nom}" sélectionnée — naviguez vers la page Fiche pour l'ouvrir`);
+
+  // Highlight visuel immédiat
+  highlightSelected();
+}
+
+function highlightSelected() {
   document.querySelectorAll('.fiche-card').forEach(el => {
     const elId = parseInt(el.dataset.ficheId);
-    if (elId) {
-      el.classList.toggle('selected', elId === selectedId);
+    if (!elId) return;
+    const isSel = elId === selectedId;
+    el.classList.toggle('selected', isSel);
+    // Légère animation de pulse sur la carte sélectionnée
+    if (isSel) {
+      el.style.transition = 'transform 0.15s, box-shadow 0.15s';
+      el.style.transform  = 'translate(-50%, -50%) scale(1.08)';
+      el.style.boxShadow  = '0 4px 16px rgba(62,93,231,0.4)';
+      setTimeout(() => {
+        el.style.transform = 'translate(-50%, -50%) scale(1)';
+        el.style.boxShadow = '';
+      }, 200);
     }
   });
 }
@@ -834,7 +877,7 @@ function renderPilier(list, bodyId) {
         if (Array.isArray(p)) return p[0] || String(p[1] || '?');
         return String(p || '—');
       }))].join(', ');
-      hint.innerHTML = '<em>Aucune fiche</em><br><small style="font-size:0.6rem;opacity:0.6">Piliers disponibles : ' + allPiliers + '</small>';
+      hint.textContent = 'Aucune fiche dans ce pilier';
     } else {
       hint.textContent = 'Aucune fiche dans ce pilier';
     }
@@ -924,16 +967,6 @@ function renderPilier(list, bodyId) {
 }
 
 function render() {
-  // Debug : log les données reçues pour diagnostiquer les problèmes
-  if (fiches.length) {
-    console.log('[Maison] fiches count:', fiches.length);
-    console.log('[Maison] first fiche keys:', Object.keys(fiches[0]));
-    console.log('[Maison] first fiche Pilier:', fiches[0].Pilier, '→ key:', getPilierKey(fiches[0].Pilier));
-    console.log('[Maison] sample:', JSON.stringify(fiches[0]).slice(0, 200));
-  } else {
-    console.log('[Maison] render() called but fiches = []');
-  }
-
   renderPilier(fiches.filter(f => getPilierKey(f.Pilier) === 'dev'),     'body-dev');
   renderPilier(fiches.filter(f => getPilierKey(f.Pilier) === 'impact'),  'body-impact');
   renderPilier(fiches.filter(f => getPilierKey(f.Pilier) === 'culture'), 'body-culture');
@@ -1040,8 +1073,7 @@ async function showMaison() {
         // contient les mêmes ids que nos fiches
         console.warn('[Maison] ⚠ Aucune table trouvée parmi', FICHES_TABLE_CANDIDATES);
         console.warn('[Maison] Tables disponibles :', allTables);
-        // Toast visible
-        showToast('⚠ Debug : tables=' + allTables.join(', '));
+        console.warn('[Maison] Tables Grist disponibles :', allTables.join(', '));
       }
     }
   } catch(e) {
@@ -1150,8 +1182,6 @@ async function initGrist() {
     if (Date.now() < suppressReloadUntil) {
       return;
     }
-
-    console.log('[Maison] onRecords fired, records count:', records ? records.length : 'null/undefined');
 
     const wasEmpty = !dataLoaded;
 
