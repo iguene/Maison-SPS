@@ -737,52 +737,60 @@ function onDragMove(e) {
   dragState.el.style.top  = newTop  + 'px';
 }
 
-async function onDragEnd() {
+// onDragEnd est SYNCHRONE — aucun await ici pour ne pas bloquer entre deux drags
+function onDragEnd() {
   document.removeEventListener('mousemove', onDragMove);
   document.removeEventListener('mouseup',   onDragEnd);
   if (!dragState) return;
 
   dragState.el.classList.remove('dragging-card');
 
-  if (dragState.moved) {
-    const newLeft = parseFloat(dragState.el.style.left);
-    const newTop  = parseFloat(dragState.el.style.top);
-    const bw  = dragState.bodyEl.clientWidth  || 1;
-    const bh  = dragState.bodyEl.clientHeight || 1;
-    // Positions en % (1 décimale) pour être indépendant de la résolution
+  // Capturer les valeurs avant de nullifier dragState
+  const movedId  = dragState.id;
+  const wasMoved = dragState.moved;
+  const el       = dragState.el;
+  const bodyEl   = dragState.bodyEl;
+
+  // Libérer dragState IMMÉDIATEMENT (synchrone)
+  dragState.active = false;
+  dragState = null;
+
+  if (wasMoved) {
+    const newLeft = parseFloat(el.style.left);
+    const newTop  = parseFloat(el.style.top);
+    const bw  = bodyEl.clientWidth  || 1;
+    const bh  = bodyEl.clientHeight || 1;
     const pctX = Math.round((newLeft / bw) * 1000) / 10;
     const pctY = Math.round((newTop  / bh) * 1000) / 10;
 
-    // ── Mise à jour locale immédiate ──
-    const fiche = fiches.find(f => f.id === dragState.id);
+    // Mise à jour locale immédiate dans le tableau fiches
+    const fiche = fiches.find(f => f.id === movedId);
     if (fiche) { fiche.Position_X = pctX; fiche.Position_Y = pctY; }
 
-    // ── Sauvegarde IMMÉDIATE dans Grist (pas de debounce) ──
-    // On bloque onRecords pendant 3s pour éviter que Grist re-envoie
-    // les anciennes positions avant que la sauvegarde soit confirmée.
-    suppressReloadUntil = Date.now() + 3000;
+    // Bloquer onRecords 5s — fire-and-forget (pas de await)
+    suppressReloadUntil = Date.now() + 5000;
+    savePosition(movedId, pctX, pctY);
 
-    const id = dragState.id;
-    try {
-      await grist.docApi.applyUserActions([
-        ['UpdateRecord', resolvedFichesTable, id, { Position_X: pctX, Position_Y: pctY }]
-      ]);
-      showSaveIndicator('✓ Sauvegardé');
-    } catch (err) {
-      console.error('Save position error:', err);
-      // Si erreur d'autorisation → l'utilisateur est en lecture seule côté Grist
-      // (cas rare si Grist a changé les droits en cours de session)
-      activateEditMode(false);
-      showSaveIndicator('⚠ Non autorisé', true);
-      showToast('🔒 Vous n\'avez pas les droits pour modifier la disposition');
-    }
   } else {
-    // Simple clic → sélectionner + ouvrir la fiche
-    selectFiche(dragState.id);
+    // Clic simple sans déplacement → sélection
+    selectFiche(movedId);
   }
+}
 
-  if (dragState) dragState.active = false;
-  dragState = null;
+// Sauvegarde asynchrone indépendante — ne bloque pas le prochain drag
+function savePosition(id, pctX, pctY) {
+  console.log('[Maison] Sauvegarde position id=' + id, pctX, pctY, '→', resolvedFichesTable);
+  grist.docApi.applyUserActions([
+    ['UpdateRecord', resolvedFichesTable, id, { Position_X: pctX, Position_Y: pctY }]
+  ])
+  .then(() => {
+    showSaveIndicator('✓ Sauvegardé');
+  })
+  .catch(err => {
+    console.error('[Maison] Erreur sauvegarde:', err && err.message);
+    showSaveIndicator('⚠ Erreur — voir console', true);
+    showToast('⚠ Impossible de sauvegarder. Table : ' + resolvedFichesTable);
+  });
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -1005,6 +1013,20 @@ async function fetchFirstAvailable(candidates) {
    AFFICHAGE — appelé une fois les données prêtes
 ═══════════════════════════════════════════════════════ */
 async function showMaison() {
+  // ── Résoudre le nom réel de la table AVANT tout le reste ──
+  // C'est critique pour que les sauvegardes fonctionnent dès le premier drag
+  try {
+    const allTables = await grist.docApi.listTables();
+    const norm = s => String(s).toLowerCase().replace(/[\s_]/g, '');
+    const match = allTables.find(t => FICHES_TABLE_CANDIDATES.map(norm).includes(norm(t)));
+    if (match) {
+      resolvedFichesTable = match;
+      console.log('[Maison] Table résolue :', resolvedFichesTable);
+    }
+  } catch(e) {
+    console.warn('[Maison] listTables failed, using default:', resolvedFichesTable);
+  }
+
   document.getElementById('app-loading').style.display = 'none';
   const maison = document.getElementById('maison');
   maison.style.display = 'flex';
@@ -1012,15 +1034,6 @@ async function showMaison() {
   updateEditModeBtn();
   updateUserPill();
   render();
-
-  // Debug temporaire : afficher un résumé dans la console
-  if (fiches.length > 0) {
-    console.log('[Maison] showMaison — données disponibles:', fiches.length, 'fiches');
-    const pilierValues = [...new Set(fiches.map(f => JSON.stringify(f.Pilier)))];
-    console.log('[Maison] valeurs Pilier uniques:', pilierValues);
-    const progValues = fiches.map(f => f.Programme || f.programme || f.Nom || '?').slice(0,5);
-    console.log('[Maison] premiers programmes:', progValues);
-  }
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -1052,14 +1065,6 @@ async function loadSideData() {
       );
       if (membre) currentUser.name = String(membre.Nom || membre.name || currentUser.name);
     }
-  } catch(e) {}
-
-  // Résoudre le nom réel de la table Fiches Programmes (pour les sauvegardes)
-  try {
-    const all = await grist.docApi.listTables();
-    const norm = s => String(s).toLowerCase().replace(/[\s_]/g, '');
-    const match = all.find(t => FICHES_TABLE_CANDIDATES.map(norm).includes(norm(t)));
-    if (match) resolvedFichesTable = match;
   } catch(e) {}
 
   updateEditModeBtn();
@@ -1110,8 +1115,13 @@ async function initGrist() {
       // Premier chargement → afficher + charger données annexes en arrière-plan
       showMaison();
       loadSideData(); // non-bloquant
-    } else {
+    } else if (!editModeActive) {
+      // Ne pas re-rendre pendant une session d'édition active
+      // (les positions locales dans `fiches` sont déjà correctes)
       render();
+    } else {
+      // En mode édition : mettre à jour les données en mémoire sans toucher au DOM
+      console.log('[Maison] onRecords ignoré (mode édition actif)');
     }
   });
 
