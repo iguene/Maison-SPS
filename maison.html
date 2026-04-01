@@ -532,10 +532,16 @@ function updateUserPill() {
    HELPERS
 ═══════════════════════════════════════════════════════ */
 function getPilierKey(pilier) {
-  if (!pilier) return 'dev';
-  const p = String(pilier).toLowerCase();
+  // Grist peut envoyer : string, number (ref id), ["Label", id], null
+  if (!pilier && pilier !== 0) return 'dev';
+  let val = pilier;
+  // Ref column → prendre le label (index 0) ou convertir l'id
+  if (Array.isArray(val)) val = val[0] || val[1] || '';
+  const p = String(val).toLowerCase().trim();
+  if (!p || p === '0' || p === 'null') return 'dev';
   if (p.includes('impact'))  return 'impact';
-  if (p.includes('culture')) return 'culture';
+  if (p.includes('culture') || p.includes('manag')) return 'culture';
+  // Développement business = tout le reste
   return 'dev';
 }
 function getPrioClass(prio) {
@@ -691,7 +697,19 @@ function renderPilier(list, bodyId) {
   if (!list.length) {
     const hint = document.createElement('div');
     hint.className = 'empty-hint';
-    hint.textContent = 'Aucune fiche dans ce pilier';
+    // Si aucune fiche partout → problème de données ; sinon vraiment vide
+    const totalFiches = fiches.length;
+    if (totalFiches > 0) {
+      // Montrer les valeurs Pilier disponibles pour aider au diagnostic
+      const allPiliers = [...new Set(fiches.map(f => {
+        const p = f.Pilier;
+        if (Array.isArray(p)) return p[0] || String(p[1] || '?');
+        return String(p || '—');
+      }))].join(', ');
+      hint.innerHTML = '<em>Aucune fiche</em><br><small style="font-size:0.6rem;opacity:0.6">Piliers disponibles : ' + allPiliers + '</small>';
+    } else {
+      hint.textContent = 'Aucune fiche dans ce pilier';
+    }
     body.appendChild(hint);
     return;
   }
@@ -778,6 +796,16 @@ function renderPilier(list, bodyId) {
 }
 
 function render() {
+  // Debug : log les données reçues pour diagnostiquer les problèmes
+  if (fiches.length) {
+    console.log('[Maison] fiches count:', fiches.length);
+    console.log('[Maison] first fiche keys:', Object.keys(fiches[0]));
+    console.log('[Maison] first fiche Pilier:', fiches[0].Pilier, '→ key:', getPilierKey(fiches[0].Pilier));
+    console.log('[Maison] sample:', JSON.stringify(fiches[0]).slice(0, 200));
+  } else {
+    console.log('[Maison] render() called but fiches = []');
+  }
+
   renderPilier(fiches.filter(f => getPilierKey(f.Pilier) === 'dev'),     'body-dev');
   renderPilier(fiches.filter(f => getPilierKey(f.Pilier) === 'impact'),  'body-impact');
   renderPilier(fiches.filter(f => getPilierKey(f.Pilier) === 'culture'), 'body-culture');
@@ -809,20 +837,50 @@ async function tryNavigateToFiche() {
    On utilise un UpdateRecord avec les mêmes valeurs (no-op).
 ═══════════════════════════════════════════════════════ */
 async function detectEditRights() {
-  if (!fiches.length) { canEdit = false; return; }
-  // Test write : on essaie d'écrire les mêmes positions (aucun changement réel)
+  // Méthode 1 : getUserInfo() retourne { access: 'owners'|'editors'|'viewers'|'guests' }
+  try {
+    const userInfo = await grist.getUserInfo();
+    if (userInfo) {
+      const access = String(userInfo.access || '').toLowerCase();
+      console.log('[Maison] getUserInfo access:', access, '| full:', JSON.stringify(userInfo));
+      // owners et editors peuvent modifier
+      if (access === 'owners' || access === 'editors' || access === 'full') {
+        canEdit = true;
+        console.log('[Maison] canEdit = true (via getUserInfo)');
+        return;
+      }
+      if (access === 'viewers' || access === 'guests' || access === 'none') {
+        canEdit = false;
+        console.log('[Maison] canEdit = false (viewer/guest)');
+        return;
+      }
+      // access inconnu → on tombe sur la méthode 2
+      console.log('[Maison] access inconnu, test write...');
+    }
+  } catch(e) {
+    console.warn('[Maison] getUserInfo failed:', e);
+  }
+
+  // Méthode 2 (fallback) : tester une écriture réelle
+  // Mais SEULEMENT si on a résolu le nom de la table et qu'il y a des fiches
+  if (!fiches.length || !resolvedFichesTable) {
+    canEdit = true; // Par défaut on suppose éditeur si on ne peut pas tester
+    console.log('[Maison] canEdit = true (default, no test possible)');
+    return;
+  }
   const f = fiches[0];
   try {
     await grist.docApi.applyUserActions([
       ['UpdateRecord', resolvedFichesTable, f.id, {
-        Position_X: f.Position_X ?? 0,
-        Position_Y: f.Position_Y ?? 0,
+        Position_X: typeof f.Position_X === 'number' ? f.Position_X : 0,
+        Position_Y: typeof f.Position_Y === 'number' ? f.Position_Y : 0,
       }]
     ]);
     canEdit = true;
+    console.log('[Maison] canEdit = true (write test succeeded)');
   } catch (err) {
-    // 403 ou "No write access" → lecteur
     canEdit = false;
+    console.log('[Maison] canEdit = false (write test failed):', err && err.message);
   }
 }
 
@@ -869,6 +927,9 @@ async function fetchFirstAvailable(candidates) {
    AFFICHAGE — appelé une fois les données prêtes
 ═══════════════════════════════════════════════════════ */
 async function showMaison() {
+  // Par défaut on suppose que l'utilisateur peut éditer
+  // (sera corrigé après loadSideData si c'est un lecteur)
+  canEdit = true;
   document.getElementById('app-loading').style.display = 'none';
   const maison = document.getElementById('maison');
   maison.style.display = 'flex';
@@ -876,6 +937,15 @@ async function showMaison() {
   updateLockButton();
   updateUserPill();
   render();
+
+  // Debug temporaire : afficher un résumé dans la console
+  if (fiches.length > 0) {
+    console.log('[Maison] showMaison — données disponibles:', fiches.length, 'fiches');
+    const pilierValues = [...new Set(fiches.map(f => JSON.stringify(f.Pilier)))];
+    console.log('[Maison] valeurs Pilier uniques:', pilierValues);
+    const progValues = fiches.map(f => f.Programme || f.programme || f.Nom || '?').slice(0,5);
+    console.log('[Maison] premiers programmes:', progValues);
+  }
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -937,16 +1007,17 @@ async function initGrist() {
   // Déclenché à chaque fois que Grist pousse les données (y compris au démarrage)
   grist.onRecords(records => {
     if (Date.now() < suppressReloadUntil) {
-      // Juste après une sauvegarde → ignorer pour ne pas écraser les positions locales
       return;
     }
+
+    console.log('[Maison] onRecords fired, records count:', records ? records.length : 'null/undefined');
 
     const wasEmpty = !dataLoaded;
 
     if (!records || !records.length) {
-      // Grist a envoyé un tableau vide : afficher quand même (table vide)
       fiches = [];
       dataLoaded = true;
+      console.log('[Maison] onRecords: empty array received');
       if (wasEmpty) showMaison();
       else render();
       return;
