@@ -1042,81 +1042,44 @@ async function fetchFirstAvailable(candidates) {
 ═══════════════════════════════════════════════════════ */
 async function showMaison() {
   // ── Résoudre le nom réel de la table AVANT tout le reste ──
+  // ── Résoudre le nom réel de la table ──
   try {
     const allTables = await grist.docApi.listTables();
-    console.log('[Maison] Toutes les tables disponibles :', JSON.stringify(allTables));
-
-    // Affichage visible dans la page pour diagnostic
-    window._debugTables = allTables;
-
-    const norm = s => String(s).toLowerCase().replace(/[\s_]/g, '');
-    const match = allTables.find(t => FICHES_TABLE_CANDIDATES.map(norm).includes(norm(t)));
+    const norm  = s => String(s).toLowerCase().replace(/[\s_]/g, '');
+    const match = allTables.find(t => FICHES_TABLE_CANDIDATES.map(norm).includes(norm(t)))
+                || allTables.find(t => norm(t).includes('fiche') || norm(t).includes('programme'));
     if (match) {
       resolvedFichesTable = match;
-      console.log('[Maison] ✓ Table résolue :', resolvedFichesTable);
-    } else {
-      // Fallback : chercher toute table dont le nom contient "fiche" ou "programme"
-      const fallback = allTables.find(t =>
-        norm(t).includes('fiche') || norm(t).includes('programme')
-      );
-      if (fallback) {
-        resolvedFichesTable = fallback;
-        console.log('[Maison] ✓ Table résolue (fallback) :', resolvedFichesTable);
-      } else {
-        // Dernier recours : utiliser la table liée au widget (celle qui envoie onRecords)
-        // On la détecte en faisant un fetchTable sur chaque candidate et en voyant laquelle
-        // contient les mêmes ids que nos fiches
-        console.warn('[Maison] ⚠ Aucune table trouvée parmi', FICHES_TABLE_CANDIDATES);
-        console.warn('[Maison] Tables disponibles :', allTables);
-        console.warn('[Maison] Tables Grist disponibles :', allTables.join(', '));
-      }
+      console.log('[Maison] Table résolue :', resolvedFichesTable);
     }
   } catch(e) {
     console.warn('[Maison] listTables failed:', e && e.message);
   }
 
-  // ── Vérification : tester que resolvedFichesTable accepte les écritures ──
-  // (test no-op sur le premier enregistrement)
-  if (fiches.length > 0) {
-    try {
-      await grist.docApi.applyUserActions([
-        ['UpdateRecord', resolvedFichesTable, fiches[0].id, {
-          Position_X: fiches[0].Position_X ?? 0,
-          Position_Y: fiches[0].Position_Y ?? 0,
-        }]
-      ]);
-      console.log('[Maison] ✓ Écriture OK sur', resolvedFichesTable);
-    } catch(e) {
-      console.error('[Maison] ✗ Écriture échoue sur', resolvedFichesTable, ':', e && e.message);
-      showToast('⚠ Écriture KO sur ' + resolvedFichesTable + ' : ' + (e && e.message || '?'));
-    }
-  }
-
-  // ── Recharger les données complètes via fetchTable ──
-  // onRecords ne renvoie que les colonnes VISIBLES du widget.
-  // Position_X et Position_Y peuvent ne pas être cochées → on force un fetch complet.
+  // ── Recharger les positions via fetchTable (indépendant des colonnes visibles) ──
   try {
     const rawFiches = await grist.docApi.fetchTable(resolvedFichesTable);
     const cols = Object.keys(rawFiches);
-    const n = rawFiches[cols[0]]?.length || 0;
+    const n    = rawFiches[cols[0]]?.length || 0;
     const fetchedFiches = Array.from({length: n}, (_, i) => {
       const r = {}; cols.forEach(c => r[c] = rawFiches[c][i]); return r;
     });
-    // Fusionner : garder les données de onRecords, enrichir avec Position_X/Y du fetch
+    // Enrichir fiches avec Position_X/Y depuis le fetch complet
+    // IMPORTANT : ne pas écraser si la valeur fetchée est null/0 ET qu'on a déjà une valeur locale
     fiches = fiches.map(f => {
       const full = fetchedFiches.find(ff => ff.id === f.id);
-      if (full) {
-        return {
-          ...f,
-          Position_X: full.Position_X ?? f.Position_X ?? 0,
-          Position_Y: full.Position_Y ?? f.Position_Y ?? 0,
-        };
-      }
-      return f;
+      if (!full) return f;
+      const posX = (full.Position_X != null && full.Position_X !== 0)
+        ? full.Position_X
+        : (f.Position_X ?? 0);
+      const posY = (full.Position_Y != null && full.Position_Y !== 0)
+        ? full.Position_Y
+        : (f.Position_Y ?? 0);
+      return { ...f, Position_X: posX, Position_Y: posY };
     });
-    console.log('[Maison] fetchTable OK — positions chargées');
+    console.log('[Maison] Positions chargées depuis fetchTable');
   } catch(e) {
-    console.warn('[Maison] fetchTable failed (positions depuis onRecords):', e && e.message);
+    console.warn('[Maison] fetchTable positions failed:', e && e.message);
   }
 
   document.getElementById('app-loading').style.display = 'none';
@@ -1265,6 +1228,6 @@ setTimeout(() => {
    START
 ═══════════════════════════════════════════════════════ */
 initGrist();
-</script> 
+</script>
 </body>
 </html>
