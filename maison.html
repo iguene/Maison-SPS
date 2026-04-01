@@ -1065,6 +1065,33 @@ async function showMaison() {
     }
   }
 
+  // ── Recharger les données complètes via fetchTable ──
+  // onRecords ne renvoie que les colonnes VISIBLES du widget.
+  // Position_X et Position_Y peuvent ne pas être cochées → on force un fetch complet.
+  try {
+    const rawFiches = await grist.docApi.fetchTable(resolvedFichesTable);
+    const cols = Object.keys(rawFiches);
+    const n = rawFiches[cols[0]]?.length || 0;
+    const fetchedFiches = Array.from({length: n}, (_, i) => {
+      const r = {}; cols.forEach(c => r[c] = rawFiches[c][i]); return r;
+    });
+    // Fusionner : garder les données de onRecords, enrichir avec Position_X/Y du fetch
+    fiches = fiches.map(f => {
+      const full = fetchedFiches.find(ff => ff.id === f.id);
+      if (full) {
+        return {
+          ...f,
+          Position_X: full.Position_X ?? f.Position_X ?? 0,
+          Position_Y: full.Position_Y ?? f.Position_Y ?? 0,
+        };
+      }
+      return f;
+    });
+    console.log('[Maison] fetchTable OK — positions chargées');
+  } catch(e) {
+    console.warn('[Maison] fetchTable failed (positions depuis onRecords):', e && e.message);
+  }
+
   document.getElementById('app-loading').style.display = 'none';
   const maison = document.getElementById('maison');
   maison.style.display = 'flex';
@@ -1138,13 +1165,23 @@ async function initGrist() {
     }
 
     // Préserver la position locale d'un élément en cours de drag
+    // ET préserver Position_X/Y si elles ne sont pas dans les colonnes visibles du widget
     const dragId = dragState ? dragState.id : null;
     fiches = records.map(rec => {
+      const prevFiche = fiches.find(f => f.id === rec.id);
+      // Si Position_X absente du record (colonne non visible), garder la valeur locale
+      const posX = (rec.Position_X != null && rec.Position_X !== 0)
+        ? rec.Position_X
+        : (prevFiche?.Position_X ?? rec.Position_X ?? 0);
+      const posY = (rec.Position_Y != null && rec.Position_Y !== 0)
+        ? rec.Position_Y
+        : (prevFiche?.Position_Y ?? rec.Position_Y ?? 0);
+
       if (dragId && rec.id === dragId) {
         const local = fiches.find(f => f.id === dragId);
         if (local) return { ...rec, Position_X: local.Position_X, Position_Y: local.Position_Y };
       }
-      return rec;
+      return { ...rec, Position_X: posX, Position_Y: posY };
     });
 
     dataLoaded = true;
