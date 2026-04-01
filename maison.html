@@ -600,6 +600,7 @@ function startDrag(e, fiche, cardEl, bodyEl) {
     bodyEl:        bodyEl,
     scale:         scale,
     moved:         false,
+    active:        true,
   };
   cardEl.classList.add('dragging-card');
   document.addEventListener('mousemove', onDragMove);
@@ -668,6 +669,7 @@ async function onDragEnd() {
     selectFiche(dragState.id);
   }
 
+  if (dragState) dragState.active = false;
   dragState = null;
 }
 
@@ -675,13 +677,19 @@ async function onDragEnd() {
    SÉLECTION (clic simple)
 ═══════════════════════════════════════════════════════ */
 function selectFiche(id) {
+  // Ne jamais re-rendre pendant un drag (ça détruirait les éléments DOM du drag)
+  if (dragState && dragState.active) return;
   selectedId = (selectedId === id) ? null : id;
   if (selectedId) {
     try { grist.setSelectedRows([selectedId]); } catch(e) {}
-    const f = fiches.find(x => x.id === id);
-    if (f) showToast(`📄 "${f.Programme || 'Fiche'}" — clic pour naviguer vers la page Fiche`);
   }
-  render();
+  // Mettre à jour visuellement sans recréer tout le DOM
+  document.querySelectorAll('.fiche-card').forEach(el => {
+    const elId = parseInt(el.dataset.ficheId);
+    if (elId) {
+      el.classList.toggle('selected', elId === selectedId);
+    }
+  });
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -737,6 +745,7 @@ function renderPilier(list, bodyId) {
       isDraggable ? 'draggable' : 'not-draggable',
       selectedId === f.id ? 'selected' : '',
     ].join(' ');
+    card.dataset.ficheId = f.id;
     card.textContent = f.Programme || 'Sans titre';
     card.title = [
       f.Programme || 'Sans titre',
@@ -767,28 +776,48 @@ function renderPilier(list, bodyId) {
     card.style.transform = 'translate(-50%, -50%)';
 
     // ── Events ──
+    // On gère tout depuis mousedown/mouseup pour éviter
+    // que le re-render déclenché par 'click' tue le drag en cours.
+    let mouseDownTime = 0;
+    let mouseDownMoved = false;
+
     card.addEventListener('mousedown', e => {
+      if (e.button !== 0) return; // clic gauche seulement
+      mouseDownTime  = Date.now();
+      mouseDownMoved = false;
       if (isDraggable) {
         startDrag(e, f, card, body);
       }
     });
 
-    // Clic (sans drag) → sélectionner
-    card.addEventListener('click', e => {
-      if (!dragState || !dragState.moved) {
-        e.stopPropagation();
-        selectFiche(f.id);
-      }
-    });
+    // Détecter si la souris a bougé pendant le mousedown
+    card.addEventListener('mousemove', () => { mouseDownMoved = true; });
 
-    // Double-clic → naviguer vers la page Fiche dans Grist
-    card.addEventListener('dblclick', e => {
-      e.stopPropagation();
-      selectedId = f.id;
-      try { grist.setSelectedRows([f.id]); } catch(err) {}
-      // Tentative de navigation vers la page Initiative/Fiche
-      tryNavigateToFiche();
-      render();
+    card.addEventListener('mouseup', e => {
+      if (e.button !== 0) return;
+      const elapsed = Date.now() - mouseDownTime;
+      // Clic simple (pas de déplacement, < 300ms)
+      if (!mouseDownMoved && elapsed < 300 && (!dragState || !dragState.moved)) {
+        // Double-clic : deux clics rapides
+        if (elapsed < 250 && card.dataset.lastClick &&
+            Date.now() - parseInt(card.dataset.lastClick) < 400) {
+          // Double-clic → naviguer vers la fiche
+          e.stopPropagation();
+          selectedId = f.id;
+          try { grist.setSelectedRows([f.id]); } catch(err) {}
+          tryNavigateToFiche();
+          card.dataset.lastClick = '';
+          return;
+        }
+        card.dataset.lastClick = String(Date.now());
+        // Sélection simple — uniquement si pas de drag en cours
+        if (!dragState || !dragState.moved) {
+          e.stopPropagation();
+          // Léger délai pour ne pas interférer avec onDragEnd
+          setTimeout(() => selectFiche(f.id), 10);
+        }
+      }
+      mouseDownMoved = false;
     });
 
     body.appendChild(card);
