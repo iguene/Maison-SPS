@@ -80,22 +80,28 @@ body {
 .user-dot.can-edit { background: #16a34a; }
 .user-dot.read-only { background: #94a3b8; }
 
-.lock-btn {
-  border: 1px solid rgba(0,0,0,0.12);
+.edit-mode-btn {
+  border: 2px solid #2980b9;
   background: white;
-  color: #2c3e50;
+  color: #2980b9;
   border-radius: 999px;
-  padding: 6px 14px;
-  font-size: 0.78rem;
+  padding: 7px 18px;
+  font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
   transition: all 0.2s;
   white-space: nowrap;
+  letter-spacing: 0.2px;
 }
-.lock-btn.locked { background: #2c3e50; color: white; }
-.lock-btn.hidden { display: none; } /* masqué pour les non-éditeurs */
-.lock-btn:hover { opacity: 0.88; }
+.edit-mode-btn.active {
+  background: #c0392b;
+  border-color: #c0392b;
+  color: white;
+  box-shadow: 0 2px 12px rgba(192,57,43,0.35);
+}
+.edit-mode-btn.hidden { display: none; }
+.edit-mode-btn:hover { opacity: 0.88; transform: translateY(-1px); }
 
 /* Indicateur de sauvegarde */
 .save-indicator {
@@ -343,9 +349,9 @@ body {
       <!-- Indicateur sauvegarde -->
       <span class="save-indicator" id="saveIndicator"></span>
 
-      <!-- Cadenas — visible seulement pour les éditeurs -->
-      <button class="lock-btn hidden" id="lock-btn" type="button">
-        🔓 Édition libre
+      <!-- Bouton modifier disposition — masqué par défaut, visible après détection des droits -->
+      <button class="edit-mode-btn hidden" id="editModeBtn" type="button" onclick="toggleEditMode()">
+        🔓 Modifier la disposition
       </button>
     </div>
   </div>
@@ -417,8 +423,9 @@ let membresRows   = [];   // table Membres (pour email)
 let selectedId    = null;
 let dragState     = null;
 let toastTimer    = null;
-let layoutLocked  = false;  // true = les cartes sont figées même pour l'éditeur
-let canEdit       = false;  // droit Grist : Viewer=false, Editor/Owner=true
+let layoutLocked    = true;   // true = cartes figées (mode par défaut)
+let editModeActive  = false;  // true = drag activé explicitement par l'éditeur
+let canEdit         = false;  // droit Grist : Viewer=false, Editor/Owner=true
 let currentUser   = { name: '', email: '' };
 let dataLoaded    = false;
 
@@ -479,40 +486,49 @@ function showSaveIndicator(msg, isError=false) {
 /* ═══════════════════════════════════════════════════════
    LOCK BUTTON
 ═══════════════════════════════════════════════════════ */
-function updateLockButton() {
-  const btn = document.getElementById('lock-btn');
+function updateEditModeBtn() {
+  const btn = document.getElementById('editModeBtn');
   if (!btn) return;
-
   if (!canEdit) {
-    // Lecteur : bouton masqué
     btn.classList.add('hidden');
     return;
   }
-
-  // Éditeur : bouton visible
   btn.classList.remove('hidden');
-  if (layoutLocked) {
-    btn.textContent = '🔒 Disposition verrouillée';
-    btn.classList.add('locked');
+  if (editModeActive) {
+    btn.textContent = '🔒 Verrouiller la disposition';
+    btn.classList.add('active');
   } else {
-    btn.textContent = '🔓 Édition libre';
-    btn.classList.remove('locked');
+    btn.textContent = '🔓 Modifier la disposition';
+    btn.classList.remove('active');
   }
 }
 
-function toggleLayoutLock() {
+// Alias pour compatibilité avec les anciens appels
+function updateLockButton() { updateEditModeBtn(); }
+
+function toggleEditMode() {
   if (!canEdit) return;
-  layoutLocked = !layoutLocked;
-  updateLockButton();
-  render(); // re-rend pour appliquer curseurs
-  if (layoutLocked) {
-    showToast('🔒 Disposition verrouillée — tous les visiteurs verront cet arrangement');
-  } else {
+  editModeActive = !editModeActive;
+  layoutLocked   = !editModeActive; // synchroniser
+  updateEditModeBtn();
+  // Rendre les cartes draggables ou non sans recréer tout le DOM
+  document.querySelectorAll('.fiche-card').forEach(card => {
+    if (editModeActive) {
+      card.classList.add('draggable');
+      card.classList.remove('not-draggable');
+      card.style.cursor = 'grab';
+    } else {
+      card.classList.remove('draggable');
+      card.classList.add('not-draggable');
+      card.style.cursor = 'pointer';
+    }
+  });
+  if (editModeActive) {
     showToast('🔓 Mode édition activé — glissez les fiches pour les repositionner');
+  } else {
+    showToast('🔒 Disposition verrouillée — les visiteurs voient cet arrangement');
   }
 }
-
-document.getElementById('lock-btn').addEventListener('click', toggleLayoutLock);
 
 /* ═══════════════════════════════════════════════════════
    USER PILL
@@ -578,9 +594,8 @@ function getDefaultPos(index, total, bodyEl) {
    DRAG — uniquement si canEdit && !layoutLocked
 ═══════════════════════════════════════════════════════ */
 function startDrag(e, fiche, cardEl, bodyEl) {
-  // Bloqué si lecture seule OU disposition verrouillée
-  if (!canEdit || layoutLocked) {
-    // Simple clic → ouvrir la fiche
+  // Drag actif uniquement si editModeActive (bouton explicitement activé)
+  if (!editModeActive) {
     return;
   }
   e.preventDefault();
@@ -659,7 +674,7 @@ async function onDragEnd() {
       // Si erreur d'autorisation → l'utilisateur est en lecture seule côté Grist
       // (cas rare si Grist a changé les droits en cours de session)
       canEdit = false;
-      updateLockButton();
+      updateEditModeBtn();
       updateUserPill();
       showSaveIndicator('⚠ Non autorisé', true);
       showToast('🔒 Vous n\'avez pas les droits pour modifier la disposition');
@@ -700,7 +715,7 @@ function renderPilier(list, bodyId) {
   body.innerHTML = '';
 
   // Mode du body (curseur CSS)
-  body.className = 'pillar-body ' + (canEdit && !layoutLocked ? 'editable' : 'read-only');
+  body.className = 'pillar-body ' + (editModeActive ? 'editable' : 'read-only');
 
   if (!list.length) {
     const hint = document.createElement('div');
@@ -723,7 +738,7 @@ function renderPilier(list, bodyId) {
   }
 
   // Hint édition (visible seulement si éditeur et disposition déverrouillée)
-  if (canEdit && !layoutLocked) {
+  if (editModeActive) {
     const hint = document.createElement('div');
     hint.className = 'edit-hint';
     hint.textContent = 'Glissez pour repositionner';
@@ -734,7 +749,7 @@ function renderPilier(list, bodyId) {
   const bh = body.clientHeight || 300;
 
   list.forEach((f, idx) => {
-    const isDraggable = canEdit && !layoutLocked;
+    const isDraggable = editModeActive;
     const pct = Math.min(100, Math.max(0, f.Avancement_Global || 0));
 
     const card = document.createElement('span');
@@ -776,48 +791,27 @@ function renderPilier(list, bodyId) {
     card.style.transform = 'translate(-50%, -50%)';
 
     // ── Events ──
-    // On gère tout depuis mousedown/mouseup pour éviter
-    // que le re-render déclenché par 'click' tue le drag en cours.
-    let mouseDownTime = 0;
-    let mouseDownMoved = false;
-
+    // mousedown : démarre le drag si editModeActive, sinon ignore
     card.addEventListener('mousedown', e => {
-      if (e.button !== 0) return; // clic gauche seulement
-      mouseDownTime  = Date.now();
-      mouseDownMoved = false;
-      if (isDraggable) {
+      if (e.button !== 0) return;
+      if (editModeActive) {
         startDrag(e, f, card, body);
       }
     });
 
-    // Détecter si la souris a bougé pendant le mousedown
-    card.addEventListener('mousemove', () => { mouseDownMoved = true; });
+    // click : sélection simple (seulement quand pas en mode édition)
+    card.addEventListener('click', e => {
+      if (editModeActive) return; // en mode édition, pas de sélection au clic
+      e.stopPropagation();
+      selectFiche(f.id);
+    });
 
-    card.addEventListener('mouseup', e => {
-      if (e.button !== 0) return;
-      const elapsed = Date.now() - mouseDownTime;
-      // Clic simple (pas de déplacement, < 300ms)
-      if (!mouseDownMoved && elapsed < 300 && (!dragState || !dragState.moved)) {
-        // Double-clic : deux clics rapides
-        if (elapsed < 250 && card.dataset.lastClick &&
-            Date.now() - parseInt(card.dataset.lastClick) < 400) {
-          // Double-clic → naviguer vers la fiche
-          e.stopPropagation();
-          selectedId = f.id;
-          try { grist.setSelectedRows([f.id]); } catch(err) {}
-          tryNavigateToFiche();
-          card.dataset.lastClick = '';
-          return;
-        }
-        card.dataset.lastClick = String(Date.now());
-        // Sélection simple — uniquement si pas de drag en cours
-        if (!dragState || !dragState.moved) {
-          e.stopPropagation();
-          // Léger délai pour ne pas interférer avec onDragEnd
-          setTimeout(() => selectFiche(f.id), 10);
-        }
-      }
-      mouseDownMoved = false;
+    // dblclick : naviguer vers la fiche
+    card.addEventListener('dblclick', e => {
+      e.stopPropagation();
+      selectedId = f.id;
+      try { grist.setSelectedRows([f.id]); } catch(err) {}
+      tryNavigateToFiche();
     });
 
     body.appendChild(card);
@@ -956,14 +950,13 @@ async function fetchFirstAvailable(candidates) {
    AFFICHAGE — appelé une fois les données prêtes
 ═══════════════════════════════════════════════════════ */
 async function showMaison() {
-  // Par défaut on suppose que l'utilisateur peut éditer
-  // (sera corrigé après loadSideData si c'est un lecteur)
-  canEdit = true;
+  // Par défaut : mode lecture (le bouton sera affiché après détection des droits)
+  editModeActive = false;
   document.getElementById('app-loading').style.display = 'none';
   const maison = document.getElementById('maison');
   maison.style.display = 'flex';
   scaleToFit();
-  updateLockButton();
+  updateEditModeBtn();
   updateUserPill();
   render();
 
@@ -1019,7 +1012,7 @@ async function loadSideData() {
   // Détecter les droits d'édition (test write no-op)
   await detectEditRights();
 
-  updateLockButton();
+  updateEditModeBtn();
   updateUserPill();
   render(); // re-rend avec le nom utilisateur et le bon curseur
 }
