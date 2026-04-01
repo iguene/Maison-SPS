@@ -51,6 +51,64 @@ body {
 .logo-sub { font-size: 0.6rem; letter-spacing: 1px; color: #2c3e50; }
 .main-title { font-size: 1.55rem; font-weight: 700; color: #c0392b; text-align: center; }
 
+/* ── DROITS / CADENAS ── */
+.header-right {
+  position: absolute;
+  right: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.user-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: #475569;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 5px 12px;
+}
+.user-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.user-dot.can-edit { background: #16a34a; }
+.user-dot.read-only { background: #94a3b8; }
+
+.lock-btn {
+  border: 1px solid rgba(0,0,0,0.12);
+  background: white;
+  color: #2c3e50;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.lock-btn.locked { background: #2c3e50; color: white; }
+.lock-btn.hidden { display: none; } /* masqué pour les non-éditeurs */
+.lock-btn:hover { opacity: 0.88; }
+
+/* Indicateur de sauvegarde */
+.save-indicator {
+  font-size: 0.7rem;
+  color: #16a34a;
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.3s;
+  white-space: nowrap;
+}
+.save-indicator.show { opacity: 1; }
+.save-indicator.error { color: #dc2626; }
+
 /* ── TRIANGLE ── */
 .triangle-wrap { width: 100%; display: flex; justify-content: center; flex-shrink: 0; }
 .triangle-svg  { width: 100%; }
@@ -121,8 +179,11 @@ body {
   flex: 1;
   position: relative;
   overflow: hidden;
-  cursor: default;
 }
+/* Curseur selon mode */
+.pillar-body.editable   { cursor: default; }
+.pillar-body.read-only  { cursor: default; }
+
 .pillar.dev     .pillar-body { background: #d6e8f7; }
 .pillar.impact  .pillar-body { background: #d5ecd5; }
 .pillar.culture .pillar-body { background: #f7d6d6; }
@@ -141,21 +202,27 @@ body {
 /* ── CARTES ── */
 .fiche-card {
   position: absolute;
-  cursor: grab;
   font-weight: 600;
   color: #2c3e50;
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 5px 10px;
+  border-radius: 5px;
   border: 1px solid transparent;
   user-select: none;
   white-space: nowrap;
-  transition: box-shadow 0.1s, border-color 0.1s, background 0.1s;
-  background: rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.55);
   line-height: 1.3;
+  transition: box-shadow 0.1s, border-color 0.1s, background 0.1s;
 }
-.fiche-card:hover {
-  background: rgba(255,255,255,0.85);
+/* Curseur selon mode édition */
+.fiche-card.draggable { cursor: grab; }
+.fiche-card.draggable:hover {
+  background: rgba(255,255,255,0.88);
   border-color: rgba(0,0,0,0.15);
+  z-index: 10;
+}
+.fiche-card.not-draggable { cursor: pointer; }
+.fiche-card.not-draggable:hover {
+  background: rgba(255,255,255,0.75);
   z-index: 10;
 }
 .fiche-card.selected {
@@ -166,7 +233,7 @@ body {
   z-index: 10;
 }
 .fiche-card.dragging-card {
-  cursor: grabbing;
+  cursor: grabbing !important;
   opacity: 0.85;
   box-shadow: 0 8px 24px rgba(0,0,0,0.2);
   z-index: 100;
@@ -184,28 +251,16 @@ body {
 .fiche-card.s-termine  { color: #1a5c2a; }
 .fiche-card.s-a-venir  { color: #7d6608; }
 
-/* Indicateur double-clic */
-.fiche-card::after {
-  content: '';
+/* Indicateur d'avancement */
+.fiche-card .prog-bar {
   position: absolute;
-  inset: 0;
-  border-radius: 4px;
-  background: rgba(62,93,231,0);
-  transition: background 0.15s;
-}
-.fiche-card:active::after {
-  background: rgba(62,93,231,0.08);
-}
-
-/* ── TOOLTIP double-clic ── */
-.dbl-hint {
-  position: absolute;
-  bottom: 6px;
-  right: 8px;
-  font-size: 0.6rem;
-  color: rgba(0,0,0,0.3);
+  bottom: 0; left: 0;
+  height: 3px;
+  border-radius: 0 0 5px 5px;
+  background: #3e5de7;
+  opacity: 0.5;
   pointer-events: none;
-  font-style: italic;
+  transition: width 0.2s;
 }
 
 /* ── BANDEAU BAS ── */
@@ -219,6 +274,19 @@ body {
   font-weight: 700;
   letter-spacing: 2px;
   flex-shrink: 0;
+}
+
+/* ── TOOLTIP édition ── */
+.edit-hint {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.6rem;
+  color: rgba(0,0,0,0.28);
+  pointer-events: none;
+  font-style: italic;
+  white-space: nowrap;
 }
 
 /* ── TOAST ── */
@@ -264,6 +332,22 @@ body {
   <div class="header">
     <div class="logo">SPS<br><span class="logo-sub">MEDICAL</span></div>
     <div class="main-title">Maison SPS Medical &nbsp;(Vision 3 ans)</div>
+
+    <div class="header-right">
+      <!-- Indicateur utilisateur connecté -->
+      <div class="user-pill" id="userPill" style="display:none">
+        <div class="user-dot" id="userDot"></div>
+        <span id="userName">—</span>
+      </div>
+
+      <!-- Indicateur sauvegarde -->
+      <span class="save-indicator" id="saveIndicator"></span>
+
+      <!-- Cadenas — visible seulement pour les éditeurs -->
+      <button class="lock-btn hidden" id="lock-btn" type="button">
+        🔓 Édition libre
+      </button>
+    </div>
   </div>
 
   <div class="triangle-wrap">
@@ -299,21 +383,15 @@ body {
     <div class="pillars">
       <div class="pillar dev">
         <div class="pillar-header">DEVELOPPEMENT BUSINESS</div>
-        <div class="pillar-body" id="body-dev">
-          <span class="dbl-hint">Double-clic pour ouvrir</span>
-        </div>
+        <div class="pillar-body" id="body-dev"></div>
       </div>
       <div class="pillar impact">
         <div class="pillar-header">IMPACT</div>
-        <div class="pillar-body" id="body-impact">
-          <span class="dbl-hint">Double-clic pour ouvrir</span>
-        </div>
+        <div class="pillar-body" id="body-impact"></div>
       </div>
       <div class="pillar culture">
         <div class="pillar-header">CULTURE MANAGERIALE</div>
-        <div class="pillar-body" id="body-culture">
-          <span class="dbl-hint">Double-clic pour ouvrir</span>
-        </div>
+        <div class="pillar-body" id="body-culture"></div>
       </div>
     </div>
 
@@ -331,14 +409,41 @@ body {
 </div>
 
 <script>
-let fiches = [];
-let selectedId = null;
-let dragState  = null;
-let saveTimer  = null;
-let toastTimer = null;
+/* ═══════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════ */
+let fiches        = [];   // données Grist
+let membresRows   = [];   // table Membres (pour email)
+let selectedId    = null;
+let dragState     = null;
+let toastTimer    = null;
+let layoutLocked  = false;  // true = les cartes sont figées même pour l'éditeur
+let canEdit       = false;  // droit Grist : Viewer=false, Editor/Owner=true
+let currentUser   = { name: '', email: '' };
+let dataLoaded    = false;
+
+// ── Clé : bloquer onRecords pendant 3s après une sauvegarde ──
+let suppressReloadUntil = 0;
+
 const W = 1400, H = 860;
 
-// ── Scale ──
+/* ═══════════════════════════════════════════════════════
+   TABLE NAMES
+═══════════════════════════════════════════════════════ */
+// Nom interne Grist de la table Fiches Programmes (sans espace)
+// Grist utilise le nom ID de la table, pas le nom affiché.
+// Essaie plusieurs variantes pour être robuste.
+const FICHES_TABLE_CANDIDATES = [
+  'Fiches_Programmes', 'Fiches Programmes', 'FichesProgrammes',
+  'fiches_programmes', 'FichesProgramme',
+];
+const MEMBRES_TABLE_CANDIDATES = ['Membres', 'Table1', 'membres'];
+
+let resolvedFichesTable = 'Fiches_Programmes';
+
+/* ═══════════════════════════════════════════════════════
+   SCALE
+═══════════════════════════════════════════════════════ */
 function scaleToFit() {
   const el = document.getElementById('maison');
   const scale = Math.min(window.innerWidth / W, window.innerHeight / H);
@@ -348,7 +453,9 @@ function scaleToFit() {
 }
 window.addEventListener('resize', scaleToFit);
 
-// ── Toast ──
+/* ═══════════════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════════════ */
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -357,7 +464,73 @@ function showToast(msg) {
   toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
 }
 
-// ── Helpers ──
+/* ═══════════════════════════════════════════════════════
+   SAVE INDICATOR (distinct du toast)
+═══════════════════════════════════════════════════════ */
+let saveIndTimer = null;
+function showSaveIndicator(msg, isError=false) {
+  const el = document.getElementById('saveIndicator');
+  el.textContent = msg;
+  el.className = 'save-indicator show' + (isError ? ' error' : '');
+  clearTimeout(saveIndTimer);
+  saveIndTimer = setTimeout(() => { el.classList.remove('show'); }, 2000);
+}
+
+/* ═══════════════════════════════════════════════════════
+   LOCK BUTTON
+═══════════════════════════════════════════════════════ */
+function updateLockButton() {
+  const btn = document.getElementById('lock-btn');
+  if (!btn) return;
+
+  if (!canEdit) {
+    // Lecteur : bouton masqué
+    btn.classList.add('hidden');
+    return;
+  }
+
+  // Éditeur : bouton visible
+  btn.classList.remove('hidden');
+  if (layoutLocked) {
+    btn.textContent = '🔒 Disposition verrouillée';
+    btn.classList.add('locked');
+  } else {
+    btn.textContent = '🔓 Édition libre';
+    btn.classList.remove('locked');
+  }
+}
+
+function toggleLayoutLock() {
+  if (!canEdit) return;
+  layoutLocked = !layoutLocked;
+  updateLockButton();
+  render(); // re-rend pour appliquer curseurs
+  if (layoutLocked) {
+    showToast('🔒 Disposition verrouillée — tous les visiteurs verront cet arrangement');
+  } else {
+    showToast('🔓 Mode édition activé — glissez les fiches pour les repositionner');
+  }
+}
+
+document.getElementById('lock-btn').addEventListener('click', toggleLayoutLock);
+
+/* ═══════════════════════════════════════════════════════
+   USER PILL
+═══════════════════════════════════════════════════════ */
+function updateUserPill() {
+  const pill = document.getElementById('userPill');
+  const dot  = document.getElementById('userDot');
+  const name = document.getElementById('userName');
+  if (!currentUser.name && !currentUser.email) return;
+  pill.style.display = 'flex';
+  name.textContent   = currentUser.name || currentUser.email;
+  dot.className      = 'user-dot ' + (canEdit ? 'can-edit' : 'read-only');
+  pill.title         = canEdit ? 'Éditeur — peut repositionner les fiches' : 'Lecteur — vue en lecture seule';
+}
+
+/* ═══════════════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════════════ */
 function getPilierKey(pilier) {
   if (!pilier) return 'dev';
   const p = String(pilier).toLowerCase();
@@ -381,26 +554,36 @@ function getStatutClass(statut) {
   return 's-a-venir';
 }
 
-// Position par défaut en grille
+// Position par défaut en grille bien répartie
 function getDefaultPos(index, total, bodyEl) {
-  const cols  = Math.ceil(Math.sqrt(total));
-  const rows  = Math.ceil(total / cols);
-  const col   = index % cols;
-  const row   = Math.floor(index / cols);
-  const bw    = bodyEl.clientWidth  || 300;
-  const bh    = bodyEl.clientHeight || 300;
+  const cols = Math.ceil(Math.sqrt(total));
+  const rows = Math.ceil(total / cols);
+  const col  = index % cols;
+  const row  = Math.floor(index / cols);
+  const bw   = bodyEl.clientWidth  || 300;
+  const bh   = bodyEl.clientHeight || 300;
   return {
     x: Math.round((col + 0.5) * (bw / cols)),
-    y: Math.round((row + 0.5) * (bh / rows))
+    y: Math.round((row + 0.5) * (bh / rows)),
   };
 }
 
-// ── Drag intra-pilier ──
+/* ═══════════════════════════════════════════════════════
+   DRAG — uniquement si canEdit && !layoutLocked
+═══════════════════════════════════════════════════════ */
 function startDrag(e, fiche, cardEl, bodyEl) {
+  // Bloqué si lecture seule OU disposition verrouillée
+  if (!canEdit || layoutLocked) {
+    // Simple clic → ouvrir la fiche
+    return;
+  }
   e.preventDefault();
+  e.stopPropagation();
+
   const maison = document.getElementById('maison');
   const matrix = new DOMMatrix(getComputedStyle(maison).transform);
   const scale  = matrix.a || 1;
+
   dragState = {
     id:            fiche.id,
     startMouseX:   e.clientX,
@@ -422,20 +605,22 @@ function onDragMove(e) {
   const dx = (e.clientX - dragState.startMouseX) / dragState.scale;
   const dy = (e.clientY - dragState.startMouseY) / dragState.scale;
   if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragState.moved = true;
-  const bw  = dragState.bodyEl.clientWidth;
-  const bh  = dragState.bodyEl.clientHeight;
-  const cw  = dragState.el.offsetWidth;
-  const ch  = dragState.el.offsetHeight;
-  const newLeft = Math.max(cw/2, Math.min(bw - cw/2, dragState.startCardLeft + dx));
-  const newTop  = Math.max(ch/2, Math.min(bh - ch/2, dragState.startCardTop  + dy));
+
+  const bw = dragState.bodyEl.clientWidth;
+  const bh = dragState.bodyEl.clientHeight;
+  const cw = dragState.el.offsetWidth;
+  const ch = dragState.el.offsetHeight;
+  const newLeft = Math.max(cw / 2, Math.min(bw - cw / 2, dragState.startCardLeft + dx));
+  const newTop  = Math.max(ch / 2, Math.min(bh - ch / 2, dragState.startCardTop  + dy));
   dragState.el.style.left = newLeft + 'px';
   dragState.el.style.top  = newTop  + 'px';
 }
 
-function onDragEnd() {
-  if (!dragState) return;
+async function onDragEnd() {
   document.removeEventListener('mousemove', onDragMove);
   document.removeEventListener('mouseup',   onDragEnd);
+  if (!dragState) return;
+
   dragState.el.classList.remove('dragging-card');
 
   if (dragState.moved) {
@@ -443,31 +628,65 @@ function onDragEnd() {
     const newTop  = parseFloat(dragState.el.style.top);
     const bw  = dragState.bodyEl.clientWidth  || 1;
     const bh  = dragState.bodyEl.clientHeight || 1;
+    // Positions en % (1 décimale) pour être indépendant de la résolution
     const pctX = Math.round((newLeft / bw) * 1000) / 10;
     const pctY = Math.round((newTop  / bh) * 1000) / 10;
 
+    // ── Mise à jour locale immédiate ──
     const fiche = fiches.find(f => f.id === dragState.id);
     if (fiche) { fiche.Position_X = pctX; fiche.Position_Y = pctY; }
 
+    // ── Sauvegarde IMMÉDIATE dans Grist (pas de debounce) ──
+    // On bloque onRecords pendant 3s pour éviter que Grist re-envoie
+    // les anciennes positions avant que la sauvegarde soit confirmée.
+    suppressReloadUntil = Date.now() + 3000;
+
     const id = dragState.id;
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => {
-      grist.docApi.applyUserActions([
-        ['UpdateRecord', 'FichesProgrammes', id, { Position_X: pctX, Position_Y: pctY }]
-      ]).then(() => showToast('✓ Position sauvegardée'))
-        .catch(() => showToast('⚠ Erreur de sauvegarde'));
-    }, 400);
+    try {
+      await grist.docApi.applyUserActions([
+        ['UpdateRecord', resolvedFichesTable, id, { Position_X: pctX, Position_Y: pctY }]
+      ]);
+      showSaveIndicator('✓ Sauvegardé');
+    } catch (err) {
+      console.error('Save position error:', err);
+      // Si erreur d'autorisation → l'utilisateur est en lecture seule côté Grist
+      // (cas rare si Grist a changé les droits en cours de session)
+      canEdit = false;
+      updateLockButton();
+      updateUserPill();
+      showSaveIndicator('⚠ Non autorisé', true);
+      showToast('🔒 Vous n\'avez pas les droits pour modifier la disposition');
+    }
   } else {
-    // Simple clic → sélection
+    // Simple clic → sélectionner + ouvrir la fiche
     selectFiche(dragState.id);
   }
+
   dragState = null;
 }
 
-// ── Rendu pilier ──
+/* ═══════════════════════════════════════════════════════
+   SÉLECTION (clic simple)
+═══════════════════════════════════════════════════════ */
+function selectFiche(id) {
+  selectedId = (selectedId === id) ? null : id;
+  if (selectedId) {
+    try { grist.setSelectedRows([selectedId]); } catch(e) {}
+    const f = fiches.find(x => x.id === id);
+    if (f) showToast(`📄 "${f.Programme || 'Fiche'}" — clic pour naviguer vers la page Fiche`);
+  }
+  render();
+}
+
+/* ═══════════════════════════════════════════════════════
+   RENDER
+═══════════════════════════════════════════════════════ */
 function renderPilier(list, bodyId) {
   const body = document.getElementById(bodyId);
   body.innerHTML = '';
+
+  // Mode du body (curseur CSS)
+  body.className = 'pillar-body ' + (canEdit && !layoutLocked ? 'editable' : 'read-only');
 
   if (!list.length) {
     const hint = document.createElement('div');
@@ -477,19 +696,43 @@ function renderPilier(list, bodyId) {
     return;
   }
 
+  // Hint édition (visible seulement si éditeur et disposition déverrouillée)
+  if (canEdit && !layoutLocked) {
+    const hint = document.createElement('div');
+    hint.className = 'edit-hint';
+    hint.textContent = 'Glissez pour repositionner';
+    body.appendChild(hint);
+  }
+
   const bw = body.clientWidth  || 300;
   const bh = body.clientHeight || 300;
 
   list.forEach((f, idx) => {
-    const span = document.createElement('span');
-    span.className = [
+    const isDraggable = canEdit && !layoutLocked;
+    const pct = Math.min(100, Math.max(0, f.Avancement_Global || 0));
+
+    const card = document.createElement('span');
+    card.className = [
       'fiche-card',
       getPrioClass(f.Priorite),
       getStatutClass(f.Statut),
-      selectedId === f.id ? 'selected' : ''
+      isDraggable ? 'draggable' : 'not-draggable',
+      selectedId === f.id ? 'selected' : '',
     ].join(' ');
-    span.textContent = f.Programme || 'Sans titre';
-    span.title = `${f.Statut || ''} — ${Math.round(f.Avancement_Global || 0)}%\nGlisser pour repositionner\nDouble-clic pour ouvrir la fiche`;
+    card.textContent = f.Programme || 'Sans titre';
+    card.title = [
+      f.Programme || 'Sans titre',
+      f.Statut ? `Statut : ${f.Statut}` : '',
+      `Avancement : ${Math.round(pct)}%`,
+      isDraggable ? 'Glisser pour repositionner' : '',
+      'Clic pour sélectionner / ouvrir',
+    ].filter(Boolean).join('\n');
+
+    // Barre d'avancement en bas de la carte
+    const bar = document.createElement('div');
+    bar.className = 'prog-bar';
+    bar.style.width = pct + '%';
+    card.appendChild(bar);
 
     // Position
     let left, top;
@@ -501,23 +744,36 @@ function renderPilier(list, bodyId) {
       left = pos.x;
       top  = pos.y;
     }
-    span.style.left      = left + 'px';
-    span.style.top       = top  + 'px';
-    span.style.transform = 'translate(-50%, -50%)';
+    card.style.left      = left + 'px';
+    card.style.top       = top  + 'px';
+    card.style.transform = 'translate(-50%, -50%)';
 
-    // Drag (mousedown)
-    span.addEventListener('mousedown', e => startDrag(e, f, span, body));
+    // ── Events ──
+    card.addEventListener('mousedown', e => {
+      if (isDraggable) {
+        startDrag(e, f, card, body);
+      }
+    });
 
-    // Double-clic → ouvre la fiche (sélection Grist)
-    span.addEventListener('dblclick', e => {
+    // Clic (sans drag) → sélectionner
+    card.addEventListener('click', e => {
+      if (!dragState || !dragState.moved) {
+        e.stopPropagation();
+        selectFiche(f.id);
+      }
+    });
+
+    // Double-clic → naviguer vers la page Fiche dans Grist
+    card.addEventListener('dblclick', e => {
       e.stopPropagation();
       selectedId = f.id;
-      grist.setSelectedRows([f.id]);
-      showToast(`📄 Fiche "${f.Programme}" sélectionnée`);
+      try { grist.setSelectedRows([f.id]); } catch(err) {}
+      // Tentative de navigation vers la page Initiative/Fiche
+      tryNavigateToFiche();
       render();
     });
 
-    body.appendChild(span);
+    body.appendChild(card);
   });
 }
 
@@ -527,30 +783,190 @@ function render() {
   renderPilier(fiches.filter(f => getPilierKey(f.Pilier) === 'culture'), 'body-culture');
 }
 
-function selectFiche(id) {
-  selectedId = (selectedId === id) ? null : id;
-  if (selectedId) grist.setSelectedRows([selectedId]);
-  render();
+/* ═══════════════════════════════════════════════════════
+   NAVIGATION vers la page Fiche (double-clic)
+═══════════════════════════════════════════════════════ */
+async function tryNavigateToFiche() {
+  // Grist: navigateToPage si disponible
+  const pageNames = ['Initiatives', 'Fiche', 'Fiche Programme', 'Fiches', 'Initiative'];
+  for (const name of pageNames) {
+    try {
+      if (grist.navigateToPage) {
+        await grist.navigateToPage(name);
+        return;
+      }
+    } catch(e) {}
+  }
+  // Fallback message
+  showToast('📄 Double-clic détecté — navigue vers la page "Initiatives" dans la barre latérale');
+  try { window.parent.postMessage({ type: 'grist-navigate', page: 'Initiatives' }, '*'); } catch(e) {}
 }
 
-// ── Grist ──
-grist.ready({ requiredAccess: 'full' });
-
-grist.onRecords(records => {
-  fiches = records;
-  document.getElementById('app-loading').style.display = 'none';
-  const maison = document.getElementById('maison');
-  maison.style.display = 'flex';
-  scaleToFit();
-  setTimeout(render, 50);
-});
-
-grist.onRecord(rec => {
-  if (rec && rec.id && rec.id !== selectedId) {
-    selectedId = rec.id;
-    render();
+/* ═══════════════════════════════════════════════════════
+   DÉTECTION DES DROITS
+   Stratégie : on tente un applyUserActions fictif sur la table.
+   Si ça réussit → éditeur. Si refus 403/Forbidden → lecteur.
+   On utilise un UpdateRecord avec les mêmes valeurs (no-op).
+═══════════════════════════════════════════════════════ */
+async function detectEditRights() {
+  if (!fiches.length) { canEdit = false; return; }
+  // Test write : on essaie d'écrire les mêmes positions (aucun changement réel)
+  const f = fiches[0];
+  try {
+    await grist.docApi.applyUserActions([
+      ['UpdateRecord', resolvedFichesTable, f.id, {
+        Position_X: f.Position_X ?? 0,
+        Position_Y: f.Position_Y ?? 0,
+      }]
+    ]);
+    canEdit = true;
+  } catch (err) {
+    // 403 ou "No write access" → lecteur
+    canEdit = false;
   }
-});
+}
+
+/* ═══════════════════════════════════════════════════════
+   GRIST — fetch helper
+═══════════════════════════════════════════════════════ */
+function convertColumnar(data) {
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  const cols = Object.keys(data);
+  if (!cols.length) return [];
+  const n = data[cols[0]]?.length || 0;
+  return Array.from({ length: n }, (_, i) => {
+    const r = {};
+    cols.forEach(c => r[c] = data[c][i]);
+    return r;
+  });
+}
+
+async function fetchFirstAvailable(candidates) {
+  for (const name of candidates) {
+    try {
+      const raw = await grist.docApi.fetchTable(name);
+      return { name, rows: convertColumnar(raw) };
+    } catch(e) {}
+  }
+  // Fuzzy match via listTables
+  try {
+    const all = await grist.docApi.listTables();
+    const norm = s => String(s).toLowerCase().replace(/[\s_]/g, '');
+    const match = all.find(t => candidates.map(norm).includes(norm(t)));
+    if (match) {
+      const raw = await grist.docApi.fetchTable(match);
+      return { name: match, rows: convertColumnar(raw) };
+    }
+  } catch(e) {}
+  return { name: null, rows: [] };
+}
+
+/* ═══════════════════════════════════════════════════════
+   GRIST — INIT
+═══════════════════════════════════════════════════════ */
+async function initGrist() {
+  try {
+    await grist.ready({ requiredAccess: 'full' });
+
+    // ── Récupérer l'info utilisateur ──
+    try {
+      const userInfo = await grist.getUserInfo();
+      if (userInfo) {
+        currentUser.email = userInfo.email || '';
+        currentUser.name  = userInfo.name  || userInfo.email || '';
+      }
+    } catch(e) {
+      console.warn('getUserInfo not available:', e);
+    }
+
+    // ── Charger la table Membres pour résoudre le nom ──
+    try {
+      const mResult = await fetchFirstAvailable(MEMBRES_TABLE_CANDIDATES);
+      membresRows = mResult.rows || [];
+      // Si on a un email → chercher le nom dans Membres
+      if (currentUser.email && membresRows.length) {
+        const emailLow = currentUser.email.toLowerCase();
+        const membre = membresRows.find(m =>
+          String(m.Email || m.email || '').toLowerCase() === emailLow
+        );
+        if (membre) currentUser.name = String(membre.Nom || membre.name || currentUser.name);
+      }
+    } catch(e) {}
+
+    // ── Charger les fiches ──
+    const fichesResult = await fetchFirstAvailable(FICHES_TABLE_CANDIDATES);
+    resolvedFichesTable = fichesResult.name || 'Fiches_Programmes';
+    fiches = fichesResult.rows || [];
+    dataLoaded = true;
+
+    // ── Détecter les droits d'édition ──
+    await detectEditRights();
+
+    // ── Afficher ──
+    document.getElementById('app-loading').style.display = 'none';
+    const maison = document.getElementById('maison');
+    maison.style.display = 'flex';
+    scaleToFit();
+    updateLockButton();
+    updateUserPill();
+    setTimeout(render, 50);
+
+    // ── onRecords : mise à jour temps réel MAIS bloquée après sauvegarde ──
+    grist.onRecords(records => {
+      // Bloquer si on vient de sauvegarder (évite d'écraser les positions locales)
+      if (Date.now() < suppressReloadUntil) {
+        console.log('[Maison] onRecords supprimé (sauvegarde récente)');
+        return;
+      }
+      if (!records || !records.length) return;
+
+      // Mettre à jour les données en préservant les positions locales
+      // des éléments en cours de drag (cas edge)
+      const dragId = dragState ? dragState.id : null;
+      fiches = records.map(rec => {
+        if (dragId && rec.id === dragId) {
+          // Garder la position locale pendant le drag
+          const local = fiches.find(f => f.id === dragId);
+          if (local) return { ...rec, Position_X: local.Position_X, Position_Y: local.Position_Y };
+        }
+        return rec;
+      });
+      render();
+    });
+
+    // onRecord : sélection synchronisée depuis Grist
+    grist.onRecord(rec => {
+      if (rec && rec.id && rec.id !== selectedId) {
+        selectedId = rec.id;
+        render();
+      }
+    });
+
+  } catch(err) {
+    console.error('initGrist error:', err);
+    document.getElementById('app-loading').innerHTML =
+      '<div style="color:#c0392b;text-align:center;padding:20px">Erreur de connexion Grist.<br>' +
+      '<small>Configure "Données source" dans le widget pour pointer vers Fiches Programmes.</small></div>';
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   TIMEOUT LOADING
+═══════════════════════════════════════════════════════ */
+setTimeout(() => {
+  if (!dataLoaded) {
+    document.getElementById('app-loading').innerHTML =
+      '<div style="color:#c0392b;text-align:center;padding:20px;line-height:1.8">' +
+      'Le widget ne reçoit pas les données Grist.<br>' +
+      '<small>Ouvre "Données source" dans les options du widget<br>et sélectionne la table <strong>Fiches Programmes</strong>.</small></div>';
+  }
+}, 6000);
+
+/* ═══════════════════════════════════════════════════════
+   START
+═══════════════════════════════════════════════════════ */
+initGrist();
 </script>
 </body>
 </html>
