@@ -2,90 +2,432 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Debug Fiche</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fiche Programme</title>
 <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 <style>
-body { font-family: monospace; padding: 20px; background: #1a1a2e; color: #00ff88; font-size: 13px; }
-h2 { color: #fff; margin-bottom: 16px; }
-.log { background: #0d0d1a; padding: 12px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid #00ff88; }
-.log.warn { border-color: #f59e0b; color: #f59e0b; }
-.log.error { border-color: #ef4444; color: #ef4444; }
-.log.info  { border-color: #3b82f6; color: #aad4ff; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #f3f5f7;
+  color: #243447;
+  padding: 18px;
+}
+
+.wrapper {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.topbar {
+  background: white;
+  border-radius: 14px;
+  padding: 14px 18px;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+  gap: 16px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.logo {
+  border: 2px solid #c0392b;
+  color: #c0392b;
+  font-weight: 900;
+  font-size: 1rem;
+  line-height: 1.05;
+  padding: 8px 12px;
+  border-radius: 4px;
+  text-align: center;
+}
+.logo small {
+  display: block;
+  font-size: 0.62rem;
+  color: #2c3e50;
+  letter-spacing: 1px;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2d3d;
+}
+
+.top-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.nav-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: white;
+}
+.btn-maison { background: #0f766e; }
+.btn-planning { background: #d98d85; }
+
+.grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1.1fr 1.6fr 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.card {
+  background: white;
+  border-radius: 14px;
+  min-height: 420px;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-header {
+  padding: 18px 18px 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 90px;
+  border-bottom: 1px solid #eef2f5;
+}
+
+.icon {
+  width: 54px;
+  height: 54px;
+  opacity: 0.8;
+}
+
+.card-body {
+  padding: 16px 16px 20px;
+  font-size: 0.98rem;
+  line-height: 1.55;
+  flex: 1;
+}
+
+.section-title {
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #1f2937;
+}
+
+.value {
+  color: #475569;
+  white-space: pre-wrap;
+}
+
+.footer-card {
+  background: white;
+  border-radius: 14px;
+  min-height: 92px;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+}
+
+.footer-content {
+  flex: 1;
+}
+
+.meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.badge.prio-haute { background: #fee2e2; color: #b91c1c; }
+.badge.prio-moyenne { background: #fef3c7; color: #92400e; }
+.badge.prio-basse { background: #e0f2fe; color: #075985; }
+.badge.prio-default { background: #e5e7eb; color: #374151; }
+
+.badge.statut-encours { background: #dbeafe; color: #1d4ed8; }
+.badge.statut-termine { background: #dcfce7; color: #15803d; }
+.badge.statut-avenir { background: #fef3c7; color: #a16207; }
+.badge.statut-default { background: #e5e7eb; color: #374151; }
+
+.progress-wrap {
+  margin-top: 12px;
+}
+.progress-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 6px;
+}
+.progress-bar {
+  width: 100%;
+  height: 10px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: #2563eb;
+  width: 0%;
+  transition: width 0.2s ease;
+}
+
+.empty-state {
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #64748b;
+  font-size: 1rem;
+  padding: 30px;
+}
+
+small.muted {
+  color: #94a3b8;
+  font-size: 0.82rem;
+}
+
+@media (max-width: 1100px) {
+  .grid { grid-template-columns: 1fr 1fr; }
+}
 </style>
 </head>
 <body>
-<h2>🔍 Debug Widget Grist</h2>
-<div id="logs"></div>
+<div class="wrapper" id="app">
+  <div class="empty-state">Chargement…</div>
+</div>
 
 <script>
-function log(msg, type='log') {
-  const el = document.createElement('div');
-  el.className = 'log ' + type;
-  el.textContent = new Date().toISOString().slice(11,19) + ' — ' + msg;
-  document.getElementById('logs').prepend(el);
-  console.log(msg);
+let currentRecord = null;
+
+function safe(v) {
+  if (v == null || v === '') return '—';
+  if (Array.isArray(v)) return v[0] || v[1] || '—';
+  return String(v);
 }
 
-log('Script démarré', 'info');
-log('grist disponible : ' + (typeof grist !== 'undefined'), 'info');
+function badgePrio(prio) {
+  const p = safe(prio).toLowerCase();
+  if (p.includes('haute')) return ['badge prio-haute', 'Priorité haute'];
+  if (p.includes('moyenne')) return ['badge prio-moyenne', 'Priorité moyenne'];
+  if (p.includes('basse')) return ['badge prio-basse', 'Priorité basse'];
+  return ['badge prio-default', safe(prio)];
+}
 
-if (typeof grist === 'undefined') {
-  log('❌ API Grist non chargée !', 'error');
-} else {
-  log('✓ API Grist chargée', 'info');
+function badgeStatut(statut) {
+  const s = safe(statut).toLowerCase();
+  if (s.includes('cours')) return ['badge statut-encours', 'En cours'];
+  if (s.includes('termin')) return ['badge statut-termine', 'Terminé'];
+  if (s.includes('venir')) return ['badge statut-avenir', 'À venir'];
+  return ['badge statut-default', safe(statut)];
+}
 
-  // Test 1 : onRecord AVANT ready
-  grist.onRecord(function(rec) {
-    if (!rec) {
-      log('onRecord → null (aucune sélection)', 'warn');
-    } else {
-      log('✓ onRecord reçu : id=' + rec.id + ' Programme=' + (rec.Programme||'?'));
-    }
-  });
+function getPct(v) {
+  const n = Number(v || 0);
+  if (Number.isNaN(n)) return 0;
+  return Math.max(0, Math.min(100, n));
+}
 
-  // Test 2 : onRecords AVANT ready
-  grist.onRecords(function(records) {
-    log('✓ onRecords reçu : ' + (records ? records.length : 0) + ' lignes');
-    if (records && records[0]) {
-      log('  Colonnes dispo : ' + Object.keys(records[0]).join(', '), 'info');
-    }
-  });
-
-  // Test 3 : ready()
-  log('Appel grist.ready()...', 'info');
+function navigateToMaison() {
   try {
-    var result = grist.ready({ requiredAccess: 'full' });
-    log('grist.ready() appelé, résultat type : ' + typeof result, 'info');
-    if (result && typeof result.then === 'function') {
-      result.then(function() {
-        log('✓ grist.ready() Promise résolue');
-      }).catch(function(e) {
-        log('❌ grist.ready() Promise rejetée : ' + e, 'error');
-      });
+    if (grist && grist.navigateToPage) {
+      grist.navigateToPage('Maison SPS');
+      return;
     }
-  } catch(e) {
-    log('❌ grist.ready() exception : ' + e, 'error');
-  }
-
-  // Test 4 : après 2s, tester getUserInfo
-  setTimeout(function() {
-    log('Test getUserInfo...', 'info');
-    try {
-      grist.getUserInfo().then(function(u) {
-        log('✓ getUserInfo : ' + JSON.stringify(u), 'info');
-      }).catch(function(e) {
-        log('getUserInfo failed : ' + e, 'warn');
-      });
-    } catch(e) {
-      log('getUserInfo exception : ' + e, 'warn');
-    }
-  }, 2000);
-
-  // Test 5 : timeout général
-  setTimeout(function() {
-    log('⏱ 5s écoulées — état final ci-dessus', 'warn');
-  }, 5000);
+  } catch (e) {}
+  try {
+    window.parent.postMessage({ type: 'grist-navigate', page: 'Maison SPS' }, '*');
+  } catch (e) {}
 }
+
+function navigateToPlanning() {
+  try {
+    if (grist && grist.navigateToPage) {
+      grist.navigateToPage('Planning');
+      return;
+    }
+  } catch (e) {}
+  try {
+    window.parent.postMessage({ type: 'grist-navigate', page: 'Planning' }, '*');
+  } catch (e) {}
+}
+
+function renderEmpty(msg = 'Aucune fiche sélectionnée') {
+  document.getElementById('app').innerHTML = `
+    <div class="empty-state">
+      <div>
+        <div style="font-size:1.15rem;font-weight:700;margin-bottom:8px;">${msg}</div>
+        <small class="muted">Sélectionnez une fiche depuis la page Maison SPS.</small>
+      </div>
+    </div>
+  `;
+}
+
+function renderRecord(rec) {
+  const programme = safe(rec.Programme);
+  const objectifs = safe(rec.Objectifs);
+  const departements = safe(rec.Départements || rec.Departements);
+  const actions = safe(rec.Actions);
+  const kpis = safe(rec.KPIs || rec.Kpis || rec.KPI);
+  const leader = safe(rec.Leader);
+  const ressources = safe(rec.Ressources);
+  const keySuccess = safe(rec.KeySuccessFactor || rec.KeySuccessFactor_);
+  const priorite = badgePrio(rec.Priorité || rec.Priorite);
+  const statut = badgeStatut(rec.Statut);
+  const avancement = getPct(rec.Avancement_Global || rec.Avancement_Glob || rec.Avancement);
+
+  document.getElementById('app').innerHTML = `
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo">SPS<small>MEDICAL</small></div>
+        <div class="title">${programme}</div>
+      </div>
+      <div class="top-actions">
+        <button class="nav-btn btn-maison" id="btnMaison">MAISON</button>
+        <button class="nav-btn btn-planning" id="btnPlanning">PLANNING</button>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="card-header">
+          <svg class="icon" viewBox="0 0 64 64" fill="none" stroke="#314e7c" stroke-width="2">
+            <circle cx="24" cy="22" r="9"></circle>
+            <path d="M10 48c2-10 10-16 18-16s16 6 18 16"></path>
+            <circle cx="45" cy="33" r="7"></circle>
+            <path d="M39 47c1.5-4.5 5-8 10-9"></path>
+          </svg>
+        </div>
+        <div class="card-body">
+          <div class="section-title">Objectifs :</div>
+          <div class="value">${objectifs}</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <svg class="icon" viewBox="0 0 64 64" fill="none" stroke="#314e7c" stroke-width="2">
+            <circle cx="32" cy="20" r="9"></circle>
+            <path d="M16 50c2-11 10-18 16-18s14 7 16 18"></path>
+            <path d="M32 4v8M12 20h8M44 20h8M20 8l6 6M38 14l6-6"></path>
+          </svg>
+        </div>
+        <div class="card-body">
+          <div class="section-title">Départements :</div>
+          <div class="value">${departements}</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <svg class="icon" viewBox="0 0 64 64" fill="none" stroke="#314e7c" stroke-width="2">
+            <rect x="12" y="10" width="40" height="44" rx="2"></rect>
+            <path d="M24 10v44M40 10v44M12 24h40M12 40h16M40 40h12"></path>
+          </svg>
+        </div>
+        <div class="card-body">
+          <div class="section-title">Actions :</div>
+          <div class="value">${actions}</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <svg class="icon" viewBox="0 0 64 64" fill="none" stroke="#314e7c" stroke-width="2">
+            <path d="M12 52h40"></path>
+            <rect x="16" y="30" width="6" height="22"></rect>
+            <rect x="28" y="22" width="6" height="30"></rect>
+            <rect x="40" y="12" width="6" height="40"></rect>
+          </svg>
+        </div>
+        <div class="card-body">
+          <div class="section-title">KPI :</div>
+          <div class="value">${kpis}</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <svg class="icon" viewBox="0 0 64 64" fill="none" stroke="#314e7c" stroke-width="2">
+            <rect x="18" y="8" width="28" height="48" rx="2"></rect>
+            <path d="M24 18h16M24 26h16M24 34h16M24 42h10"></path>
+          </svg>
+        </div>
+        <div class="card-body">
+          <div class="section-title">Leader :</div>
+          <div class="value">${leader}</div>
+
+          <div style="margin-top:22px" class="section-title">Ressources :</div>
+          <div class="value">${ressources}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-card">
+      <svg class="icon" viewBox="0 0 64 64" fill="none" stroke="#314e7c" stroke-width="2" style="width:40px;height:40px;">
+        <circle cx="24" cy="24" r="10"></circle>
+        <path d="M34 24h16M50 24v14"></path>
+      </svg>
+      <div class="footer-content">
+        <div class="section-title">Key Success Factor :</div>
+        <div class="value">${keySuccess}</div>
+
+        <div class="meta-row">
+          <span class="${priorite[0]}">${priorite[1]}</span>
+          <span class="${statut[0]}">${statut[1]}</span>
+        </div>
+
+        <div class="progress-wrap">
+          <div class="progress-label">Avancement global : ${avancement}%</div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:${avancement}%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('btnMaison').addEventListener('click', navigateToMaison);
+  document.getElementById('btnPlanning').addEventListener('click', navigateToPlanning);
+}
+
+grist.onRecord(function(rec) {
+  currentRecord = rec;
+  if (!rec || !rec.id) {
+    renderEmpty();
+    return;
+  }
+  renderRecord(rec);
+});
+
+grist.ready({ requiredAccess: 'read table' })
+  .then(() => {
+    renderEmpty('En attente de sélection');
+  })
+  .catch(() => {
+    renderEmpty('Erreur de connexion à Grist');
+  });
 </script>
 </body>
 </html>
