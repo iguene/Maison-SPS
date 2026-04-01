@@ -100,8 +100,56 @@ body {
   color: white;
   box-shadow: 0 2px 12px rgba(192,57,43,0.35);
 }
-.edit-mode-btn.hidden { display: none; }
 .edit-mode-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+
+/* ── PIN MODAL ── */
+.pin-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 9000;
+  display: flex; align-items: center; justify-content: center;
+  display: none;
+}
+.pin-overlay.open { display: flex; }
+.pin-box {
+  background: white;
+  border-radius: 12px;
+  padding: 28px 32px;
+  min-width: 280px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  text-align: center;
+}
+.pin-title {
+  font-size: 1rem; font-weight: 700; color: #1e293b;
+  margin-bottom: 6px;
+}
+.pin-subtitle {
+  font-size: 0.78rem; color: #64748b; margin-bottom: 18px;
+}
+.pin-input {
+  width: 100%; padding: 10px 14px;
+  border: 2px solid #e2e8f0; border-radius: 8px;
+  font-size: 1.3rem; text-align: center; letter-spacing: 8px;
+  font-family: monospace; outline: none;
+  transition: border-color 0.2s;
+}
+.pin-input:focus { border-color: #2980b9; }
+.pin-input.error { border-color: #c0392b; animation: shake 0.3s; }
+@keyframes shake {
+  0%,100%{transform:translateX(0)}
+  25%{transform:translateX(-6px)}
+  75%{transform:translateX(6px)}
+}
+.pin-btns { display: flex; gap: 10px; margin-top: 16px; }
+.pin-btn {
+  flex: 1; padding: 9px; border-radius: 8px;
+  font-size: 0.85rem; font-weight: 600; cursor: pointer;
+  border: none; transition: opacity 0.15s;
+}
+.pin-btn:hover { opacity: 0.85; }
+.pin-btn.confirm { background: #2980b9; color: white; }
+.pin-btn.cancel  { background: #f1f5f9; color: #475569; }
+.pin-error { font-size: 0.75rem; color: #c0392b; margin-top: 8px; min-height: 18px; }
 
 /* Indicateur de sauvegarde */
 .save-indicator {
@@ -349,8 +397,8 @@ body {
       <!-- Indicateur sauvegarde -->
       <span class="save-indicator" id="saveIndicator"></span>
 
-      <!-- Bouton modifier disposition — masqué par défaut, visible après détection des droits -->
-      <button class="edit-mode-btn hidden" id="editModeBtn" type="button" onclick="toggleEditMode()">
+      <!-- Bouton modifier disposition — toujours visible -->
+      <button class="edit-mode-btn" id="editModeBtn" type="button" onclick="onEditModeClick()">
         🔓 Modifier la disposition
       </button>
     </div>
@@ -414,6 +462,23 @@ body {
   </div>
 </div>
 
+<!-- PIN MODAL -->
+<div class="pin-overlay" id="pinOverlay">
+  <div class="pin-box">
+    <div class="pin-title">🔐 Accès édition</div>
+    <div class="pin-subtitle">Saisissez le code PIN pour modifier la disposition</div>
+    <input class="pin-input" id="pinInput" type="password"
+           maxlength="6" inputmode="numeric"
+           placeholder="••••"
+           onkeydown="if(event.key==='Enter') confirmPin()">
+    <div class="pin-error" id="pinError"></div>
+    <div class="pin-btns">
+      <button class="pin-btn cancel" onclick="closePinModal()">Annuler</button>
+      <button class="pin-btn confirm" onclick="confirmPin()">Valider</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ═══════════════════════════════════════════════════════
    STATE
@@ -424,8 +489,11 @@ let selectedId    = null;
 let dragState     = null;
 let toastTimer    = null;
 let layoutLocked    = true;   // true = cartes figées (mode par défaut)
-let editModeActive  = false;  // true = drag activé explicitement par l'éditeur
-let canEdit         = false;  // droit Grist : Viewer=false, Editor/Owner=true
+let editModeActive  = false;  // true = drag activé (déverrouillé par PIN)
+
+// ── Code PIN (à personnaliser) ──
+// Vous pouvez changer ce PIN ici. Par défaut : 1234
+const EDIT_PIN = '1234';
 let currentUser   = { name: '', email: '' };
 let dataLoaded    = false;
 
@@ -489,13 +557,8 @@ function showSaveIndicator(msg, isError=false) {
 function updateEditModeBtn() {
   const btn = document.getElementById('editModeBtn');
   if (!btn) return;
-  if (!canEdit) {
-    btn.classList.add('hidden');
-    return;
-  }
-  btn.classList.remove('hidden');
   if (editModeActive) {
-    btn.textContent = '🔒 Verrouiller la disposition';
+    btn.textContent = '🔒 Verrouiller';
     btn.classList.add('active');
   } else {
     btn.textContent = '🔓 Modifier la disposition';
@@ -503,17 +566,52 @@ function updateEditModeBtn() {
   }
 }
 
-// Alias pour compatibilité avec les anciens appels
+// Alias
 function updateLockButton() { updateEditModeBtn(); }
 
-function toggleEditMode() {
-  if (!canEdit) return;
-  editModeActive = !editModeActive;
-  layoutLocked   = !editModeActive; // synchroniser
+// Clic sur le bouton : si actif → verrouiller ; sinon → demander PIN
+function onEditModeClick() {
+  if (editModeActive) {
+    // Verrouiller directement
+    activateEditMode(false);
+  } else {
+    openPinModal();
+  }
+}
+
+function openPinModal() {
+  document.getElementById('pinInput').value = '';
+  document.getElementById('pinError').textContent = '';
+  document.getElementById('pinInput').classList.remove('error');
+  document.getElementById('pinOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('pinInput').focus(), 100);
+}
+
+function closePinModal() {
+  document.getElementById('pinOverlay').classList.remove('open');
+}
+
+function confirmPin() {
+  const val = document.getElementById('pinInput').value.trim();
+  if (val === EDIT_PIN) {
+    closePinModal();
+    activateEditMode(true);
+  } else {
+    const inp = document.getElementById('pinInput');
+    document.getElementById('pinError').textContent = '❌ Code incorrect';
+    inp.classList.add('error');
+    inp.value = '';
+    setTimeout(() => inp.classList.remove('error'), 500);
+    setTimeout(() => inp.focus(), 50);
+  }
+}
+
+function activateEditMode(on) {
+  editModeActive = on;
+  layoutLocked   = !on;
   updateEditModeBtn();
-  // Rendre les cartes draggables ou non sans recréer tout le DOM
   document.querySelectorAll('.fiche-card').forEach(card => {
-    if (editModeActive) {
+    if (on) {
       card.classList.add('draggable');
       card.classList.remove('not-draggable');
       card.style.cursor = 'grab';
@@ -523,25 +621,26 @@ function toggleEditMode() {
       card.style.cursor = 'pointer';
     }
   });
-  if (editModeActive) {
-    showToast('🔓 Mode édition activé — glissez les fiches pour les repositionner');
+  if (on) {
+    showToast('🔓 Mode édition activé — glissez les fiches');
   } else {
-    showToast('🔒 Disposition verrouillée — les visiteurs voient cet arrangement');
+    showToast('🔒 Disposition verrouillée');
   }
 }
+
+function toggleEditMode() { onEditModeClick(); }
 
 /* ═══════════════════════════════════════════════════════
    USER PILL
 ═══════════════════════════════════════════════════════ */
 function updateUserPill() {
   const pill = document.getElementById('userPill');
-  const dot  = document.getElementById('userDot');
   const name = document.getElementById('userName');
   if (!currentUser.name && !currentUser.email) return;
   pill.style.display = 'flex';
-  name.textContent   = currentUser.name || currentUser.email;
-  dot.className      = 'user-dot ' + (canEdit ? 'can-edit' : 'read-only');
-  pill.title         = canEdit ? 'Éditeur — peut repositionner les fiches' : 'Lecteur — vue en lecture seule';
+  name.textContent = currentUser.name || currentUser.email;
+  const dot = document.getElementById('userDot');
+  if (dot) dot.className = 'user-dot can-edit';
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -591,7 +690,7 @@ function getDefaultPos(index, total, bodyEl) {
 }
 
 /* ═══════════════════════════════════════════════════════
-   DRAG — uniquement si canEdit && !layoutLocked
+   DRAG — uniquement si editModeActive
 ═══════════════════════════════════════════════════════ */
 function startDrag(e, fiche, cardEl, bodyEl) {
   // Drag actif uniquement si editModeActive (bouton explicitement activé)
@@ -673,9 +772,7 @@ async function onDragEnd() {
       console.error('Save position error:', err);
       // Si erreur d'autorisation → l'utilisateur est en lecture seule côté Grist
       // (cas rare si Grist a changé les droits en cours de session)
-      canEdit = false;
-      updateEditModeBtn();
-      updateUserPill();
+      activateEditMode(false);
       showSaveIndicator('⚠ Non autorisé', true);
       showToast('🔒 Vous n\'avez pas les droits pour modifier la disposition');
     }
@@ -860,51 +957,9 @@ async function tryNavigateToFiche() {
    On utilise un UpdateRecord avec les mêmes valeurs (no-op).
 ═══════════════════════════════════════════════════════ */
 async function detectEditRights() {
-  // Méthode 1 : getUserInfo() retourne { access: 'owners'|'editors'|'viewers'|'guests' }
-  try {
-    const userInfo = await grist.getUserInfo();
-    if (userInfo) {
-      const access = String(userInfo.access || '').toLowerCase();
-      console.log('[Maison] getUserInfo access:', access, '| full:', JSON.stringify(userInfo));
-      // owners et editors peuvent modifier
-      if (access === 'owners' || access === 'editors' || access === 'full') {
-        canEdit = true;
-        console.log('[Maison] canEdit = true (via getUserInfo)');
-        return;
-      }
-      if (access === 'viewers' || access === 'guests' || access === 'none') {
-        canEdit = false;
-        console.log('[Maison] canEdit = false (viewer/guest)');
-        return;
-      }
-      // access inconnu → on tombe sur la méthode 2
-      console.log('[Maison] access inconnu, test write...');
-    }
-  } catch(e) {
-    console.warn('[Maison] getUserInfo failed:', e);
-  }
-
-  // Méthode 2 (fallback) : tester une écriture réelle
-  // Mais SEULEMENT si on a résolu le nom de la table et qu'il y a des fiches
-  if (!fiches.length || !resolvedFichesTable) {
-    canEdit = true; // Par défaut on suppose éditeur si on ne peut pas tester
-    console.log('[Maison] canEdit = true (default, no test possible)');
-    return;
-  }
-  const f = fiches[0];
-  try {
-    await grist.docApi.applyUserActions([
-      ['UpdateRecord', resolvedFichesTable, f.id, {
-        Position_X: typeof f.Position_X === 'number' ? f.Position_X : 0,
-        Position_Y: typeof f.Position_Y === 'number' ? f.Position_Y : 0,
-      }]
-    ]);
-    canEdit = true;
-    console.log('[Maison] canEdit = true (write test succeeded)');
-  } catch (err) {
-    canEdit = false;
-    console.log('[Maison] canEdit = false (write test failed):', err && err.message);
-  }
+  // Détection des droits désactivée — accès via PIN uniquement
+  // Le bouton "Modifier la disposition" est visible pour tous,
+  // mais le mode édition nécessite le PIN correct.
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -950,8 +1005,6 @@ async function fetchFirstAvailable(candidates) {
    AFFICHAGE — appelé une fois les données prêtes
 ═══════════════════════════════════════════════════════ */
 async function showMaison() {
-  // Par défaut : mode lecture (le bouton sera affiché après détection des droits)
-  editModeActive = false;
   document.getElementById('app-loading').style.display = 'none';
   const maison = document.getElementById('maison');
   maison.style.display = 'flex';
@@ -1009,12 +1062,8 @@ async function loadSideData() {
     if (match) resolvedFichesTable = match;
   } catch(e) {}
 
-  // Détecter les droits d'édition (test write no-op)
-  await detectEditRights();
-
   updateEditModeBtn();
   updateUserPill();
-  render(); // re-rend avec le nom utilisateur et le bon curseur
 }
 
 /* ═══════════════════════════════════════════════════════
