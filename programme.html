@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fiche Programme</title>
+<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; }
+body {
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  background: #f0f4f8;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+/* ── WRAPPER 1400x860 ── */
+#fiche-wrap {
+  width: 1400px;
+  height: 860px;
+  transform-origin: top left;
+  display: none;
+  flex-direction: column;
+}
+
+/* ── HEADER ── */
+.top-bar {
+  display: flex;
+  align-items: center;
+  background: white;
+  border-bottom: 2px solid #e2e8f0;
+  padding: 10px 20px;
+  gap: 14px;
+  flex-shrink: 0;
+  height: 64px;
+}
+.logo-sm {
+  font-size: 0.85rem;
+  font-weight: 900;
+  color: #c0392b;
+  border: 2.5px solid #c0392b;
+  padding: 3px 8px;
+  border-radius: 3px;
+  line-height: 1.3;
+  text-align: center;
+  flex-shrink: 0;
+}
+.logo-sm span { font-size: 0.6rem; color: #2c3e50; display: block; }
+.prog-name {
+  flex: 1;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nav-btns { display: flex; gap: 10px; flex-shrink: 0; }
+.nav-btn {
+  padding: 9px 36px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  font-family: inherit;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.nav-btn:hover  { opacity: 0.88; transform: translateY(-1px); }
+.nav-btn:active { transform: translateY(0); }
+.nav-btn.maison   { background: #1a6b6b; color: white; }
+.nav-btn.planning { background: #c0392b; color: white; opacity: 0.6; cursor: not-allowed; }
+
+/* ── CONTEXTE ── */
+.context-bar {
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 8px 20px;
+  font-size: 0.82rem;
+  color: #475569;
+  flex-shrink: 0;
+  line-height: 1.6;
+}
+
+/* ── ZONE CENTRALE ── */
+.content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 20px 14px;
+  gap: 14px;
+  min-height: 0;
+}
+
+/* ── GRILLE 5 TUILES ── */
+.tiles-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.5fr 1fr 1fr;
+  gap: 14px;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ── TUILE ── */
+.tile {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+.tile-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px 0 14px;
+  flex-shrink: 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+.tile-icon svg {
+  width: 72px; height: 72px;
+  stroke: #1e3a5f;
+  stroke-width: 1.2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tile-label {
+  padding: 10px 16px 4px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1e293b;
+  flex-shrink: 0;
+}
+.tile-content {
+  padding: 2px 16px 14px;
+  font-size: 0.8rem;
+  color: #334155;
+  line-height: 1.65;
+  flex: 1;
+  overflow-y: auto;
+}
+.tile-sub {
+  border-top: 1px solid #f1f5f9;
+  padding: 10px 16px 12px;
+  font-size: 0.8rem;
+  color: #334155;
+  line-height: 1.65;
+  flex-shrink: 0;
+}
+.tile-sub-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.bullet-list { list-style: none; padding: 0; }
+.bullet-list li::before { content: "• "; color: #94a3b8; }
+.bullet-list li { padding: 1px 0; }
+.empty { color: #94a3b8; font-style: italic; }
+
+/* ── KSF ── */
+.ksf-tile {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 14px 24px;
+  flex-shrink: 0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+.ksf-icon svg {
+  width: 52px; height: 52px;
+  stroke: #1e3a5f;
+  stroke-width: 1.2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ksf-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 5px;
+}
+.ksf-text {
+  font-size: 0.8rem;
+  color: #334155;
+  line-height: 1.65;
+}
+
+/* ── LOADING ── */
+#loading {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; height: 100vh;
+  color: #888; gap: 10px; font-size: 0.9rem;
+}
+.spinner {
+  width: 22px; height: 22px;
+  border: 2px solid #ddd;
+  border-top-color: #c0392b;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="spinner"></div>Chargement...</div>
+
+<div id="fiche-wrap">
+
+  <!-- HEADER -->
+  <div class="top-bar">
+    <div class="logo-sm">SPS<span>MEDICAL</span></div>
+    <div class="prog-name" id="prog-name">—</div>
+    <div class="nav-btns">
+      <button class="nav-btn maison"   onclick="goMaison()">MAISON</button>
+      <button class="nav-btn planning" onclick="goPlanning()">PLANNING</button>
+    </div>
+  </div>
+
+  <!-- CONTEXTE -->
+  <div class="context-bar" id="context-bar" style="display:none"></div>
+
+  <!-- CONTENU -->
+  <div class="content-area">
+
+    <div class="tiles-row">
+
+      <!-- Objectifs -->
+      <div class="tile">
+        <div class="tile-icon">
+          <svg viewBox="0 0 64 64">
+            <circle cx="26" cy="20" r="13"/>
+            <circle cx="26" cy="20" r="5"/>
+            <path d="M6 52 a20 20 0 0 1 40 0"/>
+            <circle cx="50" cy="34" r="8"/>
+            <line x1="50" y1="26" x2="50" y2="22"/>
+            <line x1="50" y1="42" x2="50" y2="46"/>
+            <line x1="42" y1="34" x2="38" y2="34"/>
+            <line x1="58" y1="34" x2="62" y2="34"/>
+            <line x1="44.3" y1="28.3" x2="41.5" y2="25.5"/>
+            <line x1="55.7" y1="39.7" x2="58.5" y2="42.5"/>
+            <line x1="55.7" y1="28.3" x2="58.5" y2="25.5"/>
+            <line x1="44.3" y1="39.7" x2="41.5" y2="42.5"/>
+          </svg>
+        </div>
+        <div class="tile-label">Objectifs :</div>
+        <div class="tile-content"><ul class="bullet-list" id="objectifs-list"></ul></div>
+      </div>
+
+      <!-- Départements -->
+      <div class="tile">
+        <div class="tile-icon">
+          <svg viewBox="0 0 64 64">
+            <circle cx="32" cy="18" r="12"/>
+            <path d="M8 54 a24 24 0 0 1 48 0"/>
+            <circle cx="32" cy="18" r="5"/>
+            <line x1="32" y1="6"  x2="32" y2="2"/>
+            <line x1="43" y1="9"  x2="46" y2="6"/>
+            <line x1="46" y1="18" x2="50" y2="18"/>
+            <line x1="43" y1="27" x2="46" y2="30"/>
+            <line x1="21" y1="9"  x2="18" y2="6"/>
+            <line x1="18" y1="18" x2="14" y2="18"/>
+            <line x1="21" y1="27" x2="18" y2="30"/>
+          </svg>
+        </div>
+        <div class="tile-label">Départements :</div>
+        <div class="tile-content"><ul class="bullet-list" id="dept-list"></ul></div>
+      </div>
+
+      <!-- Actions -->
+      <div class="tile">
+        <div class="tile-icon">
+          <svg viewBox="0 0 64 64">
+            <rect x="8" y="8" width="48" height="48" rx="4"/>
+            <path d="M22 8v14 M8 22h14 M22 22h14v-14 M36 8v14h14 M50 22v14h-14 M36 36v14h14 M22 36h-14 M8 36v14h14"/>
+          </svg>
+        </div>
+        <div class="tile-label">Actions :</div>
+        <div class="tile-content"><ul class="bullet-list" id="actions-list"></ul></div>
+      </div>
+
+      <!-- KPI -->
+      <div class="tile">
+        <div class="tile-icon">
+          <svg viewBox="0 0 64 64">
+            <line x1="4" y1="56" x2="60" y2="56"/>
+            <rect x="6"  y="38" width="10" height="18" rx="2"/>
+            <rect x="20" y="28" width="10" height="28" rx="2"/>
+            <rect x="34" y="16" width="10" height="40" rx="2"/>
+            <rect x="48" y="8"  width="10" height="48" rx="2"/>
+          </svg>
+        </div>
+        <div class="tile-label">KPI :</div>
+        <div class="tile-content"><ul class="bullet-list" id="kpi-list"></ul></div>
+      </div>
+
+      <!-- Leader + Ressources -->
+      <div class="tile">
+        <div class="tile-icon">
+          <svg viewBox="0 0 64 64">
+            <rect x="8" y="4" width="48" height="56" rx="3"/>
+            <line x1="18" y1="18" x2="46" y2="18"/>
+            <line x1="18" y1="26" x2="38" y2="26"/>
+            <line x1="18" y1="34" x2="46" y2="34"/>
+            <line x1="18" y1="42" x2="34" y2="42"/>
+            <line x1="18" y1="50" x2="42" y2="50"/>
+          </svg>
+        </div>
+        <div class="tile-label">Leader :</div>
+        <div class="tile-content" id="leader-content"></div>
+        <div class="tile-sub">
+          <div class="tile-sub-label">Ressources :</div>
+          <div id="ressources-content"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- KSF -->
+    <div class="ksf-tile">
+      <div class="ksf-icon">
+        <svg viewBox="0 0 64 64">
+          <circle cx="20" cy="34" r="14"/>
+          <circle cx="20" cy="34" r="6"/>
+          <line x1="30" y1="34" x2="56" y2="34"/>
+          <line x1="48" y1="34" x2="48" y2="44"/>
+          <line x1="56" y1="34" x2="56" y2="44"/>
+        </svg>
+      </div>
+      <div style="flex:1">
+        <div class="ksf-label">Key Success Factor :</div>
+        <div class="ksf-text" id="ksf-content"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const W = 1400, H = 860;
+
+/* ════════════════════════════════════════
+   SCALE
+════════════════════════════════════════ */
+function scaleToFit() {
+  const el = document.getElementById('fiche-wrap');
+  const scale = Math.min(window.innerWidth / W, window.innerHeight / H);
+  el.style.transform = `scale(${scale})`;
+  el.style.marginLeft = Math.max(0, (window.innerWidth  - W * scale) / 2) + 'px';
+  el.style.marginTop  = Math.max(0, (window.innerHeight - H * scale) / 2) + 'px';
+}
+window.addEventListener('resize', scaleToFit);
+
+/* ════════════════════════════════════════
+   HELPERS
+════════════════════════════════════════ */
+function esc(t) {
+  const d = document.createElement('div');
+  d.textContent = String(t || '');
+  return d.innerHTML;
+}
+function splitBullets(text) {
+  if (!text) return [];
+  return String(text).split(/[\n;]+/).map(s => s.trim()).filter(Boolean);
+}
+function renderList(elId, items) {
+  const ul = document.getElementById(elId);
+  ul.innerHTML = (items && items.length)
+    ? items.map(i => `<li>${esc(i)}</li>`).join('')
+    : '<li class="empty">—</li>';
+}
+function refLabel(val) {
+  // Grist Ref → ['Label', id] ou juste un string ou un id
+  if (!val) return '';
+  if (Array.isArray(val)) return String(val[0] || val[1] || '');
+  if (typeof val === 'string') return val;
+  return String(val);
+}
+
+/* ════════════════════════════════════════
+   ÉTAT
+════════════════════════════════════════ */
+let currentFicheId = null;
+let allActions     = [];   // table Actions (pour lister les actions du programme)
+
+/* ════════════════════════════════════════
+   RENDU FICHE
+════════════════════════════════════════ */
+function renderFiche(f) {
+  if (!f || !f.id) return;
+  currentFicheId = f.id;
+
+  // Nom du programme
+  document.getElementById('prog-name').textContent = f.Programme || '—';
+
+  // Contexte
+  const ctx = document.getElementById('context-bar');
+  if (f.Contexte) {
+    ctx.innerHTML = splitBullets(f.Contexte).map(l => `<div>${esc(l)}</div>`).join('');
+    ctx.style.display = 'block';
+  } else {
+    ctx.style.display = 'none';
+  }
+
+  // Objectifs
+  renderList('objectifs-list', splitBullets(f.Objectifs));
+
+  // Départements
+  renderList('dept-list', splitBullets(f.Departements || f.Departement));
+
+  // Actions du programme (depuis table Actions si chargée, sinon colonne Actions)
+  renderActions(f);
+
+  // KPI
+  renderList('kpi-list', splitBullets(f.KPIs));
+
+  // Leader (Ref vers Membres)
+  const leaderName = refLabel(f.Leader) || '—';
+  document.getElementById('leader-content').innerHTML = `<span>${esc(leaderName)}</span>`;
+
+  // Ressources
+  const resItems = splitBullets(f.Ressources);
+  document.getElementById('ressources-content').innerHTML = resItems.length
+    ? '<ul class="bullet-list">' + resItems.map(r => `<li>${esc(r)}</li>`).join('') + '</ul>'
+    : '<span class="empty">—</span>';
+
+  // KSF
+  const ksfItems = splitBullets(f.KeySuccessFactor);
+  document.getElementById('ksf-content').innerHTML = ksfItems.length
+    ? ksfItems.map(k => `• ${esc(k)}`).join('<br>')
+    : '<span class="empty">—</span>';
+
+  // Afficher
+  document.getElementById('loading').style.display = 'none';
+  const wrap = document.getElementById('fiche-wrap');
+  wrap.style.display = 'flex';
+  scaleToFit();
+}
+
+/* ════════════════════════════════════════
+   ACTIONS DU PROGRAMME
+   Priorité : table Actions si disponible,
+   sinon colonne Actions de la fiche
+════════════════════════════════════════ */
+function renderActions(f) {
+  const ul = document.getElementById('actions-list');
+
+  // Chercher les actions de niveau 1 liées à cette fiche via Initiative_ID
+  const linked = allActions.filter(a => {
+    const raw = a.Initiative_ID;
+    const id  = typeof raw === 'number' ? raw
+              : Array.isArray(raw)      ? raw.find(v => typeof v === 'number' && v > 0)
+              : null;
+    return id === f.id;
+  });
+
+  if (linked.length > 0) {
+    // Afficher les projets (Niveau 1) liés
+    const projets = linked.filter(a => {
+      const n = String(a.Niveau || '').toLowerCase();
+      return n.includes('1') || n.includes('projet');
+    });
+    const list = projets.length ? projets : linked;
+    ul.innerHTML = list.map(a =>
+      `<li style="display:flex;align-items:center;gap:6px;">
+        <span style="font-size:0.7rem;padding:1px 5px;border-radius:3px;background:#e8f0fe;color:#1a5276;font-weight:600">${esc(a.Statut||'')}</span>
+        ${esc(a.Libelle || '—')}
+       </li>`
+    ).join('');
+  } else if (f.Actions) {
+    // Fallback : colonne Actions de la fiche
+    renderList('actions-list', splitBullets(f.Actions));
+  } else {
+    ul.innerHTML = '<li class="empty">—</li>';
+  }
+}
+
+/* ════════════════════════════════════════
+   NAVIGATION
+════════════════════════════════════════ */
+// Noms exacts des pages Grist
+const GRIST_PAGES = {
+  maison:    'Maison SPS',
+  programmes:'Programmes',
+  planning:  'Planning',
+  dashboard: 'Dashboard',
+};
+
+async function navigateTo(pageKey) {
+  const name = GRIST_PAGES[pageKey] || pageKey;
+  try {
+    if (grist && grist.navigateToPage) {
+      await grist.navigateToPage(name);
+      return;
+    }
+  } catch(e) {}
+  window.parent.postMessage({ type: 'grist-navigate', page: name }, '*');
+}
+
+function goMaison()   { navigateTo('maison'); }
+function goPlanning() { navigateTo('planning'); }
+
+/* ════════════════════════════════════════
+   DÉMO
+════════════════════════════════════════ */
+const DEMO = {
+  id: 1,
+  Programme:        'Satisfaction client',
+  Contexte:         'Améliorer la satisfaction de nos clients sur l'ensemble des points de contact.',
+  Objectifs:        'Réduction des réclamations
+Amélioration du NPS
+Formation équipes SC',
+  Departements:     'Service Client
+Commercial
+Qualité',
+  Actions:          'Former les assistants SC
+Envoyer communications ciblées
+Préparer support formation',
+  KPIs:             'NPS > 60
+Taux réclamations < 2%
+Délai réponse < 24h',
+  Leader:           'Claire PRIN',
+  Ressources:       'People : 2 ETP
+Capex : 5 000€',
+  KeySuccessFactor: 'Implication de toute l'équipe et formation continue',
+};
+
+/* ════════════════════════════════════════
+   INIT GRIST
+   Architecture correcte :
+   onRecord + onRecords AVANT ready()
+════════════════════════════════════════ */
+let dataReady = false;
+let fallbackTimer = setTimeout(() => {
+  if (!dataReady) renderFiche(DEMO);
+}, 2000);
+
+try {
+  // ── onRecord : déclenché quand "Sélectionner par" est configuré ──
+  // C'est le canal principal quand la Maison fait setSelectedRows([id])
+  grist.onRecord(rec => {
+    if (!rec || !rec.id) return;
+    clearTimeout(fallbackTimer);
+    dataReady = true;
+    renderFiche(rec);
+  });
+
+  // ── onRecords : fallback si pas de "Sélectionner par" ──
+  // Dans ce cas on affiche la première fiche
+  grist.onRecords(records => {
+    if (dataReady) return; // onRecord a déjà géré
+    if (!records || !records.length) return;
+    clearTimeout(fallbackTimer);
+    dataReady = true;
+    renderFiche(records[0]);
+  });
+
+  // ── Charger la table Actions en arrière-plan ──
+  grist.ready({ requiredAccess: 'full' }).then(async () => {
+    try {
+      const raw  = await grist.docApi.fetchTable('Actions');
+      const cols = Object.keys(raw);
+      const n    = raw[cols[0]]?.length || 0;
+      allActions = Array.from({length: n}, (_, i) => {
+        const r = {}; cols.forEach(c => r[c] = raw[c][i]); return r;
+      });
+      // Re-rendre si une fiche est déjà affichée
+      const current = allActions.find ? null : null; // juste déclencher un re-render
+      if (dataReady && currentFicheId) {
+        // Retrouver la fiche courante et re-rendre
+        // (onRecord a déjà le record complet, on re-rend juste les actions)
+        const ul = document.getElementById('actions-list');
+        if (ul) {
+          // Simuler un re-render des actions seulement
+          const fakeFiche = { id: currentFicheId };
+          renderActions(fakeFiche);
+        }
+      }
+    } catch(e) {
+      console.warn('Actions table not available:', e && e.message);
+    }
+  });
+
+} catch(e) {
+  clearTimeout(fallbackTimer);
+  renderFiche(DEMO);
+}
+</script>
+</body>
+</html>
