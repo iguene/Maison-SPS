@@ -865,103 +865,149 @@ async function fetchFirstAvailable(candidates) {
 /* ═══════════════════════════════════════════════════════
    GRIST — INIT
 ═══════════════════════════════════════════════════════ */
-async function initGrist() {
-  try {
-    await grist.ready({ requiredAccess: 'full' });
+/* ═══════════════════════════════════════════════════════
+   AFFICHAGE — appelé une fois les données prêtes
+═══════════════════════════════════════════════════════ */
+async function showMaison() {
+  document.getElementById('app-loading').style.display = 'none';
+  const maison = document.getElementById('maison');
+  maison.style.display = 'flex';
+  scaleToFit();
+  updateLockButton();
+  updateUserPill();
+  render();
+}
 
-    // ── Récupérer l'info utilisateur ──
-    try {
-      const userInfo = await grist.getUserInfo();
-      if (userInfo) {
-        currentUser.email = userInfo.email || '';
-        currentUser.name  = userInfo.name  || userInfo.email || '';
-      }
-    } catch(e) {
-      console.warn('getUserInfo not available:', e);
+/* ═══════════════════════════════════════════════════════
+   CHARGEMENT DONNÉES ANNEXES (Membres + droits)
+   Appelé après le premier onRecords
+═══════════════════════════════════════════════════════ */
+let sideDataLoaded = false;
+async function loadSideData() {
+  if (sideDataLoaded) return;
+  sideDataLoaded = true;
+
+  // Email utilisateur
+  try {
+    const userInfo = await grist.getUserInfo();
+    if (userInfo) {
+      currentUser.email = userInfo.email || '';
+      currentUser.name  = userInfo.name  || userInfo.email || '';
+    }
+  } catch(e) {}
+
+  // Table Membres → nom affiché
+  try {
+    const mResult = await fetchFirstAvailable(MEMBRES_TABLE_CANDIDATES);
+    membresRows = mResult.rows || [];
+    if (currentUser.email && membresRows.length) {
+      const emailLow = currentUser.email.toLowerCase();
+      const membre = membresRows.find(m =>
+        String(m.Email || m.email || '').toLowerCase() === emailLow
+      );
+      if (membre) currentUser.name = String(membre.Nom || membre.name || currentUser.name);
+    }
+  } catch(e) {}
+
+  // Résoudre le nom réel de la table Fiches Programmes (pour les sauvegardes)
+  try {
+    const all = await grist.docApi.listTables();
+    const norm = s => String(s).toLowerCase().replace(/[\s_]/g, '');
+    const match = all.find(t => FICHES_TABLE_CANDIDATES.map(norm).includes(norm(t)));
+    if (match) resolvedFichesTable = match;
+  } catch(e) {}
+
+  // Détecter les droits d'édition (test write no-op)
+  await detectEditRights();
+
+  updateLockButton();
+  updateUserPill();
+  render(); // re-rend avec le nom utilisateur et le bon curseur
+}
+
+/* ═══════════════════════════════════════════════════════
+   INIT GRIST — architecture correcte :
+   1. Enregistrer onRecords AVANT ready()
+   2. ready() ensuite
+   La première réception de onRecords déclenche l'affichage
+═══════════════════════════════════════════════════════ */
+async function initGrist() {
+
+  // ── 1. onRecords : canal principal des données widget ──
+  // Déclenché à chaque fois que Grist pousse les données (y compris au démarrage)
+  grist.onRecords(records => {
+    if (Date.now() < suppressReloadUntil) {
+      // Juste après une sauvegarde → ignorer pour ne pas écraser les positions locales
+      return;
     }
 
-    // ── Charger la table Membres pour résoudre le nom ──
-    try {
-      const mResult = await fetchFirstAvailable(MEMBRES_TABLE_CANDIDATES);
-      membresRows = mResult.rows || [];
-      // Si on a un email → chercher le nom dans Membres
-      if (currentUser.email && membresRows.length) {
-        const emailLow = currentUser.email.toLowerCase();
-        const membre = membresRows.find(m =>
-          String(m.Email || m.email || '').toLowerCase() === emailLow
-        );
-        if (membre) currentUser.name = String(membre.Nom || membre.name || currentUser.name);
-      }
-    } catch(e) {}
+    const wasEmpty = !dataLoaded;
 
-    // ── Charger les fiches ──
-    const fichesResult = await fetchFirstAvailable(FICHES_TABLE_CANDIDATES);
-    resolvedFichesTable = fichesResult.name || 'Fiches_Programmes';
-    fiches = fichesResult.rows || [];
+    if (!records || !records.length) {
+      // Grist a envoyé un tableau vide : afficher quand même (table vide)
+      fiches = [];
+      dataLoaded = true;
+      if (wasEmpty) showMaison();
+      else render();
+      return;
+    }
+
+    // Préserver la position locale d'un élément en cours de drag
+    const dragId = dragState ? dragState.id : null;
+    fiches = records.map(rec => {
+      if (dragId && rec.id === dragId) {
+        const local = fiches.find(f => f.id === dragId);
+        if (local) return { ...rec, Position_X: local.Position_X, Position_Y: local.Position_Y };
+      }
+      return rec;
+    });
+
     dataLoaded = true;
 
-    // ── Détecter les droits d'édition ──
-    await detectEditRights();
-
-    // ── Afficher ──
-    document.getElementById('app-loading').style.display = 'none';
-    const maison = document.getElementById('maison');
-    maison.style.display = 'flex';
-    scaleToFit();
-    updateLockButton();
-    updateUserPill();
-    setTimeout(render, 50);
-
-    // ── onRecords : mise à jour temps réel MAIS bloquée après sauvegarde ──
-    grist.onRecords(records => {
-      // Bloquer si on vient de sauvegarder (évite d'écraser les positions locales)
-      if (Date.now() < suppressReloadUntil) {
-        console.log('[Maison] onRecords supprimé (sauvegarde récente)');
-        return;
-      }
-      if (!records || !records.length) return;
-
-      // Mettre à jour les données en préservant les positions locales
-      // des éléments en cours de drag (cas edge)
-      const dragId = dragState ? dragState.id : null;
-      fiches = records.map(rec => {
-        if (dragId && rec.id === dragId) {
-          // Garder la position locale pendant le drag
-          const local = fiches.find(f => f.id === dragId);
-          if (local) return { ...rec, Position_X: local.Position_X, Position_Y: local.Position_Y };
-        }
-        return rec;
-      });
+    if (wasEmpty) {
+      // Premier chargement → afficher + charger données annexes en arrière-plan
+      showMaison();
+      loadSideData(); // non-bloquant
+    } else {
       render();
-    });
+    }
+  });
 
-    // onRecord : sélection synchronisée depuis Grist
-    grist.onRecord(rec => {
-      if (rec && rec.id && rec.id !== selectedId) {
-        selectedId = rec.id;
-        render();
-      }
-    });
+  // ── 2. onRecord : synchronisation de sélection ──
+  grist.onRecord(rec => {
+    if (rec && rec.id && rec.id !== selectedId) {
+      selectedId = rec.id;
+      render();
+    }
+  });
 
+  // ── 3. ready() ──
+  // Doit être appelé APRÈS l'enregistrement des handlers
+  // pour que Grist sache quoi pusher
+  try {
+    await grist.ready({ requiredAccess: 'full' });
   } catch(err) {
-    console.error('initGrist error:', err);
+    console.error('grist.ready error:', err);
     document.getElementById('app-loading').innerHTML =
-      '<div style="color:#c0392b;text-align:center;padding:20px">Erreur de connexion Grist.<br>' +
-      '<small>Configure "Données source" dans le widget pour pointer vers Fiches Programmes.</small></div>';
+      '<div style="color:#c0392b;text-align:center;padding:20px">Erreur Grist.<br>' +
+      '<small>Configure les données source du widget → Fiches Programmes</small></div>';
   }
 }
 
 /* ═══════════════════════════════════════════════════════
-   TIMEOUT LOADING
+   TIMEOUT LOADING — si onRecords ne se déclenche pas
+   (widget non lié à une table)
 ═══════════════════════════════════════════════════════ */
 setTimeout(() => {
   if (!dataLoaded) {
     document.getElementById('app-loading').innerHTML =
-      '<div style="color:#c0392b;text-align:center;padding:20px;line-height:1.8">' +
-      'Le widget ne reçoit pas les données Grist.<br>' +
-      '<small>Ouvre "Données source" dans les options du widget<br>et sélectionne la table <strong>Fiches Programmes</strong>.</small></div>';
+      '<div style="color:#c0392b;text-align:center;padding:20px;line-height:2">' +
+      '⚠ Aucune donnée reçue.<br>' +
+      '<strong>À faire dans Grist :</strong><br>' +
+      '<small>1. Clic droit sur le widget → "Données source"<br>' +
+      '2. Choisir la table <strong>Fiches Programmes</strong></small></div>';
   }
-}, 6000);
+}, 5000);
 
 /* ═══════════════════════════════════════════════════════
    START
