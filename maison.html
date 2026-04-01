@@ -976,19 +976,14 @@ function render() {
    NAVIGATION vers la page Fiche (double-clic)
 ═══════════════════════════════════════════════════════ */
 async function tryNavigateToFiche() {
-  // Grist: navigateToPage si disponible
-  const pageNames = ['Initiatives', 'Fiche', 'Fiche Programme', 'Fiches', 'Initiative'];
-  for (const name of pageNames) {
-    try {
-      if (grist.navigateToPage) {
-        await grist.navigateToPage(name);
-        return;
-      }
-    } catch(e) {}
-  }
-  // Fallback message
-  showToast('📄 Double-clic détecté — navigue vers la page "Initiatives" dans la barre latérale');
-  try { window.parent.postMessage({ type: 'grist-navigate', page: 'Initiatives' }, '*'); } catch(e) {}
+  // La fiche est sur la page "Programmes" (p/8)
+  try {
+    if (grist && grist.navigateToPage) {
+      await grist.navigateToPage('Programmes');
+      return;
+    }
+  } catch(e) {}
+  try { window.parent.postMessage({ type: 'grist-navigate', page: 'Programmes' }, '*'); } catch(e) {}
 }
 
 /* ═══════════════════════════════════════════════════════
