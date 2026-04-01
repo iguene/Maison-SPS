@@ -1014,17 +1014,55 @@ async function fetchFirstAvailable(candidates) {
 ═══════════════════════════════════════════════════════ */
 async function showMaison() {
   // ── Résoudre le nom réel de la table AVANT tout le reste ──
-  // C'est critique pour que les sauvegardes fonctionnent dès le premier drag
   try {
     const allTables = await grist.docApi.listTables();
+    console.log('[Maison] Toutes les tables disponibles :', JSON.stringify(allTables));
+
+    // Affichage visible dans la page pour diagnostic
+    window._debugTables = allTables;
+
     const norm = s => String(s).toLowerCase().replace(/[\s_]/g, '');
     const match = allTables.find(t => FICHES_TABLE_CANDIDATES.map(norm).includes(norm(t)));
     if (match) {
       resolvedFichesTable = match;
-      console.log('[Maison] Table résolue :', resolvedFichesTable);
+      console.log('[Maison] ✓ Table résolue :', resolvedFichesTable);
+    } else {
+      // Fallback : chercher toute table dont le nom contient "fiche" ou "programme"
+      const fallback = allTables.find(t =>
+        norm(t).includes('fiche') || norm(t).includes('programme')
+      );
+      if (fallback) {
+        resolvedFichesTable = fallback;
+        console.log('[Maison] ✓ Table résolue (fallback) :', resolvedFichesTable);
+      } else {
+        // Dernier recours : utiliser la table liée au widget (celle qui envoie onRecords)
+        // On la détecte en faisant un fetchTable sur chaque candidate et en voyant laquelle
+        // contient les mêmes ids que nos fiches
+        console.warn('[Maison] ⚠ Aucune table trouvée parmi', FICHES_TABLE_CANDIDATES);
+        console.warn('[Maison] Tables disponibles :', allTables);
+        // Toast visible
+        showToast('⚠ Debug : tables=' + allTables.join(', '));
+      }
     }
   } catch(e) {
-    console.warn('[Maison] listTables failed, using default:', resolvedFichesTable);
+    console.warn('[Maison] listTables failed:', e && e.message);
+  }
+
+  // ── Vérification : tester que resolvedFichesTable accepte les écritures ──
+  // (test no-op sur le premier enregistrement)
+  if (fiches.length > 0) {
+    try {
+      await grist.docApi.applyUserActions([
+        ['UpdateRecord', resolvedFichesTable, fiches[0].id, {
+          Position_X: fiches[0].Position_X ?? 0,
+          Position_Y: fiches[0].Position_Y ?? 0,
+        }]
+      ]);
+      console.log('[Maison] ✓ Écriture OK sur', resolvedFichesTable);
+    } catch(e) {
+      console.error('[Maison] ✗ Écriture échoue sur', resolvedFichesTable, ':', e && e.message);
+      showToast('⚠ Écriture KO sur ' + resolvedFichesTable + ' : ' + (e && e.message || '?'));
+    }
   }
 
   document.getElementById('app-loading').style.display = 'none';
