@@ -350,10 +350,8 @@ body {
 
 <script>
 const W = 1400, H = 860;
+let maisonPageId = null;
 
-/* ════════════════════════════════════════
-   SCALE
-════════════════════════════════════════ */
 function scaleToFit() {
   const el = document.getElementById('fiche-wrap');
   const scale = Math.min(window.innerWidth / W, window.innerHeight / H);
@@ -363,9 +361,7 @@ function scaleToFit() {
 }
 window.addEventListener('resize', scaleToFit);
 
-/* ════════════════════════════════════════
-   HELPERS
-════════════════════════════════════════ */
+// ── Helpers ──
 function esc(t) {
   const d = document.createElement('div');
   d.textContent = String(t || '');
@@ -381,28 +377,10 @@ function renderList(elId, items) {
     ? items.map(i => `<li>${esc(i)}</li>`).join('')
     : '<li class="empty">—</li>';
 }
-function refLabel(val) {
-  // Grist Ref → ['Label', id] ou juste un string ou un id
-  if (!val) return '';
-  if (Array.isArray(val)) return String(val[0] || val[1] || '');
-  if (typeof val === 'string') return val;
-  return String(val);
-}
 
-/* ════════════════════════════════════════
-   ÉTAT
-════════════════════════════════════════ */
-let currentFicheId = null;
-let allActions     = [];   // table Actions (pour lister les actions du programme)
-
-/* ════════════════════════════════════════
-   RENDU FICHE
-════════════════════════════════════════ */
+// ── Rendu fiche ──
 function renderFiche(f) {
-  if (!f || !f.id) return;
-  currentFicheId = f.id;
-
-  // Nom du programme
+  // Nom
   document.getElementById('prog-name').textContent = f.Programme || '—';
 
   // Contexte
@@ -418,16 +396,18 @@ function renderFiche(f) {
   renderList('objectifs-list', splitBullets(f.Objectifs));
 
   // Départements
-  renderList('dept-list', splitBullets(f.Departements || f.Departement));
+  renderList('dept-list', splitBullets(f.Departements));
 
-  // Actions du programme (depuis table Actions si chargée, sinon colonne Actions)
-  renderActions(f);
+  // Actions — depuis colonne Actions ou KPIs en fallback
+  renderList('actions-list', splitBullets(f.Actions || f.Objectifs));
 
   // KPI
   renderList('kpi-list', splitBullets(f.KPIs));
 
-  // Leader (Ref vers Membres)
-  const leaderName = refLabel(f.Leader) || '—';
+  // Leader
+  const leaderName = Array.isArray(f.Leader)
+    ? (f.Leader[1] || '—')
+    : (f.Leader || '—');
   document.getElementById('leader-content').innerHTML = `<span>${esc(leaderName)}</span>`;
 
   // Ressources
@@ -449,147 +429,67 @@ function renderFiche(f) {
   scaleToFit();
 }
 
-/* ════════════════════════════════════════
-   ACTIONS DU PROGRAMME
-   Priorité : table Actions si disponible,
-   sinon colonne Actions de la fiche
-════════════════════════════════════════ */
-function renderActions(f) {
-  const ul = document.getElementById('actions-list');
-
-  // Chercher les actions de niveau 1 liées à cette fiche via Initiative_ID
-  const linked = allActions.filter(a => {
-    const raw = a.Initiative_ID;
-    const id  = typeof raw === 'number' ? raw
-              : Array.isArray(raw)      ? raw.find(v => typeof v === 'number' && v > 0)
-              : null;
-    return id === f.id;
-  });
-
-  if (linked.length > 0) {
-    // Afficher les projets (Niveau 1) liés
-    const projets = linked.filter(a => {
-      const n = String(a.Niveau || '').toLowerCase();
-      return n.includes('1') || n.includes('projet');
-    });
-    const list = projets.length ? projets : linked;
-    ul.innerHTML = list.map(a =>
-      `<li style="display:flex;align-items:center;gap:6px;">
-        <span style="font-size:0.7rem;padding:1px 5px;border-radius:3px;background:#e8f0fe;color:#1a5276;font-weight:600">${esc(a.Statut||'')}</span>
-        ${esc(a.Libelle || '—')}
-       </li>`
-    ).join('');
-  } else if (f.Actions) {
-    // Fallback : colonne Actions de la fiche
-    renderList('actions-list', splitBullets(f.Actions));
-  } else {
-    ul.innerHTML = '<li class="empty">—</li>';
+// ── Navigation ──
+async function goMaison() {
+  try {
+    // Récupère toutes les pages du doc et navigue vers "Maison SPS"
+    const docInfo = await grist.docApi.getDocName();
+    // Navigation via setSelectedRows vide + navigateToPage si dispo
+    if (grist.navigateToPage) {
+      await grist.navigateToPage(maisonPageId);
+    } else {
+      // Fallback : envoie un message parent
+      window.parent.postMessage({ type: 'navigate', page: 'Maison SPS' }, '*');
+    }
+  } catch(e) {
+    console.warn('Navigation maison:', e);
   }
 }
 
-/* ════════════════════════════════════════
-   NAVIGATION
-════════════════════════════════════════ */
-// Noms exacts des pages Grist
-const GRIST_PAGES = {
-  maison:    'Maison SPS',
-  programmes:'Programmes',
-  planning:  'Planning',
-  dashboard: 'Dashboard',
-};
-
-async function navigateTo(pageKey) {
-  const name = GRIST_PAGES[pageKey] || pageKey;
-  try {
-    if (grist && grist.navigateToPage) {
-      await grist.navigateToPage(name);
-      return;
-    }
-  } catch(e) {}
-  window.parent.postMessage({ type: 'grist-navigate', page: name }, '*');
+function goPlanning() {
+  // Sera connecté au Gantt plus tard
+  alert('Le planning Gantt sera disponible prochainement.');
 }
 
-function goMaison()   { navigateTo('maison'); }
-function goPlanning() { navigateTo('planning'); }
-
-/* ════════════════════════════════════════
-   DÉMO
-════════════════════════════════════════ */
+// ── Données démo ──
 const DEMO = {
-  id: 1,
-  Programme:        'Satisfaction client',
-  Contexte:         'Améliorer la satisfaction de nos clients sur l'ensemble des points de contact.',
-  Objectifs:        'Réduction des réclamations
-Amélioration du NPS
-Formation équipes SC',
-  Departements:     'Service Client
-Commercial
-Qualité',
-  Actions:          'Former les assistants SC
-Envoyer communications ciblées
-Préparer support formation',
-  KPIs:             'NPS > 60
-Taux réclamations < 2%
-Délai réponse < 24h',
-  Leader:           'Claire PRIN',
-  Ressources:       'People : 2 ETP
-Capex : 5 000€',
-  KeySuccessFactor: 'Implication de toute l'équipe et formation continue',
+  Programme:        'Exemple Programme',
+  Contexte:         'Contexte : démonstration — ouvrez depuis Grist pour les vraies données.',
+  Objectifs:        'Réduction de notre empreinte écologique\nSavings transport et matière première\nMeilleure image du site',
+  Departements:     'Tous les départements du site',
+  Actions:          'Digitalisation de la gâche journalière\nDéfinir défauthèques avec nos clients\nEtude optimisation des bennes',
+  KPIs:             'T de déchets et %\nTaux de recyclage',
+  Leader:           'Prénom NOM',
+  Ressources:       'People : Fournisseur extérieur ou interne\nCapex : A définir',
+  KeySuccessFactor: 'Implication de tous pour réduire notre impact environnemental',
 };
 
-/* ════════════════════════════════════════
-   INIT GRIST
-   Architecture correcte :
-   onRecord + onRecords AVANT ready()
-════════════════════════════════════════ */
-let dataReady = false;
-let fallbackTimer = setTimeout(() => {
-  if (!dataReady) renderFiche(DEMO);
-}, 2000);
+// ── Init Grist ──
+const fallbackTimer = setTimeout(() => renderFiche(DEMO), 1500);
 
 try {
-  // ── onRecord : déclenché quand "Sélectionner par" est configuré ──
-  // C'est le canal principal quand la Maison fait setSelectedRows([id])
-  grist.onRecord(rec => {
-    if (!rec || !rec.id) return;
-    clearTimeout(fallbackTimer);
-    dataReady = true;
-    renderFiche(rec);
+  grist.ready({ requiredAccess: 'full' });
+
+  // Récupère les infos des pages pour la navigation MAISON
+  grist.on('message', msg => {
+    if (msg && msg.tableId) {
+      // garde l'info si besoin
+    }
   });
 
-  // ── onRecords : fallback si pas de "Sélectionner par" ──
-  // Dans ce cas on affiche la première fiche
+  // onRecords = toujours déclenché
   grist.onRecords(records => {
-    if (dataReady) return; // onRecord a déjà géré
-    if (!records || !records.length) return;
-    clearTimeout(fallbackTimer);
-    dataReady = true;
-    renderFiche(records[0]);
+    if (records && records.length > 0) {
+      clearTimeout(fallbackTimer);
+      renderFiche(records[0]);
+    }
   });
 
-  // ── Charger la table Actions en arrière-plan ──
-  grist.ready({ requiredAccess: 'full' }).then(async () => {
-    try {
-      const raw  = await grist.docApi.fetchTable('Actions');
-      const cols = Object.keys(raw);
-      const n    = raw[cols[0]]?.length || 0;
-      allActions = Array.from({length: n}, (_, i) => {
-        const r = {}; cols.forEach(c => r[c] = raw[c][i]); return r;
-      });
-      // Re-rendre si une fiche est déjà affichée
-      const current = allActions.find ? null : null; // juste déclencher un re-render
-      if (dataReady && currentFicheId) {
-        // Retrouver la fiche courante et re-rendre
-        // (onRecord a déjà le record complet, on re-rend juste les actions)
-        const ul = document.getElementById('actions-list');
-        if (ul) {
-          // Simuler un re-render des actions seulement
-          const fakeFiche = { id: currentFicheId };
-          renderActions(fakeFiche);
-        }
-      }
-    } catch(e) {
-      console.warn('Actions table not available:', e && e.message);
+  // onRecord = déclenché quand "Sélectionner par" est configuré
+  grist.onRecord(rec => {
+    if (rec && rec.id) {
+      clearTimeout(fallbackTimer);
+      renderFiche(rec);
     }
   });
 
