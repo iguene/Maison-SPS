@@ -628,6 +628,41 @@ body { background:#ffffff; }
 .panel-actions { margin-top:auto; display:flex; gap:8px; padding-top:4px; }
 .panel-empty { color:var(--text3); font-size:12px; line-height:1.5; }
 
+/* ── AUTOCOMPLETE ── */
+.ac-wrap { position:relative; width:100%; }
+.ac-input {
+  width:100%; border:1px solid var(--border); background:var(--surface); color:var(--text);
+  border-radius:var(--radius-sm); padding:9px 30px 9px 10px;
+  font:inherit; outline:none; transition:border-color .15s; cursor:text;
+}
+.ac-input:focus { border-color:var(--accent); }
+.ac-input.has-value { border-color:var(--accent); background:#f0f5ff; font-weight:500; }
+.ac-clear {
+  position:absolute; right:8px; top:50%; transform:translateY(-50%);
+  background:none; border:none; color:var(--text3); cursor:pointer;
+  font-size:14px; line-height:1; padding:2px; display:none;
+}
+.ac-clear.visible { display:block; }
+.ac-dropdown {
+  position:absolute; top:calc(100% + 3px); left:0; right:0;
+  background:var(--surface); border:1px solid var(--border2);
+  border-radius:var(--radius-sm); box-shadow:0 8px 24px rgba(15,23,42,.12);
+  z-index:500; max-height:200px; overflow-y:auto; display:none;
+}
+.ac-dropdown.open { display:block; }
+.ac-option {
+  padding:8px 12px; cursor:pointer; font-size:12.5px; color:var(--text);
+  border-bottom:1px solid var(--border); display:flex; align-items:center;
+  gap:6px; transition:background .1s;
+}
+.ac-option:last-child { border-bottom:none; }
+.ac-option:hover, .ac-option.focused { background:var(--surface3); }
+.ac-option.selected { background:#e8f0ff; color:var(--accent); font-weight:600; }
+.ac-option .ac-opt-label { flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ac-option .ac-opt-check { font-size:12px; color:var(--accent); flex-shrink:0; }
+.ac-empty { padding:10px 12px; font-size:12px; color:var(--text3); font-style:italic; }
+.ac-option mark { background:#fff3cd; border-radius:2px; padding:0 1px; font-weight:600; }
+
 </style>
 </head>
 <body>
@@ -1651,51 +1686,34 @@ function getTaskPredecessorOptions(parentId, excludeId=null) {
 }
 
 function syncCreateLinkedFields() {
-  const progSel = document.getElementById('panelInitiative');
-  const parentSel = document.getElementById('panelParent');
-  const predSel = document.getElementById('panelPrev');
-  if (!progSel || !parentSel || !predSel) return;
-
-  const selectedProgramId = progSel.value || '';
-  const currentParent = parentSel.value || '';
-  const parentOptions = getParentProjectOptions(selectedProgramId);
-  parentSel.innerHTML = '<option value="">Sélectionner…</option>' + parentOptions.map(p => {
-    const selected = String(p.id) === String(currentParent) ? 'selected' : '';
-    const label = esc(p.Libelle || p.Programme_Nom || ('Projet ' + p.id));
-    return `<option value="${p.id}" ${selected}>${label}</option>`;
-  }).join('');
-
-  if (currentParent && !parentOptions.some(p => String(p.id) === String(currentParent))) {
-    parentSel.value = '';
-  }
-  if (!parentSel.value && parentOptions.length === 1) {
-    parentSel.value = String(parentOptions[0].id);
-  }
-
-  const selectedParentId = parentSel.value || '';
-  const currentPrev = predSel.value || '';
-  const predOptions = getTaskPredecessorOptions(selectedParentId);
-  predSel.innerHTML = '<option value="">Aucune</option>' + predOptions.map(t => {
-    const selected = String(t.id) === String(currentPrev) ? 'selected' : '';
-    return `<option value="${t.id}" ${selected}>${esc(t.Libelle || ('Tâche ' + t.id))}</option>`;
-  }).join('');
-
-  if (currentPrev && !predOptions.some(t => String(t.id) === String(currentPrev))) {
-    predSel.value = '';
+  // With autocomplete, syncing is handled by onSelect callbacks in initFormAC
+  // This is kept as a no-op for backward compatibility
+  const initiativeHid = document.getElementById('panelInitiative');
+  const parentHid     = document.getElementById('panelParent');
+  if (!initiativeHid) return;
+  const progId  = initiativeHid.value || '';
+  const parentOpts = buildParentOptions(progId);
+  const curParent  = parentHid ? parentHid.value : '';
+  acInit('parent', parentOpts, curParent, (val) => {
+    const prevOpts = buildPrevOptions(val, null);
+    acInit('prev', prevOpts, '', null);
+  });
+  if (!curParent && parentOpts.length === 1) {
+    // Auto-select if only one option
+    const {inp, hid} = acIds('parent');
+    if (inp) inp.value = parentOpts[0].label;
+    if (hid) hid.value = parentOpts[0].value;
+    if (inp) inp.classList.add('has-value');
   }
 }
 
 function syncEditTaskPredecessors(excludeId=null) {
-  const parentSel = document.getElementById('panelParent');
-  const predSel = document.getElementById('panelPrev');
-  if (!parentSel || !predSel) return;
-  const currentPrev = predSel.value || '';
-  const options = getTaskPredecessorOptions(parentSel.value || '', excludeId);
-  predSel.innerHTML = '<option value="">Aucune</option>' + options.map(t => {
-    const selected = String(t.id) === String(currentPrev) ? 'selected' : '';
-    return `<option value="${t.id}" ${selected}>${esc(t.Libelle || ('Tâche ' + t.id))}</option>`;
-  }).join('');
-  if (currentPrev && !options.some(t => String(t.id) === String(currentPrev))) predSel.value = '';
+  const parentHid = document.getElementById('panelParent');
+  const prevHid   = document.getElementById('panelPrev');
+  if (!parentHid) return;
+  const prevOpts  = buildPrevOptions(parentHid.value || '', excludeId);
+  const curPrev   = prevHid ? prevHid.value : '';
+  acInit('prev', prevOpts, curPrev, null);
 }
 
 function resolvePilotFieldForSave(obj, pilotLabel) {
@@ -1802,11 +1820,12 @@ function renderSidePanel() {
     const defaultParentObj = programs.find(p => String(p.id) === String(defaultParent)) || {};
     const defaultInitiative = selectedProg ? (directInitiativeIdOf(selectedProg) || linkedProgramIdForAction(selectedProg)) : (selectedTask ? (directInitiativeIdOf(selectedTask) || linkedProgramIdForAction(selectedTask)) : (defaultParent ? (directInitiativeIdOf(defaultParentObj) || linkedProgramIdForAction(defaultParentObj)) : ''));
 
-    body.innerHTML = formHtml({
+    const createItem = {
       Libelle:'', Statut:'A faire', PDCA:0, Description:'', Pilote:null, Initiative_ID: defaultInitiative || '',
       Tache_precedente: selectedTask?.id || null, Date_Demarrage:'', Date_Fin:'', Action_Parent: defaultParent, Niveau:'2 - Tâche'
-    }, 'create');
-    if (typeof syncCreateLinkedFields === 'function') setTimeout(syncCreateLinkedFields, 0);
+    };
+    body.innerHTML = formHtml(createItem, 'create');
+    setTimeout(() => initFormAC(createItem, 'create', true), 0);
     if (typeof syncCreateLevelFields === 'function') setTimeout(syncCreateLevelFields, 0);
     return;
   }
@@ -1825,6 +1844,7 @@ function renderSidePanel() {
   title.textContent = sel.type === 'prog' ? 'Programme' : 'Tâche';
   meta.innerHTML = `<span>ID ${item.id}</span><span>${esc(sel.type === 'prog' ? 'Projet' : 'Action')}</span>`;
   body.innerHTML = formHtml(item, sel.type);
+  setTimeout(() => initFormAC(item, sel.type, false), 0);
 }
 
 function formHtml(item, mode) {
@@ -1897,31 +1917,85 @@ function formHtml(item, mode) {
     <div class="form-grid-2">
       <div class="form-row">
         <label class="form-label">Programme lié (Programme_Nom)</label>
-        <select class="form-select" id="panelInitiative" onchange="syncCreateLinkedFields()">${initiativeOptions}</select>
+        <div class="ac-wrap" id="acWrap_initiative">
+          <input class="ac-input" id="panelInitiative_text" placeholder="Rechercher un programme…"
+                 autocomplete="off"
+                 oninput="acFilter('initiative')"
+                 onfocus="acOpen('initiative')"
+                 onkeydown="acKeydown(event,'initiative')">
+          <button class="ac-clear" id="acClear_initiative" onclick="acClear('initiative')" tabindex="-1">✕</button>
+          <div class="ac-dropdown" id="acDrop_initiative"></div>
+          <input type="hidden" id="panelInitiative">
+        </div>
       </div>
       <div class="form-row" id="panelParentRow">
         <label class="form-label" id="panelParentLabel">Projet parent (Action_Parent)</label>
-        <select class="form-select" id="panelParent" onchange="${isCreate ? 'syncCreateLinkedFields()' : `syncEditTaskPredecessors(${item.id})`}">${projectOptions}</select>
+        <div class="ac-wrap" id="acWrap_parent">
+          <input class="ac-input" id="panelParent_text" placeholder="Rechercher un projet…"
+                 autocomplete="off"
+                 oninput="acFilter('parent')"
+                 onfocus="acOpen('parent')"
+                 onkeydown="acKeydown(event,'parent')">
+          <button class="ac-clear" id="acClear_parent" onclick="acClear('parent')" tabindex="-1">✕</button>
+          <div class="ac-dropdown" id="acDrop_parent"></div>
+          <input type="hidden" id="panelParent">
+        </div>
       </div>
     </div>
     <div class="form-grid-2">
       <div class="form-row" id="panelPrevRow">
         <label class="form-label" id="panelPrevLabel">Tâche précédente (Tache_précédente)</label>
-        <select class="form-select" id="panelPrev">${predecessorOptions}</select>
+        <div class="ac-wrap" id="acWrap_prev">
+          <input class="ac-input" id="panelPrev_text" placeholder="Aucune tâche précédente…"
+                 autocomplete="off"
+                 oninput="acFilter('prev')"
+                 onfocus="acOpen('prev')"
+                 onkeydown="acKeydown(event,'prev')">
+          <button class="ac-clear" id="acClear_prev" onclick="acClear('prev')" tabindex="-1">✕</button>
+          <div class="ac-dropdown" id="acDrop_prev"></div>
+          <input type="hidden" id="panelPrev">
+        </div>
       </div>
       <div class="form-row">
         <label class="form-label">Pilote (réf. Membres)</label>
-        <select class="form-select" id="panelPilot">${pilotOptions}</select>
+        <div class="ac-wrap" id="acWrap_pilot">
+          <input class="ac-input" id="panelPilot_text" placeholder="Rechercher un pilote…"
+                 autocomplete="off"
+                 oninput="acFilter('pilot')"
+                 onfocus="acOpen('pilot')"
+                 onkeydown="acKeydown(event,'pilot')">
+          <button class="ac-clear" id="acClear_pilot" onclick="acClear('pilot')" tabindex="-1">✕</button>
+          <div class="ac-dropdown" id="acDrop_pilot"></div>
+          <input type="hidden" id="panelPilot">
+        </div>
       </div>
     </div>` : `
     <div class="form-grid-2">
       <div class="form-row">
         <label class="form-label">Programme lié (Programme_Nom)</label>
-        <select class="form-select" id="panelInitiative">${initiativeOptions}</select>
+        <div class="ac-wrap" id="acWrap_initiative">
+          <input class="ac-input" id="panelInitiative_text" placeholder="Rechercher un programme…"
+                 autocomplete="off"
+                 oninput="acFilter('initiative')"
+                 onfocus="acOpen('initiative')"
+                 onkeydown="acKeydown(event,'initiative')">
+          <button class="ac-clear" id="acClear_initiative" onclick="acClear('initiative')" tabindex="-1">✕</button>
+          <div class="ac-dropdown" id="acDrop_initiative"></div>
+          <input type="hidden" id="panelInitiative">
+        </div>
       </div>
       <div class="form-row">
         <label class="form-label">Pilote (réf. Membres)</label>
-        <select class="form-select" id="panelPilot">${pilotOptions}</select>
+        <div class="ac-wrap" id="acWrap_pilot">
+          <input class="ac-input" id="panelPilot_text" placeholder="Rechercher un pilote…"
+                 autocomplete="off"
+                 oninput="acFilter('pilot')"
+                 onfocus="acOpen('pilot')"
+                 onkeydown="acKeydown(event,'pilot')">
+          <button class="ac-clear" id="acClear_pilot" onclick="acClear('pilot')" tabindex="-1">✕</button>
+          <div class="ac-dropdown" id="acDrop_pilot"></div>
+          <input type="hidden" id="panelPilot">
+        </div>
       </div>
     </div>`}
     <div class="form-row">
@@ -2410,6 +2484,217 @@ function findTask(id) {
     if (t) return t;
   }
   return null;
+}
+
+
+/* ═══════════════════════════════════════════════════════
+   AUTOCOMPLETE ENGINE
+═══════════════════════════════════════════════════════ */
+const AC_CONFIGS = {};  // id → { options:[{value,label}], currentValue, onSelect }
+
+function acInit(id, options, currentValue, onSelect) {
+  // options = [{value, label}]
+  AC_CONFIGS[id] = { options, currentValue: currentValue ?? '', onSelect };
+  const inp  = document.getElementById('panelInitiative_text'.replace('initiative', id === 'initiative' ? 'initiative' : id));
+  const inpId = `panel${id.charAt(0).toUpperCase()+id.slice(1)}_text`;
+  const hidId = `panel${id.charAt(0).toUpperCase()+id.slice(1)}`;
+  const inp2  = document.getElementById(inpId);
+  const hid   = document.getElementById(hidId);
+  if (!inp2 || !hid) return;
+
+  // Set current value display
+  const cur = options.find(o => String(o.value) === String(currentValue));
+  inp2.value = cur ? cur.label : (currentValue ? String(currentValue) : '');
+  inp2.classList.toggle('has-value', !!cur);
+  hid.value  = cur ? cur.value : (currentValue || '');
+  const clr  = document.getElementById(`acClear_${id}`);
+  if (clr) clr.classList.toggle('visible', !!cur || !!currentValue);
+}
+
+// Map id → field name for input/hidden IDs
+function acIds(id) {
+  const cap = id.charAt(0).toUpperCase() + id.slice(1);
+  return {
+    inp:  document.getElementById(`panel${cap}_text`),
+    hid:  document.getElementById(`panel${cap}`),
+    drop: document.getElementById(`acDrop_${id}`),
+    clr:  document.getElementById(`acClear_${id}`),
+  };
+}
+
+function acFilter(id) {
+  const cfg = AC_CONFIGS[id]; if (!cfg) return;
+  const {inp, hid, drop} = acIds(id);
+  if (!inp || !drop) return;
+  const q = inp.value.trim().toLowerCase();
+  const filtered = q
+    ? cfg.options.filter(o => o.label.toLowerCase().includes(q))
+    : cfg.options;
+  acRenderDropdown(id, filtered, q, String(hid ? hid.value : ''));
+  drop.classList.add('open');
+  // Clear hidden if text doesn't match any option exactly
+  if (hid) {
+    const exact = cfg.options.find(o => o.label.toLowerCase() === q);
+    if (!exact) {
+      hid.value = '';
+      inp.classList.remove('has-value');
+    }
+  }
+  const clr = acIds(id).clr;
+  if (clr) clr.classList.toggle('visible', inp.value.length > 0);
+}
+
+function acOpen(id) {
+  const cfg = AC_CONFIGS[id]; if (!cfg) return;
+  const {inp, hid, drop} = acIds(id);
+  if (!drop) return;
+  const q = inp ? inp.value.trim().toLowerCase() : '';
+  const filtered = q ? cfg.options.filter(o => o.label.toLowerCase().includes(q)) : cfg.options;
+  acRenderDropdown(id, filtered, q, hid ? String(hid.value) : '');
+  drop.classList.add('open');
+  // Close other dropdowns
+  document.querySelectorAll('.ac-dropdown').forEach(d => {
+    if (d.id !== `acDrop_${id}`) d.classList.remove('open');
+  });
+}
+
+function acRenderDropdown(id, options, q, selectedVal) {
+  const {drop} = acIds(id);
+  if (!drop) return;
+  if (!options.length) {
+    drop.innerHTML = `<div class="ac-empty">Aucun résultat pour "${q}"</div>`;
+    return;
+  }
+  drop.innerHTML = options.map((o, i) => {
+    const isSel = String(o.value) === selectedVal;
+    const label = q ? o.label.replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi'), '<mark>$1</mark>') : esc(o.label);
+    return `<div class="ac-option${isSel?' selected':''}" data-value="${o.value}" data-label="${esc(o.label)}" data-index="${i}"
+      onmousedown="acSelect('${id}', this)" >
+      <span class="ac-opt-label">${label}</span>
+      ${isSel ? '<span class="ac-opt-check">✓</span>' : ''}
+    </div>`;
+  }).join('');
+}
+
+function acSelect(id, optEl) {
+  const cfg = AC_CONFIGS[id]; if (!cfg) return;
+  const {inp, hid, drop, clr} = acIds(id);
+  const val   = optEl.dataset.value;
+  const label = optEl.dataset.label;
+  if (inp) { inp.value = label; inp.classList.add('has-value'); }
+  if (hid) hid.value = val;
+  if (clr) clr.classList.add('visible');
+  if (drop) drop.classList.remove('open');
+  cfg.currentValue = val;
+  if (cfg.onSelect) cfg.onSelect(val, label);
+}
+
+function acClear(id) {
+  const cfg = AC_CONFIGS[id]; if (!cfg) return;
+  const {inp, hid, drop, clr} = acIds(id);
+  if (inp) { inp.value = ''; inp.classList.remove('has-value'); inp.focus(); }
+  if (hid) hid.value = '';
+  if (clr) clr.classList.remove('visible');
+  cfg.currentValue = '';
+  if (cfg.onSelect) cfg.onSelect('', '');
+  if (drop) {
+    acRenderDropdown(id, cfg.options, '', '');
+    drop.classList.add('open');
+  }
+}
+
+function acKeydown(e, id) {
+  const {drop} = acIds(id);
+  if (!drop || !drop.classList.contains('open')) return;
+  const opts = drop.querySelectorAll('.ac-option');
+  const cur  = drop.querySelector('.ac-option.focused');
+  let idx    = cur ? parseInt(cur.dataset.index) : -1;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    idx = Math.min(idx + 1, opts.length - 1);
+    opts.forEach(o => o.classList.remove('focused'));
+    if (opts[idx]) { opts[idx].classList.add('focused'); opts[idx].scrollIntoView({block:'nearest'}); }
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    idx = Math.max(idx - 1, 0);
+    opts.forEach(o => o.classList.remove('focused'));
+    if (opts[idx]) { opts[idx].classList.add('focused'); opts[idx].scrollIntoView({block:'nearest'}); }
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    const focused = drop.querySelector('.ac-option.focused') || opts[0];
+    if (focused) acSelect(id, focused);
+  } else if (e.key === 'Escape') {
+    drop.classList.remove('open');
+  }
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('mousedown', e => {
+  if (!e.target.closest('.ac-wrap')) {
+    document.querySelectorAll('.ac-dropdown').forEach(d => d.classList.remove('open'));
+  }
+});
+
+/* ── Helpers to build option lists ── */
+function buildInitiativeOptions() {
+  return getInitiativeChoices().map(r => ({ value: String(r.id), label: r.label || `Programme ${r.id}` }));
+}
+function buildParentOptions(initiativeVal) {
+  return getParentProjectOptions(initiativeVal).map(p => ({
+    value: String(p.id),
+    label: p.Libelle || p.Programme_Nom || `Projet ${p.id}`
+  }));
+}
+function buildPrevOptions(parentId, excludeId) {
+  return [{ value: '', label: 'Aucune' }, ...getTaskPredecessorOptions(parentId, excludeId).map(t => ({
+    value: String(t.id),
+    label: t.Libelle || `Tâche ${t.id}`
+  }))];
+}
+function buildPilotOptions() {
+  return [{ value: '', label: 'Sélectionner…' }, ...membersRows.map(m => ({
+    value: String(m.id),
+    label: memberName(m) || `Membre ${m.id}`
+  }))];
+}
+
+/* ── Init all ACs after formHtml renders ── */
+function initFormAC(item, mode, isCreate) {
+  const parentVal      = refIdOf(item.Action_Parent) || '';
+  const prevVal        = refIdOf(item.Tache_precedente || item['Tache_précédente']) || '';
+  const initiativeVal  = directInitiativeIdOf(item) || linkedProgramIdForAction(item) || '';
+  const pilotCurrentId = pilotRefIdOf(item);
+  const isNotProg      = mode !== 'prog';
+
+  // Programme lié
+  if (document.getElementById('panelInitiative_text')) {
+    acInit('initiative', buildInitiativeOptions(), String(initiativeVal || ''), (val) => {
+      // When programme changes, refresh parent options
+      const parentOpts = buildParentOptions(val);
+      acInit('parent', parentOpts, '', (pVal) => {
+        const prevOpts = buildPrevOptions(pVal, item.id);
+        acInit('prev', prevOpts, '', null);
+      });
+    });
+  }
+
+  // Projet parent
+  if (document.getElementById('panelParent_text') && isNotProg) {
+    acInit('parent', buildParentOptions(String(initiativeVal || '')), String(parentVal || ''), (val) => {
+      const prevOpts = buildPrevOptions(val, item.id);
+      acInit('prev', prevOpts, '', null);
+    });
+  }
+
+  // Tâche précédente
+  if (document.getElementById('panelPrev_text') && isNotProg) {
+    acInit('prev', buildPrevOptions(String(parentVal || ''), item.id), String(prevVal || ''), null);
+  }
+
+  // Pilote
+  if (document.getElementById('panelPilot_text')) {
+    acInit('pilot', buildPilotOptions(), String(pilotCurrentId || ''), null);
+  }
 }
 
 /* ════════════════════════════════════════════
