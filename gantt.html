@@ -53,87 +53,93 @@ body { background:#ffffff; }
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 14px;
+  gap: 6px;
+  padding: 0 10px;
   flex-shrink: 0;
   position: relative;
   z-index: 40;
+  overflow: hidden; /* empêche le débordement */
 }
 .toolbar-brand {
   font-weight: 700;
-  font-size: 14px;
-  letter-spacing: -.3px;
+  font-size: 13px;
   color: var(--text);
   display: flex;
   align-items: center;
-  gap: 7px;
-  margin-right: 8px;
+  gap: 5px;
+  flex-shrink: 0;
 }
 .toolbar-brand svg { color: var(--accent); }
-.sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+.sep { width: 1px; height: 18px; background: var(--border); margin: 0 2px; flex-shrink:0; }
 
 /* NAV BUTTONS */
-.nav-group { display:flex; align-items:center; gap:3px; }
+.nav-group { display:flex; align-items:center; gap:2px; flex-shrink:0; }
 .btn-icon {
-  width: 30px; height: 30px;
+  width: 26px; height: 26px;
   border: 1px solid var(--border);
   background: transparent;
   border-radius: var(--radius-sm);
   color: var(--text2);
   cursor: pointer;
   display: flex; align-items:center; justify-content:center;
-  font-size: 14px;
+  font-size: 13px;
   transition: all .15s;
+  flex-shrink: 0;
 }
 .btn-icon:hover { background:var(--surface3); color:var(--text); border-color:var(--border2); }
 
 .period-label {
   font-weight: 600;
-  font-size: 13px;
-  min-width: 120px;
+  font-size: 11px;
+  min-width: 80px;
+  max-width: 110px;
   text-align: center;
   color: var(--text);
   font-family: var(--mono);
-  letter-spacing: -.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ZOOM TOGGLE */
-.zoom-group { display:flex; background:var(--surface3); border-radius:var(--radius-sm); padding:2px; gap:2px; border:1px solid var(--border); }
+.zoom-group { display:flex; background:var(--surface3); border-radius:var(--radius-sm); padding:2px; gap:1px; border:1px solid var(--border); flex-shrink:0; }
 .zoom-btn {
-  padding: 4px 11px;
+  padding: 3px 7px;
   border-radius: 4px;
   border: none;
   background: transparent;
   color: var(--text2);
   font-family: var(--font);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   cursor: pointer;
   transition: all .15s;
+  white-space: nowrap;
 }
 .zoom-btn.active { background: var(--accent); color: #fff; }
 .zoom-btn:hover:not(.active) { color: var(--text); }
 
 /* FILTERS */
-.filter-group { display:flex; align-items:center; gap:6px; margin-left:auto; }
-.filter-label { font-size:11px; color:var(--text3); font-weight:500; text-transform:uppercase; letter-spacing:.6px; }
+.filter-group { display:flex; align-items:center; gap:4px; margin-left:auto; flex-shrink:0; }
+.filter-label { font-size:10px; color:var(--text3); font-weight:600; text-transform:uppercase; letter-spacing:.5px; white-space:nowrap; }
 .filter-select {
   background: var(--surface3);
   border: 1px solid var(--border);
   color: var(--text);
   font-family: var(--font);
-  font-size: 12px;
-  padding: 5px 9px;
+  font-size: 11px;
+  padding: 4px 6px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   outline: none;
   transition: border-color .15s;
+  max-width: 120px;
 }
 .filter-select:focus { border-color: var(--accent); }
 .filter-select option { background: var(--surface2); }
 
 /* UNDO & SAVE */
-.save-area { display:flex; align-items:center; gap:6px; }
+.save-area { display:flex; align-items:center; gap:4px; flex-shrink:0; }
 .btn-undo {
   padding: 5px 10px;
   border: 1px solid var(--border2);
@@ -669,11 +675,11 @@ body { background:#ffffff; }
 
 <!-- TOOLBAR -->
 <div class="toolbar">
+  <!-- BRAND -->
   <div class="toolbar-brand">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
       <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
       <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-      <line x1="8" y1="14" x2="14" y2="14"/><line x1="8" y1="18" x2="16" y2="18"/>
     </svg>
     Gantt
   </div>
@@ -683,17 +689,18 @@ body { background:#ffffff; }
     <button class="btn-icon" onclick="navigate(-1)" title="Précédent">‹</button>
     <span class="period-label" id="periodLabel">—</span>
     <button class="btn-icon" onclick="navigate(1)" title="Suivant">›</button>
+    <button class="btn-icon" onclick="goToday()" title="Aujourd'hui" style="font-size:10px;width:auto;padding:0 6px;">Auj.</button>
   </div>
-  <button class="btn-icon" onclick="goToday()" title="Aujourd'hui" style="font-size:11px;padding:0 8px;width:auto;">Auj.</button>
   <div class="sep"></div>
   <!-- ZOOM -->
   <div class="zoom-group">
-    <button class="zoom-btn" data-zoom="week" onclick="setZoom('week')">Semaine</button>
+    <button class="zoom-btn" data-zoom="week"     onclick="setZoom('week')">Sem.</button>
     <button class="zoom-btn active" data-zoom="month" onclick="setZoom('month')">Mois</button>
-    <button class="zoom-btn" data-zoom="quarter" onclick="setZoom('quarter')">Trimestre</button>
-    <button class="zoom-btn" data-zoom="halfyear" onclick="setZoom('halfyear')">6 mois</button>
-    <button class="zoom-btn" data-zoom="year" onclick="setZoom('year')">1 an</button>
+    <button class="zoom-btn" data-zoom="quarter"  onclick="setZoom('quarter')">Trim.</button>
+    <button class="zoom-btn" data-zoom="halfyear" onclick="setZoom('halfyear')">6 m.</button>
+    <button class="zoom-btn" data-zoom="year"     onclick="setZoom('year')">1 an</button>
   </div>
+  <div class="sep"></div>
   <!-- FILTERS -->
   <div class="filter-group">
     <span class="filter-label">Statut</span>
@@ -703,20 +710,21 @@ body { background:#ffffff; }
       <option value="A faire">À faire</option>
       <option value="Terminé">Terminé</option>
     </select>
-    <span class="filter-label" style="margin-left:6px">Programme</span>
+    <span class="filter-label">Prog.</span>
     <select class="filter-select" id="filterProg" onchange="applyFilters()">
       <option value="">Tous</option>
     </select>
-    <span class="filter-label" style="margin-left:6px">Pilote</span>
+    <span class="filter-label">Pilote</span>
     <select class="filter-select" id="filterPilot" onchange="applyFilters()">
       <option value="">Tous</option>
     </select>
   </div>
-  <button class="btn-secondary" onclick="fitAndRender()" title="Afficher tout le planning">Ajuster</button>
-  <button class="btn-primary" onclick="openCreateTaskPanel()">+ Tâche</button>
+  <div class="sep"></div>
+  <!-- ACTIONS -->
+  <button class="btn-primary" onclick="openCreateTaskPanel()" style="white-space:nowrap;flex-shrink:0">+ Tâche</button>
   <!-- SAVE -->
-  <div class="save-area">
-    <button class="btn-undo" id="undoBtn" onclick="undoChanges()">↺ Annuler</button>
+  <div class="save-area" style="flex-shrink:0">
+    <button class="btn-undo" id="undoBtn" onclick="undoChanges()">↺</button>
     <div class="save-pill" id="savePill"></div>
   </div>
 </div>
