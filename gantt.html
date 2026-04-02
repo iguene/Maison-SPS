@@ -48,18 +48,22 @@ body { background:#ffffff; }
    TOOLBAR
 ══════════════════════════════════════════════ */
 .toolbar {
-  height: var(--header-h);
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 0 10px;
+  gap: 5px;
+  padding: 0 8px;
   flex-shrink: 0;
   position: relative;
   z-index: 40;
-  overflow: hidden; /* empêche le débordement */
+  flex-wrap: nowrap;
+  min-height: var(--header-h);
+  overflow-x: auto;        /* scroll horizontal si vraiment trop étroit */
+  overflow-y: hidden;
+  scrollbar-width: none;   /* masquer la scrollbar */
 }
+.toolbar::-webkit-scrollbar { display: none; }
 .toolbar-brand {
   font-weight: 700;
   font-size: 13px;
@@ -91,8 +95,8 @@ body { background:#ffffff; }
 .period-label {
   font-weight: 600;
   font-size: 11px;
-  min-width: 80px;
-  max-width: 110px;
+  min-width: 70px;
+  max-width: 95px;
   text-align: center;
   color: var(--text);
   font-family: var(--mono);
@@ -133,7 +137,7 @@ body { background:#ffffff; }
   cursor: pointer;
   outline: none;
   transition: border-color .15s;
-  max-width: 120px;
+  max-width: 100px;
 }
 .filter-select:focus { border-color: var(--accent); }
 .filter-select option { background: var(--surface2); }
@@ -721,11 +725,13 @@ body { background:#ffffff; }
   </div>
   <div class="sep"></div>
   <!-- ACTIONS -->
-  <button class="btn-secondary" onclick="fitAndRender()" title="Afficher tout le planning" style="white-space:nowrap;flex-shrink:0;font-size:11px;padding:4px 8px;">Ajuster</button>
-  <button class="btn-primary" onclick="openCreateTaskPanel()" style="white-space:nowrap;flex-shrink:0">+ Tâche</button>
+  <button class="btn-secondary" onclick="fitAndRender()" title="Afficher tout le planning"
+    style="white-space:nowrap;flex-shrink:0;font-size:11px;padding:3px 7px;border-radius:4px;">⤢ Ajuster</button>
+  <button class="btn-primary" onclick="openCreateTaskPanel()"
+    style="white-space:nowrap;flex-shrink:0;font-size:11px;padding:4px 9px;">+ Tâche</button>
   <!-- SAVE -->
-  <div class="save-area" style="flex-shrink:0">
-    <button class="btn-undo" id="undoBtn" onclick="undoChanges()">↺</button>
+  <div class="save-area" style="flex-shrink:0;gap:3px;">
+    <button class="btn-undo" id="undoBtn" onclick="undoChanges()" style="padding:4px 7px;font-size:11px;">↺</button>
     <div class="save-pill" id="savePill"></div>
   </div>
 </div>
