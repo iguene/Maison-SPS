@@ -7,13 +7,20 @@
 <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { width: 100%; height: 100%; overflow: hidden; }
+html, body {
+  width: 1400px;
+  height: 860px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
 body {
+  width: 1400px;
+  height: 860px;
   font-family: 'Segoe UI', -apple-system, sans-serif;
   background: #f5f5f5;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  display: block;
 }
 
 #maison {
@@ -21,10 +28,10 @@ body {
   height: 860px;
   display: flex;
   flex-direction: column;
-  transform-origin: top left;
   position: relative;
+  transform: none !important;
+  margin: 0 !important;
 }
-
 /* ── HEADER ── */
 .header {
   width: 100%;
@@ -234,6 +241,7 @@ body {
   position: relative;
   overflow: hidden;
 }
+/* Curseur selon mode */
 .pillar-body.editable   { cursor: default; }
 .pillar-body.read-only  { cursor: default; }
 
@@ -266,6 +274,7 @@ body {
   line-height: 1.3;
   transition: box-shadow 0.1s, border-color 0.1s, background 0.1s;
 }
+/* Curseur selon mode édition */
 .fiche-card.draggable { cursor: grab; }
 .fiche-card.draggable:hover {
   background: rgba(255,255,255,0.88);
@@ -285,6 +294,7 @@ body {
   box-shadow: 0 4px 16px rgba(62,93,231,0.35);
   z-index: 10;
 }
+/* Indicateur "→ voir la fiche" au survol de la carte sélectionnée */
 .fiche-card.selected::after {
   content: '→ Fiche';
   position: absolute;
@@ -306,15 +316,18 @@ body {
   transition: none;
 }
 
+/* Taille selon priorité */
 .fiche-card.prio-critique { font-size: 1.1rem; }
 .fiche-card.prio-haute    { font-size: 0.88rem; }
 .fiche-card.prio-moyenne  { font-size: 0.75rem; }
 .fiche-card.prio-basse    { font-size: 0.65rem; font-weight: 500; opacity: 0.85; }
 
+/* Couleur selon statut */
 .fiche-card.s-en-cours { color: #1a5276; }
 .fiche-card.s-termine  { color: #1a5c2a; }
 .fiche-card.s-a-venir  { color: #7d6608; }
 
+/* Indicateur d'avancement */
 .fiche-card .prog-bar {
   position: absolute;
   bottom: 0; left: 0;
@@ -397,13 +410,16 @@ body {
     <div class="main-title">Maison SPS Medical &nbsp;(Vision 3 ans)</div>
 
     <div class="header-right">
+      <!-- Indicateur utilisateur connecté -->
       <div class="user-pill" id="userPill" style="display:none">
         <div class="user-dot" id="userDot"></div>
         <span id="userName">—</span>
       </div>
 
+      <!-- Indicateur sauvegarde -->
       <span class="save-indicator" id="saveIndicator"></span>
 
+      <!-- Bouton modifier disposition — toujours visible -->
       <button class="edit-mode-btn" id="editModeBtn" type="button" onclick="onEditModeClick()">
         🔓 Modifier la disposition
       </button>
@@ -468,6 +484,7 @@ body {
   </div>
 </div>
 
+<!-- PIN MODAL -->
 <div class="pin-overlay" id="pinOverlay">
   <div class="pin-box">
     <div class="pin-title">🔐 Accès édition</div>
@@ -485,43 +502,56 @@ body {
 </div>
 
 <script>
-let fiches = [];
-let membresRows = [];
-let selectedId = null;
-let dragState = null;
-let toastTimer = null;
-let layoutLocked = true;
-let editModeActive = false;
+/* ═══════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════ */
+let fiches        = [];   // données Grist
+let membresRows   = [];   // table Membres (pour email)
+let selectedId    = null;
+let dragState     = null;
+let toastTimer    = null;
+let layoutLocked    = true;   // true = cartes figées (mode par défaut)
+let editModeActive  = false;  // true = drag activé (déverrouillé par PIN)
+
+// ── Code PIN (à personnaliser) ──
+// Vous pouvez changer ce PIN ici. Par défaut : 1234
 const EDIT_PIN = '1234';
-let currentUser = { name: '', email: '' };
-let dataLoaded = false;
-let sideDataLoaded = false;
+let currentUser   = { name: '', email: '' };
+let dataLoaded    = false;
+
+// ── Clé : bloquer onRecords pendant 3s après une sauvegarde ──
 let suppressReloadUntil = 0;
 
 const W = 1400, H = 860;
 
+/* ═══════════════════════════════════════════════════════
+   TABLE NAMES
+═══════════════════════════════════════════════════════ */
+// Nom interne Grist de la table Fiches Programmes (sans espace)
+// Grist utilise le nom ID de la table, pas le nom affiché.
+// Essaie plusieurs variantes pour être robuste.
 const FICHES_TABLE_CANDIDATES = [
-  'Fiches_Programmes',
-  'Fiches Programmes',
-  'FichesProgrammes',
-  'fiches_programmes',
-  'FichesProgramme'
+  'Fiches_Programmes', 'Fiches Programmes', 'FichesProgrammes',
+  'fiches_programmes', 'FichesProgramme',
 ];
 const MEMBRES_TABLE_CANDIDATES = ['Membres', 'Table1', 'membres'];
 
-let resolvedFichesTable = null;
-let resolvedPositionXCol = null;
-let resolvedPositionYCol = null;
+let resolvedFichesTable = 'Fiches_Programmes';
 
+/* ═══════════════════════════════════════════════════════
+   SCALE
+═══════════════════════════════════════════════════════ */
 function scaleToFit() {
   const el = document.getElementById('maison');
-  const scale = Math.min(window.innerWidth / W, window.innerHeight / H);
-  el.style.transform = `scale(${scale})`;
-  el.style.marginLeft = Math.max(0, (window.innerWidth - W * scale) / 2) + 'px';
-  el.style.marginTop = Math.max(0, (window.innerHeight - H * scale) / 2) + 'px';
+  if (!el) return;
+  el.style.transform = 'none';
+  el.style.marginLeft = '0px';
+  el.style.marginTop = '0px';
 }
-window.addEventListener('resize', scaleToFit);
 
+/* ═══════════════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════════════ */
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -530,17 +560,21 @@ function showToast(msg) {
   toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
 }
 
+/* ═══════════════════════════════════════════════════════
+   SAVE INDICATOR (distinct du toast)
+═══════════════════════════════════════════════════════ */
 let saveIndTimer = null;
-function showSaveIndicator(msg, isError = false) {
+function showSaveIndicator(msg, isError=false) {
   const el = document.getElementById('saveIndicator');
   el.textContent = msg;
   el.className = 'save-indicator show' + (isError ? ' error' : '');
   clearTimeout(saveIndTimer);
-  saveIndTimer = setTimeout(() => {
-    el.classList.remove('show');
-  }, 2000);
+  saveIndTimer = setTimeout(() => { el.classList.remove('show'); }, 2000);
 }
 
+/* ═══════════════════════════════════════════════════════
+   LOCK BUTTON
+═══════════════════════════════════════════════════════ */
 function updateEditModeBtn() {
   const btn = document.getElementById('editModeBtn');
   if (!btn) return;
@@ -553,8 +587,13 @@ function updateEditModeBtn() {
   }
 }
 
+// Alias
+function updateLockButton() { updateEditModeBtn(); }
+
+// Clic sur le bouton : si actif → verrouiller ; sinon → demander PIN
 function onEditModeClick() {
   if (editModeActive) {
+    // Verrouiller directement
     activateEditMode(false);
   } else {
     openPinModal();
@@ -590,7 +629,7 @@ function confirmPin() {
 
 function activateEditMode(on) {
   editModeActive = on;
-  layoutLocked = !on;
+  layoutLocked   = !on;
   updateEditModeBtn();
   document.querySelectorAll('.fiche-card').forEach(card => {
     if (on) {
@@ -610,6 +649,11 @@ function activateEditMode(on) {
   }
 }
 
+function toggleEditMode() { onEditModeClick(); }
+
+/* ═══════════════════════════════════════════════════════
+   USER PILL
+═══════════════════════════════════════════════════════ */
 function updateUserPill() {
   const pill = document.getElementById('userPill');
   const name = document.getElementById('userName');
@@ -620,132 +664,82 @@ function updateUserPill() {
   if (dot) dot.className = 'user-dot can-edit';
 }
 
+/* ═══════════════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════════════ */
 function getPilierKey(pilier) {
+  // Grist peut envoyer : string, number (ref id), ["Label", id], null
   if (!pilier && pilier !== 0) return 'dev';
   let val = pilier;
+  // Ref column → prendre le label (index 0) ou convertir l'id
   if (Array.isArray(val)) val = val[0] || val[1] || '';
   const p = String(val).toLowerCase().trim();
   if (!p || p === '0' || p === 'null') return 'dev';
-  if (p.includes('impact')) return 'impact';
+  if (p.includes('impact'))  return 'impact';
   if (p.includes('culture') || p.includes('manag')) return 'culture';
+  // Développement business = tout le reste
   return 'dev';
 }
-
 function getPrioClass(prio) {
   if (!prio) return 'prio-moyenne';
   const p = String(prio).toLowerCase();
   if (p.includes('critique')) return 'prio-critique';
-  if (p.includes('haute')) return 'prio-haute';
-  if (p.includes('moyenne')) return 'prio-moyenne';
+  if (p.includes('haute'))    return 'prio-haute';
+  if (p.includes('moyenne'))  return 'prio-moyenne';
   return 'prio-basse';
 }
-
 function getStatutClass(statut) {
   if (!statut) return 's-a-venir';
   const s = String(statut).toLowerCase();
-  if (s.includes('cours')) return 's-en-cours';
+  if (s.includes('cours'))  return 's-en-cours';
   if (s.includes('termin')) return 's-termine';
   return 's-a-venir';
 }
 
+// Position par défaut en grille bien répartie
 function getDefaultPos(index, total, bodyEl) {
   const cols = Math.ceil(Math.sqrt(total));
   const rows = Math.ceil(total / cols);
-  const col = index % cols;
-  const row = Math.floor(index / cols);
-  const bw = bodyEl.clientWidth || 300;
-  const bh = bodyEl.clientHeight || 300;
+  const col  = index % cols;
+  const row  = Math.floor(index / cols);
+  const bw   = bodyEl.clientWidth  || 300;
+  const bh   = bodyEl.clientHeight || 300;
   return {
     x: Math.round((col + 0.5) * (bw / cols)),
     y: Math.round((row + 0.5) * (bh / rows)),
   };
 }
 
-function normalizeKey(s) {
-  return String(s || '').toLowerCase().replace(/[\s_]/g, '');
-}
-
-function getPositionXValue(f) {
-  if (!f) return null;
-  if (resolvedPositionXCol && f[resolvedPositionXCol] != null) return f[resolvedPositionXCol];
-  if (f.Position_X != null) return f.Position_X;
-  if (f['Position X'] != null) return f['Position X'];
-  return null;
-}
-
-function getPositionYValue(f) {
-  if (!f) return null;
-  if (resolvedPositionYCol && f[resolvedPositionYCol] != null) return f[resolvedPositionYCol];
-  if (f.Position_Y != null) return f.Position_Y;
-  if (f['Position Y'] != null) return f['Position Y'];
-  return null;
-}
-
-async function resolveSchema() {
-  try {
-    const allTables = await grist.docApi.listTables();
-    console.log('[Maison] Tables disponibles:', allTables);
-
-    const match =
-      allTables.find(t => normalizeKey(t) === normalizeKey('Fiches Programmes')) ||
-      allTables.find(t => normalizeKey(t).includes('fichesprogrammes')) ||
-      allTables.find(t => normalizeKey(t).includes('fiche') && normalizeKey(t).includes('programme'));
-
-    if (!match) {
-      throw new Error('Table Fiches Programmes introuvable');
-    }
-
-    resolvedFichesTable = match;
-
-    const raw = await grist.docApi.fetchTable(resolvedFichesTable);
-    const cols = Object.keys(raw || {});
-    console.log('[Maison] Table retenue:', resolvedFichesTable);
-    console.log('[Maison] Colonnes réelles:', cols);
-
-    const xCandidates = ['positionx', 'position_x', 'posx', 'x'];
-    const yCandidates = ['positiony', 'position_y', 'posy', 'y'];
-
-    resolvedPositionXCol = cols.find(c => xCandidates.includes(normalizeKey(c))) || null;
-    resolvedPositionYCol = cols.find(c => yCandidates.includes(normalizeKey(c))) || null;
-
-    console.log('[Maison] Colonne X:', resolvedPositionXCol);
-    console.log('[Maison] Colonne Y:', resolvedPositionYCol);
-
-    if (!resolvedPositionXCol || !resolvedPositionYCol) {
-      throw new Error('Colonnes Position X / Position Y introuvables');
-    }
-  } catch (err) {
-    console.error('[Maison] Erreur resolveSchema:', err);
-    showToast('⚠ Impossible de trouver la table ou les colonnes de position');
-  }
-}
-
+/* ═══════════════════════════════════════════════════════
+   DRAG — uniquement si editModeActive
+═══════════════════════════════════════════════════════ */
 function startDrag(e, fiche, cardEl, bodyEl) {
-  if (!editModeActive) return;
-
+  // Drag actif uniquement si editModeActive (bouton explicitement activé)
+  if (!editModeActive) {
+    return;
+  }
   e.preventDefault();
   e.stopPropagation();
 
   const maison = document.getElementById('maison');
   const matrix = new DOMMatrix(getComputedStyle(maison).transform);
-  const scale = matrix.a || 1;
+  const scale  = matrix.a || 1;
 
   dragState = {
-    id: fiche.id,
-    startMouseX: e.clientX,
-    startMouseY: e.clientY,
+    id:            fiche.id,
+    startMouseX:   e.clientX,
+    startMouseY:   e.clientY,
     startCardLeft: parseFloat(cardEl.style.left),
-    startCardTop: parseFloat(cardEl.style.top),
-    el: cardEl,
-    bodyEl,
-    scale,
-    moved: false,
-    active: true,
+    startCardTop:  parseFloat(cardEl.style.top),
+    el:            cardEl,
+    bodyEl:        bodyEl,
+    scale:         scale,
+    moved:         false,
+    active:        true,
   };
-
   cardEl.classList.add('dragging-card');
   document.addEventListener('mousemove', onDragMove);
-  document.addEventListener('mouseup', onDragEnd);
+  document.addEventListener('mouseup',   onDragEnd);
 }
 
 function onDragMove(e) {
@@ -758,92 +752,75 @@ function onDragMove(e) {
   const bh = dragState.bodyEl.clientHeight;
   const cw = dragState.el.offsetWidth;
   const ch = dragState.el.offsetHeight;
-
   const newLeft = Math.max(cw / 2, Math.min(bw - cw / 2, dragState.startCardLeft + dx));
-  const newTop = Math.max(ch / 2, Math.min(bh - ch / 2, dragState.startCardTop + dy));
-
+  const newTop  = Math.max(ch / 2, Math.min(bh - ch / 2, dragState.startCardTop  + dy));
   dragState.el.style.left = newLeft + 'px';
-  dragState.el.style.top = newTop + 'px';
+  dragState.el.style.top  = newTop  + 'px';
 }
 
+// onDragEnd est SYNCHRONE — aucun await ici pour ne pas bloquer entre deux drags
 function onDragEnd() {
   document.removeEventListener('mousemove', onDragMove);
-  document.removeEventListener('mouseup', onDragEnd);
+  document.removeEventListener('mouseup',   onDragEnd);
   if (!dragState) return;
 
   dragState.el.classList.remove('dragging-card');
 
-  const movedId = dragState.id;
+  // Capturer les valeurs avant de nullifier dragState
+  const movedId  = dragState.id;
   const wasMoved = dragState.moved;
-  const el = dragState.el;
-  const bodyEl = dragState.bodyEl;
+  const el       = dragState.el;
+  const bodyEl   = dragState.bodyEl;
 
+  // Libérer dragState IMMÉDIATEMENT (synchrone)
   dragState.active = false;
   dragState = null;
 
   if (wasMoved) {
     const newLeft = parseFloat(el.style.left);
-    const newTop = parseFloat(el.style.top);
-    const bw = bodyEl.clientWidth || 1;
-    const bh = bodyEl.clientHeight || 1;
+    const newTop  = parseFloat(el.style.top);
+    const bw  = bodyEl.clientWidth  || 1;
+    const bh  = bodyEl.clientHeight || 1;
     const pctX = Math.round((newLeft / bw) * 1000) / 10;
-    const pctY = Math.round((newTop / bh) * 1000) / 10;
+    const pctY = Math.round((newTop  / bh) * 1000) / 10;
 
+    // Mise à jour locale immédiate dans le tableau fiches
     const fiche = fiches.find(f => f.id === movedId);
-    if (fiche) {
-      if (resolvedPositionXCol) fiche[resolvedPositionXCol] = pctX;
-      if (resolvedPositionYCol) fiche[resolvedPositionYCol] = pctY;
-      fiche.Position_X = pctX;
-      fiche.Position_Y = pctY;
-    }
+    if (fiche) { fiche.Position_X = pctX; fiche.Position_Y = pctY; }
 
-    suppressReloadUntil = Date.now() + 3000;
+    // Bloquer onRecords 5s — fire-and-forget (pas de await)
+    suppressReloadUntil = Date.now() + 5000;
     savePosition(movedId, pctX, pctY);
+
   } else {
+    // Clic simple sans déplacement → sélection
     selectFiche(movedId);
   }
 }
 
-async function savePosition(id, pctX, pctY) {
-  if (!resolvedFichesTable || !resolvedPositionXCol || !resolvedPositionYCol) {
-    console.error('[Maison] Schéma incomplet', {
-      resolvedFichesTable,
-      resolvedPositionXCol,
-      resolvedPositionYCol
-    });
-    showSaveIndicator('⚠ Colonnes non trouvées', true);
-    showToast('⚠ Impossible de sauvegarder : colonnes non trouvées');
-    return;
-  }
-
-  try {
-    console.log('[Maison] Sauvegarde position', {
-      table: resolvedFichesTable,
-      id,
-      xCol: resolvedPositionXCol,
-      yCol: resolvedPositionYCol,
-      x: pctX,
-      y: pctY
-    });
-
-    await grist.docApi.applyUserActions([
-      ['UpdateRecord', resolvedFichesTable, id, {
-        [resolvedPositionXCol]: pctX,
-        [resolvedPositionYCol]: pctY
-      }]
-    ]);
-
+// Sauvegarde asynchrone indépendante — ne bloque pas le prochain drag
+function savePosition(id, pctX, pctY) {
+  console.log('[Maison] Sauvegarde position id=' + id, pctX, pctY, '→', resolvedFichesTable);
+  grist.docApi.applyUserActions([
+    ['UpdateRecord', resolvedFichesTable, id, { Position_X: pctX, Position_Y: pctY }]
+  ])
+  .then(() => {
     showSaveIndicator('✓ Sauvegardé');
-  } catch (err) {
-    console.error('[Maison] Erreur sauvegarde:', err);
-    showSaveIndicator('⚠ Erreur sauvegarde', true);
-    showToast('⚠ Sauvegarde impossible');
-  }
+  })
+  .catch(err => {
+    console.error('[Maison] Erreur sauvegarde:', err && err.message);
+    showSaveIndicator('⚠ Erreur — voir console', true);
+    showToast('⚠ Impossible de sauvegarder. Table : ' + resolvedFichesTable);
+  });
 }
 
+/* ═══════════════════════════════════════════════════════
+   SÉLECTION (clic simple)
+═══════════════════════════════════════════════════════ */
 function selectFiche(id) {
   if (dragState && dragState.active) return;
 
+  // Désélection si on reclique sur la même carte
   if (selectedId === id) {
     selectedId = null;
     try { grist.setSelectedRows([]); } catch(e) {}
@@ -853,10 +830,15 @@ function selectFiche(id) {
 
   selectedId = id;
   const fiche = fiches.find(f => f.id === id);
-  const nom = fiche ? (fiche.Programme || 'Sans titre') : '—';
+  const nom   = fiche ? (fiche.Programme || 'Sans titre') : '—';
 
+  // Notifier Grist → toutes les vues liées (dont fiche.html) se synchronisent
   try { grist.setSelectedRows([id]); } catch(e) {}
+
+  // Toast guidant l'utilisateur
   showToast(`📄 "${nom}" sélectionnée — naviguez vers la page Fiche pour l'ouvrir`);
+
+  // Highlight visuel immédiat
   highlightSelected();
 }
 
@@ -866,10 +848,11 @@ function highlightSelected() {
     if (!elId) return;
     const isSel = elId === selectedId;
     el.classList.toggle('selected', isSel);
+    // Légère animation de pulse sur la carte sélectionnée
     if (isSel) {
       el.style.transition = 'transform 0.15s, box-shadow 0.15s';
-      el.style.transform = 'translate(-50%, -50%) scale(1.08)';
-      el.style.boxShadow = '0 4px 16px rgba(62,93,231,0.4)';
+      el.style.transform  = 'translate(-50%, -50%) scale(1.08)';
+      el.style.boxShadow  = '0 4px 16px rgba(62,93,231,0.4)';
       setTimeout(() => {
         el.style.transform = 'translate(-50%, -50%) scale(1)';
         el.style.boxShadow = '';
@@ -878,19 +861,37 @@ function highlightSelected() {
   });
 }
 
+/* ═══════════════════════════════════════════════════════
+   RENDER
+═══════════════════════════════════════════════════════ */
 function renderPilier(list, bodyId) {
   const body = document.getElementById(bodyId);
   body.innerHTML = '';
+
+  // Mode du body (curseur CSS)
   body.className = 'pillar-body ' + (editModeActive ? 'editable' : 'read-only');
 
   if (!list.length) {
     const hint = document.createElement('div');
     hint.className = 'empty-hint';
-    hint.textContent = 'Aucune fiche dans ce pilier';
+    // Si aucune fiche partout → problème de données ; sinon vraiment vide
+    const totalFiches = fiches.length;
+    if (totalFiches > 0) {
+      // Montrer les valeurs Pilier disponibles pour aider au diagnostic
+      const allPiliers = [...new Set(fiches.map(f => {
+        const p = f.Pilier;
+        if (Array.isArray(p)) return p[0] || String(p[1] || '?');
+        return String(p || '—');
+      }))].join(', ');
+      hint.textContent = 'Aucune fiche dans ce pilier';
+    } else {
+      hint.textContent = 'Aucune fiche dans ce pilier';
+    }
     body.appendChild(hint);
     return;
   }
 
+  // Hint édition (visible seulement si éditeur et disposition déverrouillée)
   if (editModeActive) {
     const hint = document.createElement('div');
     hint.className = 'edit-hint';
@@ -898,7 +899,7 @@ function renderPilier(list, bodyId) {
     body.appendChild(hint);
   }
 
-  const bw = body.clientWidth || 300;
+  const bw = body.clientWidth  || 300;
   const bh = body.clientHeight || 300;
 
   list.forEach((f, idx) => {
@@ -923,39 +924,43 @@ function renderPilier(list, bodyId) {
       'Clic pour sélectionner / ouvrir',
     ].filter(Boolean).join('\n');
 
+    // Barre d'avancement en bas de la carte
     const bar = document.createElement('div');
     bar.className = 'prog-bar';
     bar.style.width = pct + '%';
     card.appendChild(bar);
 
+    // Position
     let left, top;
-    const posX = getPositionXValue(f);
-    const posY = getPositionYValue(f);
-
-    if (posX != null && posY != null && posX >= 0 && posY >= 0) {
-      left = Math.round((posX / 100) * bw);
-      top = Math.round((posY / 100) * bh);
+    if (f.Position_X != null && f.Position_X > 0) {
+      left = Math.round((f.Position_X / 100) * bw);
+      top  = Math.round((f.Position_Y / 100) * bh);
     } else {
       const pos = getDefaultPos(idx, list.length, body);
       left = pos.x;
-      top = pos.y;
+      top  = pos.y;
     }
-
-    card.style.left = left + 'px';
-    card.style.top = top + 'px';
+    card.style.left      = left + 'px';
+    card.style.top       = top  + 'px';
     card.style.transform = 'translate(-50%, -50%)';
 
+    // ── Events ──
+    // mousedown : démarre le drag si editModeActive, sinon ignore
     card.addEventListener('mousedown', e => {
       if (e.button !== 0) return;
-      if (editModeActive) startDrag(e, f, card, body);
+      if (editModeActive) {
+        startDrag(e, f, card, body);
+      }
     });
 
+    // click : sélection simple (seulement quand pas en mode édition)
     card.addEventListener('click', e => {
-      if (editModeActive) return;
+      if (editModeActive) return; // en mode édition, pas de sélection au clic
       e.stopPropagation();
       selectFiche(f.id);
     });
 
+    // dblclick : naviguer vers la fiche
     card.addEventListener('dblclick', e => {
       e.stopPropagation();
       selectedId = f.id;
@@ -968,12 +973,16 @@ function renderPilier(list, bodyId) {
 }
 
 function render() {
-  renderPilier(fiches.filter(f => getPilierKey(f.Pilier) === 'dev'), 'body-dev');
-  renderPilier(fiches.filter(f => getPilierKey(f.Pilier) === 'impact'), 'body-impact');
+  renderPilier(fiches.filter(f => getPilierKey(f.Pilier) === 'dev'),     'body-dev');
+  renderPilier(fiches.filter(f => getPilierKey(f.Pilier) === 'impact'),  'body-impact');
   renderPilier(fiches.filter(f => getPilierKey(f.Pilier) === 'culture'), 'body-culture');
 }
 
+/* ═══════════════════════════════════════════════════════
+   NAVIGATION vers la page Fiche (double-clic)
+═══════════════════════════════════════════════════════ */
 async function tryNavigateToFiche() {
+  // La fiche est sur la page "Programmes" (p/8)
   try {
     if (grist && grist.navigateToPage) {
       await grist.navigateToPage('Programmes');
@@ -983,6 +992,21 @@ async function tryNavigateToFiche() {
   try { window.parent.postMessage({ type: 'grist-navigate', page: 'Programmes' }, '*'); } catch(e) {}
 }
 
+/* ═══════════════════════════════════════════════════════
+   DÉTECTION DES DROITS
+   Stratégie : on tente un applyUserActions fictif sur la table.
+   Si ça réussit → éditeur. Si refus 403/Forbidden → lecteur.
+   On utilise un UpdateRecord avec les mêmes valeurs (no-op).
+═══════════════════════════════════════════════════════ */
+async function detectEditRights() {
+  // Détection des droits désactivée — accès via PIN uniquement
+  // Le bouton "Modifier la disposition" est visible pour tous,
+  // mais le mode édition nécessite le PIN correct.
+}
+
+/* ═══════════════════════════════════════════════════════
+   GRIST — fetch helper
+═══════════════════════════════════════════════════════ */
 function convertColumnar(data) {
   if (!data) return [];
   if (Array.isArray(data)) return data;
@@ -1003,7 +1027,7 @@ async function fetchFirstAvailable(candidates) {
       return { name, rows: convertColumnar(raw) };
     } catch(e) {}
   }
-
+  // Fuzzy match via listTables
   try {
     const all = await grist.docApi.listTables();
     const norm = s => String(s).toLowerCase().replace(/[\s_]/g, '');
@@ -1013,31 +1037,56 @@ async function fetchFirstAvailable(candidates) {
       return { name: match, rows: convertColumnar(raw) };
     }
   } catch(e) {}
-
   return { name: null, rows: [] };
 }
 
-async function refreshFichesFromTable() {
-  if (!resolvedFichesTable) return;
+/* ═══════════════════════════════════════════════════════
+   GRIST — INIT
+═══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════
+   AFFICHAGE — appelé une fois les données prêtes
+═══════════════════════════════════════════════════════ */
+async function showMaison() {
+  // ── Résoudre le nom réel de la table AVANT tout le reste ──
+  // ── Résoudre le nom réel de la table ──
+  try {
+    const allTables = await grist.docApi.listTables();
+    const norm  = s => String(s).toLowerCase().replace(/[\s_]/g, '');
+    const match = allTables.find(t => FICHES_TABLE_CANDIDATES.map(norm).includes(norm(t)))
+                || allTables.find(t => norm(t).includes('fiche') || norm(t).includes('programme'));
+    if (match) {
+      resolvedFichesTable = match;
+      console.log('[Maison] Table résolue :', resolvedFichesTable);
+    }
+  } catch(e) {
+    console.warn('[Maison] listTables failed:', e && e.message);
+  }
 
+  // ── Recharger les positions via fetchTable (indépendant des colonnes visibles) ──
   try {
     const rawFiches = await grist.docApi.fetchTable(resolvedFichesTable);
-    const fetchedFiches = convertColumnar(rawFiches);
-
+    const cols = Object.keys(rawFiches);
+    const n    = rawFiches[cols[0]]?.length || 0;
+    const fetchedFiches = Array.from({length: n}, (_, i) => {
+      const r = {}; cols.forEach(c => r[c] = rawFiches[c][i]); return r;
+    });
+    // Enrichir fiches avec Position_X/Y depuis le fetch complet
+    // IMPORTANT : ne pas écraser si la valeur fetchée est null/0 ET qu'on a déjà une valeur locale
     fiches = fiches.map(f => {
       const full = fetchedFiches.find(ff => ff.id === f.id);
       if (!full) return f;
-      return { ...f, ...full };
+      const posX = (full.Position_X != null && full.Position_X !== 0)
+        ? full.Position_X
+        : (f.Position_X ?? 0);
+      const posY = (full.Position_Y != null && full.Position_Y !== 0)
+        ? full.Position_Y
+        : (f.Position_Y ?? 0);
+      return { ...f, Position_X: posX, Position_Y: posY };
     });
-
-    console.log('[Maison] Données complètes rechargées depuis fetchTable');
+    console.log('[Maison] Positions chargées depuis fetchTable');
   } catch(e) {
-    console.warn('[Maison] fetchTable complet failed:', e && e.message);
+    console.warn('[Maison] fetchTable positions failed:', e && e.message);
   }
-}
-
-async function showMaison() {
-  await refreshFichesFromTable();
 
   document.getElementById('app-loading').style.display = 'none';
   const maison = document.getElementById('maison');
@@ -1048,18 +1097,25 @@ async function showMaison() {
   render();
 }
 
+/* ═══════════════════════════════════════════════════════
+   CHARGEMENT DONNÉES ANNEXES (Membres + droits)
+   Appelé après le premier onRecords
+═══════════════════════════════════════════════════════ */
+let sideDataLoaded = false;
 async function loadSideData() {
   if (sideDataLoaded) return;
   sideDataLoaded = true;
 
+  // Email utilisateur
   try {
     const userInfo = await grist.getUserInfo();
     if (userInfo) {
       currentUser.email = userInfo.email || '';
-      currentUser.name = userInfo.name || userInfo.email || '';
+      currentUser.name  = userInfo.name  || userInfo.email || '';
     }
   } catch(e) {}
 
+  // Table Membres → nom affiché
   try {
     const mResult = await fetchFirstAvailable(MEMBRES_TABLE_CANDIDATES);
     membresRows = mResult.rows || [];
@@ -1076,12 +1132,18 @@ async function loadSideData() {
   updateUserPill();
 }
 
+/* ═══════════════════════════════════════════════════════
+   INIT GRIST — architecture correcte :
+   1. Enregistrer onRecords AVANT ready()
+   2. ready() ensuite
+   La première réception de onRecords déclenche l'affichage
+═══════════════════════════════════════════════════════ */
 async function initGrist() {
-  await resolveSchema();
 
-  grist.onRecords(async records => {
+  // ── 1. onRecords : canal principal des données widget ──
+  // Déclenché à chaque fois que Grist pousse les données (y compris au démarrage)
+  grist.onRecords(records => {
     if (Date.now() < suppressReloadUntil) {
-      console.log('[Maison] onRecords ignoré temporairement après sauvegarde');
       return;
     }
 
@@ -1090,42 +1152,49 @@ async function initGrist() {
     if (!records || !records.length) {
       fiches = [];
       dataLoaded = true;
-      if (wasEmpty) await showMaison();
+      console.log('[Maison] onRecords: empty array received');
+      if (wasEmpty) showMaison();
       else render();
       return;
     }
 
+    // Préserver la position locale d'un élément en cours de drag
+    // ET préserver Position_X/Y si elles ne sont pas dans les colonnes visibles du widget
     const dragId = dragState ? dragState.id : null;
-
     fiches = records.map(rec => {
       const prevFiche = fiches.find(f => f.id === rec.id);
+      // Si Position_X absente du record (colonne non visible), garder la valeur locale
+      const posX = (rec.Position_X != null && rec.Position_X !== 0)
+        ? rec.Position_X
+        : (prevFiche?.Position_X ?? rec.Position_X ?? 0);
+      const posY = (rec.Position_Y != null && rec.Position_Y !== 0)
+        ? rec.Position_Y
+        : (prevFiche?.Position_Y ?? rec.Position_Y ?? 0);
 
-      const merged = { ...prevFiche, ...rec };
-
-      if (dragId && rec.id === dragId && prevFiche) {
-        if (resolvedPositionXCol) merged[resolvedPositionXCol] = prevFiche[resolvedPositionXCol];
-        if (resolvedPositionYCol) merged[resolvedPositionYCol] = prevFiche[resolvedPositionYCol];
-        if (prevFiche.Position_X != null) merged.Position_X = prevFiche.Position_X;
-        if (prevFiche.Position_Y != null) merged.Position_Y = prevFiche.Position_Y;
+      if (dragId && rec.id === dragId) {
+        const local = fiches.find(f => f.id === dragId);
+        if (local) return { ...rec, Position_X: local.Position_X, Position_Y: local.Position_Y };
       }
-
-      return merged;
+      return { ...rec, Position_X: posX, Position_Y: posY };
     });
 
     dataLoaded = true;
 
-    await refreshFichesFromTable();
-
     if (wasEmpty) {
-      await showMaison();
-      loadSideData();
+      // Premier chargement → afficher + charger données annexes en arrière-plan
+      showMaison();
+      loadSideData(); // non-bloquant
     } else if (!editModeActive) {
+      // Ne pas re-rendre pendant une session d'édition active
+      // (les positions locales dans `fiches` sont déjà correctes)
       render();
     } else {
-      console.log('[Maison] onRecords reçu mais non rerendu car mode édition actif');
+      // En mode édition : mettre à jour les données en mémoire sans toucher au DOM
+      console.log('[Maison] onRecords ignoré (mode édition actif)');
     }
   });
 
+  // ── 2. onRecord : synchronisation de sélection ──
   grist.onRecord(rec => {
     if (rec && rec.id && rec.id !== selectedId) {
       selectedId = rec.id;
@@ -1133,6 +1202,9 @@ async function initGrist() {
     }
   });
 
+  // ── 3. ready() ──
+  // Doit être appelé APRÈS l'enregistrement des handlers
+  // pour que Grist sache quoi pusher
   try {
     await grist.ready({ requiredAccess: 'full' });
   } catch(err) {
@@ -1143,6 +1215,10 @@ async function initGrist() {
   }
 }
 
+/* ═══════════════════════════════════════════════════════
+   TIMEOUT LOADING — si onRecords ne se déclenche pas
+   (widget non lié à une table)
+═══════════════════════════════════════════════════════ */
 setTimeout(() => {
   if (!dataLoaded) {
     document.getElementById('app-loading').innerHTML =
@@ -1154,6 +1230,9 @@ setTimeout(() => {
   }
 }, 5000);
 
+/* ═══════════════════════════════════════════════════════
+   START
+═══════════════════════════════════════════════════════ */
 initGrist();
 </script>
 </body>
