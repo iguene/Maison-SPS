@@ -7,427 +7,619 @@
 <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; }
+body { font-family: 'Segoe UI', -apple-system, sans-serif; background: #f0f4f8; }
 
-body {
-  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: #f3f5f7;
-  color: #243447;
-  padding: 18px;
+#fiche-wrap {
+  width: 1400px; height: 860px;
+  transform-origin: top left;
+  display: none; flex-direction: column;
 }
 
-.wrapper {
-  max-width: 1280px;
-  margin: 0 auto;
+/* ── HEADER ── */
+.top-bar {
+  display: flex; align-items: center; background: white;
+  border-bottom: 2px solid #e2e8f0; padding: 0 20px;
+  gap: 14px; flex-shrink: 0; height: 64px; position: relative;
+}
+.logo-sm {
+  font-size: 0.85rem; font-weight: 900; color: #c0392b;
+  border: 2.5px solid #c0392b; padding: 3px 8px;
+  border-radius: 3px; line-height: 1.3; text-align: center; flex-shrink: 0;
+}
+.logo-sm span { font-size: 0.6rem; color: #2c3e50; display: block; }
+.prog-name {
+  flex: 1; font-size: 1.25rem; font-weight: 700; color: #1e293b;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
-.topbar {
+/* ── BARRE DE RECHERCHE ── */
+.search-wrap {
+  position: relative; flex-shrink: 0; width: 320px;
+}
+.search-input {
+  width: 100%; padding: 8px 36px 8px 14px;
+  border: 1.5px solid #cbd5e1; border-radius: 8px;
+  font-family: inherit; font-size: 0.85rem; color: #1e293b;
+  background: #f8fafc; outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.search-input:focus {
+  border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.12);
   background: white;
-  border-radius: 14px;
-  padding: 14px 18px;
-  margin-bottom: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 3px 12px rgba(0,0,0,0.06);
-  gap: 16px;
 }
+.search-input::placeholder { color: #94a3b8; }
+.search-icon {
+  position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
+  color: #94a3b8; font-size: 14px; pointer-events: none;
+}
+.search-clear {
+  position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; color: #94a3b8; cursor: pointer;
+  font-size: 14px; padding: 0; display: none; line-height: 1;
+}
+.search-clear.visible { display: block; }
+.search-dropdown {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0;
+  background: white; border: 1px solid #e2e8f0;
+  border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,.12);
+  z-index: 999; max-height: 320px; overflow-y: auto; display: none;
+}
+.search-dropdown.open { display: block; }
+.sd-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; cursor: pointer;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background .1s;
+}
+.sd-item:last-child { border-bottom: none; }
+.sd-item:hover, .sd-item.focused { background: #f0f7ff; }
+.sd-item.active { background: #e8f0ff; }
+.sd-badge {
+  font-size: 0.7rem; font-weight: 700; padding: 2px 6px;
+  border-radius: 4px; flex-shrink: 0; white-space: nowrap;
+}
+.sd-badge.dev     { background: #dbeafe; color: #1d4ed8; }
+.sd-badge.impact  { background: #dcfce7; color: #15803d; }
+.sd-badge.culture { background: #fee2e2; color: #b91c1c; }
+.sd-name { flex: 1; font-size: 0.85rem; font-weight: 600; color: #1e293b; }
+.sd-name mark { background: #fef9c3; border-radius: 2px; padding: 0 1px; font-style: normal; }
+.sd-meta { font-size: 0.75rem; color: #64748b; }
+.sd-empty { padding: 16px; text-align: center; color: #94a3b8; font-size: 0.82rem; font-style: italic; }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.logo {
-  border: 2px solid #c0392b;
-  color: #c0392b;
-  font-weight: 900;
-  font-size: 1rem;
-  line-height: 1.05;
-  padding: 8px 12px;
-  border-radius: 4px;
-  text-align: center;
-}
-.logo small {
-  display: block;
-  font-size: 0.62rem;
-  color: #2c3e50;
-  letter-spacing: 1px;
-}
-
-.title {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #1f2d3d;
-}
-
-.top-actions {
-  display: flex;
-  gap: 10px;
-}
-
+.nav-btns { display: flex; gap: 10px; flex-shrink: 0; }
 .nav-btn {
-  border: none;
-  border-radius: 8px;
-  padding: 10px 18px;
-  font-size: 0.95rem;
-  font-weight: 700;
-  cursor: pointer;
-  color: white;
+  padding: 8px 22px; font-size: 0.82rem; font-weight: 700;
+  border: none; border-radius: 5px; cursor: pointer;
+  font-family: inherit; transition: opacity .15s;
 }
-.btn-maison { background: #0f766e; }
-.btn-planning { background: #d98d85; }
+.nav-btn:hover { opacity: 0.85; }
+.nav-btn.maison   { background: #1a6b6b; color: white; }
+.nav-btn.planning { background: #2563eb; color: white; }
 
-.grid {
-  display: grid;
-  grid-template-columns: 1.1fr 1.1fr 1.6fr 1fr 1fr;
-  gap: 14px;
-  margin-bottom: 14px;
+/* ── CONTEXTE ── */
+.context-bar {
+  background: #f8fafc; border-bottom: 1px solid #e2e8f0;
+  padding: 8px 20px; font-size: 0.82rem; color: #475569;
+  flex-shrink: 0; line-height: 1.6; display: none;
 }
 
-.card {
-  background: white;
-  border-radius: 14px;
-  min-height: 420px;
-  box-shadow: 0 3px 12px rgba(0,0,0,0.06);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.card-header {
-  padding: 18px 18px 10px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 90px;
-  border-bottom: 1px solid #eef2f5;
-}
-
-.icon {
-  width: 54px;
-  height: 54px;
-  opacity: 0.8;
-}
-
-.card-body {
-  padding: 16px 16px 20px;
-  font-size: 0.98rem;
-  line-height: 1.55;
-  flex: 1;
-}
-
-.section-title {
-  font-weight: 700;
-  margin-bottom: 8px;
-  color: #1f2937;
-}
-
-.value {
-  color: #475569;
-  white-space: pre-wrap;
-}
-
-.footer-card {
-  background: white;
-  border-radius: 14px;
-  min-height: 92px;
-  box-shadow: 0 3px 12px rgba(0,0,0,0.06);
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 18px 20px;
-}
-
-.footer-content {
-  flex: 1;
-}
-
-.meta-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  padding: 6px 12px;
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
-.badge.prio-haute { background: #fee2e2; color: #b91c1c; }
-.badge.prio-moyenne { background: #fef3c7; color: #92400e; }
-.badge.prio-basse { background: #e0f2fe; color: #075985; }
-.badge.prio-default { background: #e5e7eb; color: #374151; }
-
-.badge.statut-encours { background: #dbeafe; color: #1d4ed8; }
-.badge.statut-termine { background: #dcfce7; color: #15803d; }
-.badge.statut-avenir { background: #fef3c7; color: #a16207; }
-.badge.statut-default { background: #e5e7eb; color: #374151; }
-
-.progress-wrap {
-  margin-top: 12px;
-}
-.progress-label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #475569;
-  margin-bottom: 6px;
-}
-.progress-bar {
-  width: 100%;
-  height: 10px;
-  background: #e5e7eb;
-  border-radius: 999px;
-  overflow: hidden;
-}
-.progress-fill {
-  height: 100%;
-  background: #2563eb;
-  width: 0%;
-  transition: width 0.2s ease;
-}
-
+/* ── ÉTAT VIDE ── */
 .empty-state {
-  min-height: 70vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  color: #64748b;
-  font-size: 1rem;
-  padding: 30px;
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 14px; color: #94a3b8; text-align: center; padding: 40px;
 }
+.empty-state .es-icon { font-size: 3.5rem; opacity: .35; }
+.empty-state h3 { font-size: 1.1rem; font-weight: 700; color: #64748b; }
+.empty-state p  { font-size: 0.85rem; line-height: 1.7; max-width: 400px; }
+.es-arrow {
+  font-size: 1.5rem; animation: bounce 1.5s ease-in-out infinite;
+}
+@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
 
-small.muted {
-  color: #94a3b8;
-  font-size: 0.82rem;
+/* ── ZONE CONTENU ── */
+.content-area {
+  flex: 1; display: flex; flex-direction: column;
+  padding: 16px 20px 14px; gap: 14px; min-height: 0;
 }
+.tiles-row {
+  display: grid; grid-template-columns: 1fr 1fr 1.5fr 1fr 1fr;
+  gap: 14px; flex: 1; min-height: 0;
+}
+.tile {
+  background: white; border: 1px solid #e2e8f0; border-radius: 10px;
+  display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,.05);
+}
+.tile-icon {
+  display: flex; align-items: center; justify-content: center;
+  padding: 18px 0 14px; flex-shrink: 0; border-bottom: 1px solid #f1f5f9;
+}
+.tile-icon svg {
+  width: 64px; height: 64px; stroke: #1e3a5f; stroke-width: 1.2;
+  fill: none; stroke-linecap: round; stroke-linejoin: round;
+}
+.tile-label { padding: 10px 16px 4px; font-size: 0.85rem; font-weight: 700; color: #1e293b; flex-shrink: 0; }
+.tile-content { padding: 2px 16px 14px; font-size: 0.8rem; color: #334155; line-height: 1.65; flex: 1; overflow-y: auto; }
+.tile-sub { border-top: 1px solid #f1f5f9; padding: 10px 16px 12px; font-size: 0.8rem; color: #334155; flex-shrink: 0; }
+.tile-sub-label { font-size: 0.82rem; font-weight: 700; color: #1e293b; margin-bottom: 4px; }
+.bullet-list { list-style: none; padding: 0; }
+.bullet-list li::before { content: "• "; color: #94a3b8; }
+.bullet-list li { padding: 1px 0; }
+.empty { color: #94a3b8; font-style: italic; }
 
-@media (max-width: 1100px) {
-  .grid { grid-template-columns: 1fr 1fr; }
+/* ── KSF ── */
+.ksf-tile {
+  background: white; border: 1px solid #e2e8f0; border-radius: 10px;
+  display: flex; align-items: center; gap: 20px; padding: 14px 24px;
+  flex-shrink: 0; box-shadow: 0 1px 4px rgba(0,0,0,.05);
 }
+.ksf-icon svg {
+  width: 48px; height: 48px; stroke: #1e3a5f; stroke-width: 1.2;
+  fill: none; stroke-linecap: round; stroke-linejoin: round;
+}
+.ksf-label { font-size: 0.85rem; font-weight: 700; color: #1e293b; margin-bottom: 5px; }
+.ksf-text  { font-size: 0.8rem; color: #334155; line-height: 1.65; }
+
+/* ── LOADING ── */
+#loading {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; height: 100vh; color: #888; gap: 10px; font-size: 0.9rem;
+}
+.spinner {
+  width: 22px; height: 22px; border: 2px solid #ddd;
+  border-top-color: #c0392b; border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
-<div class="wrapper" id="app">
-  <div class="empty-state">Chargement…</div>
+
+<div id="loading"><div class="spinner"></div>Chargement...</div>
+
+<div id="fiche-wrap">
+  <!-- HEADER -->
+  <div class="top-bar">
+    <div class="logo-sm">SPS<span>MEDICAL</span></div>
+
+    <!-- Barre de recherche -->
+    <div class="search-wrap" id="searchWrap">
+      <input class="search-input" id="searchInput" type="text"
+             placeholder="🔍  Rechercher une fiche programme…"
+             oninput="onSearch(this.value)"
+             onfocus="openDropdown()"
+             autocomplete="off">
+      <button class="search-clear" id="searchClear" onclick="clearSearch()">✕</button>
+      <div class="search-dropdown" id="searchDropdown"></div>
+    </div>
+
+    <div class="prog-name" id="prog-name">← Recherchez un programme</div>
+
+    <div class="nav-btns">
+      <button class="nav-btn maison"   onclick="goPage('Maison SPS')">MAISON</button>
+      <button class="nav-btn planning" onclick="goPage('Planning')">PLANNING</button>
+    </div>
+  </div>
+
+  <!-- CONTEXTE -->
+  <div class="context-bar" id="context-bar"></div>
+
+  <!-- ÉTAT VIDE -->
+  <div class="empty-state" id="emptyState">
+    <div class="es-icon">📋</div>
+    <div class="es-arrow">↑</div>
+    <h3>Sélectionnez un programme</h3>
+    <p>Utilisez la barre de recherche ci-dessus pour trouver et afficher la fiche d'un programme.</p>
+  </div>
+
+  <!-- CONTENU -->
+  <div class="content-area" id="contentArea" style="display:none">
+    <div class="tiles-row">
+      <!-- Objectifs -->
+      <div class="tile">
+        <div class="tile-icon">
+          <svg viewBox="0 0 64 64"><circle cx="26" cy="20" r="13"/><circle cx="26" cy="20" r="5"/>
+          <path d="M6 52 a20 20 0 0 1 40 0"/><circle cx="50" cy="34" r="8"/>
+          <line x1="50" y1="26" x2="50" y2="22"/><line x1="50" y1="42" x2="50" y2="46"/>
+          <line x1="42" y1="34" x2="38" y2="34"/><line x1="58" y1="34" x2="62" y2="34"/></svg>
+        </div>
+        <div class="tile-label">Objectifs :</div>
+        <div class="tile-content"><ul class="bullet-list" id="objectifs-list"></ul></div>
+      </div>
+      <!-- Départements -->
+      <div class="tile">
+        <div class="tile-icon">
+          <svg viewBox="0 0 64 64"><circle cx="32" cy="18" r="12"/><path d="M8 54 a24 24 0 0 1 48 0"/>
+          <circle cx="32" cy="18" r="5"/><line x1="32" y1="6" x2="32" y2="2"/>
+          <line x1="46" y1="18" x2="50" y2="18"/><line x1="18" y1="18" x2="14" y2="18"/>
+          <line x1="43" y1="9" x2="46" y2="6"/><line x1="21" y1="9" x2="18" y2="6"/></svg>
+        </div>
+        <div class="tile-label">Départements :</div>
+        <div class="tile-content"><ul class="bullet-list" id="dept-list"></ul></div>
+      </div>
+      <!-- Actions -->
+      <div class="tile">
+        <div class="tile-icon">
+          <svg viewBox="0 0 64 64"><rect x="8" y="8" width="48" height="48" rx="4"/>
+          <line x1="8" y1="22" x2="56" y2="22"/><line x1="8" y1="36" x2="56" y2="36"/>
+          <line x1="22" y1="8" x2="22" y2="56"/></svg>
+        </div>
+        <div class="tile-label">Actions :</div>
+        <div class="tile-content"><ul class="bullet-list" id="actions-list"></ul></div>
+      </div>
+      <!-- KPI -->
+      <div class="tile">
+        <div class="tile-icon">
+          <svg viewBox="0 0 64 64"><line x1="4" y1="56" x2="60" y2="56"/>
+          <rect x="6" y="38" width="10" height="18" rx="2"/><rect x="20" y="28" width="10" height="28" rx="2"/>
+          <rect x="34" y="16" width="10" height="40" rx="2"/><rect x="48" y="8" width="10" height="48" rx="2"/></svg>
+        </div>
+        <div class="tile-label">KPI :</div>
+        <div class="tile-content"><ul class="bullet-list" id="kpi-list"></ul></div>
+      </div>
+      <!-- Leader -->
+      <div class="tile">
+        <div class="tile-icon">
+          <svg viewBox="0 0 64 64"><rect x="8" y="4" width="48" height="56" rx="3"/>
+          <line x1="18" y1="18" x2="46" y2="18"/><line x1="18" y1="26" x2="38" y2="26"/>
+          <line x1="18" y1="34" x2="46" y2="34"/><line x1="18" y1="42" x2="34" y2="42"/></svg>
+        </div>
+        <div class="tile-label">Leader :</div>
+        <div class="tile-content" id="leader-content"></div>
+        <div class="tile-sub">
+          <div class="tile-sub-label">Ressources :</div>
+          <div id="ressources-content"></div>
+        </div>
+      </div>
+    </div>
+    <!-- KSF -->
+    <div class="ksf-tile">
+      <div class="ksf-icon">
+        <svg viewBox="0 0 64 64"><circle cx="20" cy="34" r="14"/><circle cx="20" cy="34" r="6"/>
+        <line x1="30" y1="34" x2="56" y2="34"/><line x1="48" y1="34" x2="48" y2="44"/>
+        <line x1="56" y1="34" x2="56" y2="44"/></svg>
+      </div>
+      <div style="flex:1">
+        <div class="ksf-label">Key Success Factor :</div>
+        <div class="ksf-text" id="ksf-content"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
-let currentRecord = null;
+/* ══════════════════════════════════════
+   STATE
+══════════════════════════════════════ */
+const W = 1400, H = 860;
+var allFiches  = [];   // toutes les fiches programmes
+var allActions = [];   // table Actions
+var currentId  = null;
+var focusedIdx = -1;
+var filteredList = [];
 
-function safe(v) {
-  if (v == null || v === '') return '—';
-  if (Array.isArray(v)) return v[0] || v[1] || '—';
-  return String(v);
+/* ══════════════════════════════════════
+   SCALE
+══════════════════════════════════════ */
+function scaleToFit() {
+  var el = document.getElementById('fiche-wrap');
+  var s  = Math.min(window.innerWidth / W, window.innerHeight / H);
+  el.style.transform  = 'scale(' + s + ')';
+  el.style.marginLeft = Math.max(0, (window.innerWidth  - W * s) / 2) + 'px';
+  el.style.marginTop  = Math.max(0, (window.innerHeight - H * s) / 2) + 'px';
+}
+window.addEventListener('resize', scaleToFit);
+
+/* ══════════════════════════════════════
+   HELPERS
+══════════════════════════════════════ */
+function esc(t) {
+  var d = document.createElement('div');
+  d.textContent = String(t || '');
+  return d.innerHTML;
+}
+function splitBullets(text) {
+  if (!text) return [];
+  return String(text).split(/[\n;]+/).map(function(s){ return s.trim(); }).filter(Boolean);
+}
+function renderList(id, items) {
+  var ul = document.getElementById(id);
+  if (!ul) return;
+  ul.innerHTML = items && items.length
+    ? items.map(function(i){ return '<li>' + esc(i) + '</li>'; }).join('')
+    : '<li class="empty">—</li>';
+}
+function refLabel(val) {
+  if (!val) return '';
+  if (Array.isArray(val)) return String(val[0] || '');
+  return String(val);
+}
+function getPilierBadge(pilier) {
+  var p = String(pilier || '').toLowerCase();
+  if (p.includes('impact'))  return { cls: 'impact',  label: 'Impact' };
+  if (p.includes('culture')) return { cls: 'culture', label: 'Culture' };
+  return { cls: 'dev', label: 'Dév. Business' };
 }
 
-function badgePrio(prio) {
-  const p = safe(prio).toLowerCase();
-  if (p.includes('haute')) return ['badge prio-haute', 'Priorité haute'];
-  if (p.includes('moyenne')) return ['badge prio-moyenne', 'Priorité moyenne'];
-  if (p.includes('basse')) return ['badge prio-basse', 'Priorité basse'];
-  return ['badge prio-default', safe(prio)];
+/* ══════════════════════════════════════
+   SEARCH
+══════════════════════════════════════ */
+function onSearch(q) {
+  var clr = document.getElementById('searchClear');
+  if (clr) clr.classList.toggle('visible', q.length > 0);
+  var query = q.trim().toLowerCase();
+  if (!query) {
+    filteredList = allFiches.slice(0, 50);
+  } else {
+    filteredList = allFiches.filter(function(f) {
+      var nom = String(f.Programme || f.Nom || '').toLowerCase();
+      var ctx = String(f.Contexte  || '').toLowerCase();
+      return nom.includes(query) || ctx.includes(query);
+    });
+  }
+  renderDropdown(query);
+  openDropdown();
 }
 
-function badgeStatut(statut) {
-  const s = safe(statut).toLowerCase();
-  if (s.includes('cours')) return ['badge statut-encours', 'En cours'];
-  if (s.includes('termin')) return ['badge statut-termine', 'Terminé'];
-  if (s.includes('venir')) return ['badge statut-avenir', 'À venir'];
-  return ['badge statut-default', safe(statut)];
+function openDropdown() {
+  if (!allFiches.length) return;
+  if (!filteredList.length) filteredList = allFiches.slice(0, 50);
+  renderDropdown(document.getElementById('searchInput').value.trim().toLowerCase());
+  document.getElementById('searchDropdown').classList.add('open');
+  focusedIdx = -1;
 }
 
-function getPct(v) {
-  const n = Number(v || 0);
-  if (Number.isNaN(n)) return 0;
-  return Math.max(0, Math.min(100, n));
+function closeDropdown() {
+  document.getElementById('searchDropdown').classList.remove('open');
+  focusedIdx = -1;
 }
 
-function navigateToMaison() {
-  try {
-    if (grist && grist.navigateToPage) {
-      grist.navigateToPage('Maison SPS');
-      return;
-    }
-  } catch (e) {}
-  try {
-    window.parent.postMessage({ type: 'grist-navigate', page: 'Maison SPS' }, '*');
-  } catch (e) {}
-}
-
-function navigateToPlanning() {
-  try {
-    if (grist && grist.navigateToPage) {
-      grist.navigateToPage('Planning');
-      return;
-    }
-  } catch (e) {}
-  try {
-    window.parent.postMessage({ type: 'grist-navigate', page: 'Planning' }, '*');
-  } catch (e) {}
-}
-
-function renderEmpty(msg = 'Aucune fiche sélectionnée') {
-  document.getElementById('app').innerHTML = `
-    <div class="empty-state">
-      <div>
-        <div style="font-size:1.15rem;font-weight:700;margin-bottom:8px;">${msg}</div>
-        <small class="muted">Sélectionnez une fiche depuis la page Maison SPS.</small>
-      </div>
-    </div>
-  `;
-}
-
-function renderRecord(rec) {
-  const programme = safe(rec.Programme);
-  const objectifs = safe(rec.Objectifs);
-  const departements = safe(rec.Départements || rec.Departements);
-  const actions = safe(rec.Actions);
-  const kpis = safe(rec.KPIs || rec.Kpis || rec.KPI);
-  const leader = safe(rec.Leader);
-  const ressources = safe(rec.Ressources);
-  const keySuccess = safe(rec.KeySuccessFactor || rec.KeySuccessFactor_);
-  const priorite = badgePrio(rec.Priorité || rec.Priorite);
-  const statut = badgeStatut(rec.Statut);
-  const avancement = getPct(rec.Avancement_Global || rec.Avancement_Glob || rec.Avancement);
-
-  document.getElementById('app').innerHTML = `
-    <div class="topbar">
-      <div class="brand">
-        <div class="logo">SPS<small>MEDICAL</small></div>
-        <div class="title">${programme}</div>
-      </div>
-      <div class="top-actions">
-        <button class="nav-btn btn-maison" id="btnMaison">MAISON</button>
-        <button class="nav-btn btn-planning" id="btnPlanning">PLANNING</button>
-      </div>
-    </div>
-
-    <div class="grid">
-      <div class="card">
-        <div class="card-header">
-          <svg class="icon" viewBox="0 0 64 64" fill="none" stroke="#314e7c" stroke-width="2">
-            <circle cx="24" cy="22" r="9"></circle>
-            <path d="M10 48c2-10 10-16 18-16s16 6 18 16"></path>
-            <circle cx="45" cy="33" r="7"></circle>
-            <path d="M39 47c1.5-4.5 5-8 10-9"></path>
-          </svg>
-        </div>
-        <div class="card-body">
-          <div class="section-title">Objectifs :</div>
-          <div class="value">${objectifs}</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <svg class="icon" viewBox="0 0 64 64" fill="none" stroke="#314e7c" stroke-width="2">
-            <circle cx="32" cy="20" r="9"></circle>
-            <path d="M16 50c2-11 10-18 16-18s14 7 16 18"></path>
-            <path d="M32 4v8M12 20h8M44 20h8M20 8l6 6M38 14l6-6"></path>
-          </svg>
-        </div>
-        <div class="card-body">
-          <div class="section-title">Départements :</div>
-          <div class="value">${departements}</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <svg class="icon" viewBox="0 0 64 64" fill="none" stroke="#314e7c" stroke-width="2">
-            <rect x="12" y="10" width="40" height="44" rx="2"></rect>
-            <path d="M24 10v44M40 10v44M12 24h40M12 40h16M40 40h12"></path>
-          </svg>
-        </div>
-        <div class="card-body">
-          <div class="section-title">Actions :</div>
-          <div class="value">${actions}</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <svg class="icon" viewBox="0 0 64 64" fill="none" stroke="#314e7c" stroke-width="2">
-            <path d="M12 52h40"></path>
-            <rect x="16" y="30" width="6" height="22"></rect>
-            <rect x="28" y="22" width="6" height="30"></rect>
-            <rect x="40" y="12" width="6" height="40"></rect>
-          </svg>
-        </div>
-        <div class="card-body">
-          <div class="section-title">KPI :</div>
-          <div class="value">${kpis}</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <svg class="icon" viewBox="0 0 64 64" fill="none" stroke="#314e7c" stroke-width="2">
-            <rect x="18" y="8" width="28" height="48" rx="2"></rect>
-            <path d="M24 18h16M24 26h16M24 34h16M24 42h10"></path>
-          </svg>
-        </div>
-        <div class="card-body">
-          <div class="section-title">Leader :</div>
-          <div class="value">${leader}</div>
-
-          <div style="margin-top:22px" class="section-title">Ressources :</div>
-          <div class="value">${ressources}</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="footer-card">
-      <svg class="icon" viewBox="0 0 64 64" fill="none" stroke="#314e7c" stroke-width="2" style="width:40px;height:40px;">
-        <circle cx="24" cy="24" r="10"></circle>
-        <path d="M34 24h16M50 24v14"></path>
-      </svg>
-      <div class="footer-content">
-        <div class="section-title">Key Success Factor :</div>
-        <div class="value">${keySuccess}</div>
-
-        <div class="meta-row">
-          <span class="${priorite[0]}">${priorite[1]}</span>
-          <span class="${statut[0]}">${statut[1]}</span>
-        </div>
-
-        <div class="progress-wrap">
-          <div class="progress-label">Avancement global : ${avancement}%</div>
-          <div class="progress-bar">
-            <div class="progress-fill" style="width:${avancement}%"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-
-  document.getElementById('btnMaison').addEventListener('click', navigateToMaison);
-  document.getElementById('btnPlanning').addEventListener('click', navigateToPlanning);
-}
-
-grist.onRecord(function(rec) {
-  currentRecord = rec;
-  if (!rec || !rec.id) {
-    renderEmpty();
+function renderDropdown(q) {
+  var drop = document.getElementById('searchDropdown');
+  if (!drop) return;
+  if (!filteredList.length) {
+    drop.innerHTML = '<div class="sd-empty">Aucun résultat</div>';
     return;
   }
-  renderRecord(rec);
+  drop.innerHTML = filteredList.slice(0, 30).map(function(f, i) {
+    var nom = esc(f.Programme || f.Nom || 'Sans titre');
+    if (q) {
+      var re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi');
+      nom = nom.replace(re, '<mark>$1</mark>');
+    }
+    var badge  = getPilierBadge(f.Pilier);
+    var statut = esc(f.Statut || '');
+    var isCur  = f.id === currentId;
+    return '<div class="sd-item' + (isCur?' active':'') + '" data-idx="' + i + '" onmousedown="selectFiche(' + f.id + ')">' +
+      '<span class="sd-badge ' + badge.cls + '">' + badge.label + '</span>' +
+      '<span class="sd-name">' + nom + '</span>' +
+      (statut ? '<span class="sd-meta">' + statut + '</span>' : '') +
+    '</div>';
+  }).join('');
+}
+
+function clearSearch() {
+  var inp = document.getElementById('searchInput');
+  if (inp) inp.value = '';
+  var clr = document.getElementById('searchClear');
+  if (clr) clr.classList.remove('visible');
+  filteredList = allFiches.slice(0, 50);
+  renderDropdown('');
+  document.getElementById('searchDropdown').classList.remove('open');
+}
+
+// Navigation clavier dans le dropdown
+document.addEventListener('keydown', function(e) {
+  var drop = document.getElementById('searchDropdown');
+  if (!drop || !drop.classList.contains('open')) return;
+  var items = drop.querySelectorAll('.sd-item');
+  if (!items.length) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    focusedIdx = Math.min(focusedIdx + 1, items.length - 1);
+    items.forEach(function(el, i){ el.classList.toggle('focused', i === focusedIdx); });
+    if (items[focusedIdx]) items[focusedIdx].scrollIntoView({block:'nearest'});
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    focusedIdx = Math.max(focusedIdx - 1, 0);
+    items.forEach(function(el, i){ el.classList.toggle('focused', i === focusedIdx); });
+    if (items[focusedIdx]) items[focusedIdx].scrollIntoView({block:'nearest'});
+  } else if (e.key === 'Enter' && focusedIdx >= 0) {
+    e.preventDefault();
+    var f = filteredList[focusedIdx];
+    if (f) selectFiche(f.id);
+  } else if (e.key === 'Escape') {
+    closeDropdown();
+  }
 });
 
-grist.ready({ requiredAccess: 'read table' })
-  .then(() => {
-    renderEmpty('En attente de sélection');
-  })
-  .catch(() => {
-    renderEmpty('Erreur de connexion à Grist');
+// Fermer dropdown au clic extérieur
+document.addEventListener('mousedown', function(e) {
+  if (!e.target.closest('#searchWrap')) closeDropdown();
+});
+
+/* ══════════════════════════════════════
+   SÉLECTION D'UNE FICHE
+══════════════════════════════════════ */
+function selectFiche(id) {
+  var f = allFiches.find(function(x){ return x.id === id; });
+  if (!f) return;
+  currentId = id;
+  // Mettre à jour le champ de recherche
+  var inp = document.getElementById('searchInput');
+  if (inp) inp.value = f.Programme || f.Nom || '';
+  var clr = document.getElementById('searchClear');
+  if (clr) clr.classList.add('visible');
+  closeDropdown();
+  // Notifier Grist si possible
+  try { grist.setSelectedRows([id]); } catch(e) {}
+  // Afficher
+  renderFiche(f);
+}
+
+/* ══════════════════════════════════════
+   RENDU
+══════════════════════════════════════ */
+function renderFiche(f) {
+  // Titre
+  document.getElementById('prog-name').textContent = f.Programme || f.Nom || '—';
+
+  // Contexte
+  var ctx = document.getElementById('context-bar');
+  if (f.Contexte) {
+    ctx.innerHTML = splitBullets(f.Contexte).map(function(l){ return '<div>' + esc(l) + '</div>'; }).join('');
+    ctx.style.display = 'block';
+  } else {
+    ctx.style.display = 'none';
+  }
+
+  // Listes
+  renderList('objectifs-list', splitBullets(f.Objectifs));
+  renderList('dept-list',      splitBullets(f.Departements || f.Departement));
+  renderList('kpi-list',       splitBullets(f.KPIs));
+
+  // Actions : depuis table Actions si disponible, sinon colonne Actions
+  var linked = allActions.filter(function(a) {
+    var raw = a.Initiative_ID;
+    var id  = typeof raw === 'number' ? raw
+            : Array.isArray(raw) ? (raw.find(function(v){ return typeof v==='number'&&v>0; }) || null)
+            : null;
+    return id === f.id;
   });
+  if (linked.length > 0) {
+    var items = linked.map(function(a){
+      return '[' + (a.Statut||'?') + '] ' + (a.Libelle||'—');
+    });
+    renderList('actions-list', items);
+  } else {
+    renderList('actions-list', splitBullets(f.Actions));
+  }
+
+  // Leader
+  document.getElementById('leader-content').innerHTML =
+    '<span>' + esc(refLabel(f.Leader) || '—') + '</span>';
+
+  // Ressources
+  var res = splitBullets(f.Ressources);
+  document.getElementById('ressources-content').innerHTML = res.length
+    ? '<ul class="bullet-list">' + res.map(function(r){ return '<li>'+esc(r)+'</li>'; }).join('') + '</ul>'
+    : '<span class="empty">—</span>';
+
+  // KSF
+  var ksf = splitBullets(f.KeySuccessFactor);
+  document.getElementById('ksf-content').innerHTML = ksf.length
+    ? ksf.map(function(k){ return '• '+esc(k); }).join('<br>')
+    : '<span class="empty">—</span>';
+
+  // Afficher contenu, cacher état vide
+  document.getElementById('emptyState').style.display   = 'none';
+  document.getElementById('contentArea').style.display  = 'flex';
+}
+
+function showEmpty() {
+  document.getElementById('emptyState').style.display  = 'flex';
+  document.getElementById('contentArea').style.display = 'none';
+  document.getElementById('prog-name').textContent     = '← Recherchez un programme';
+  document.getElementById('context-bar').style.display = 'none';
+}
+
+/* ══════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════ */
+function goPage(name) {
+  try {
+    if (typeof grist !== 'undefined' && grist.navigateToPage) {
+      grist.navigateToPage(name); return;
+    }
+  } catch(e) {}
+  window.parent.postMessage({ type: 'grist-navigate', page: name }, '*');
+}
+
+/* ══════════════════════════════════════
+   GRIST INIT
+══════════════════════════════════════ */
+function showWidget() {
+  document.getElementById('loading').style.display = 'none';
+  var wrap = document.getElementById('fiche-wrap');
+  wrap.style.display = 'flex';
+  scaleToFit();
+}
+
+grist.ready({ requiredAccess: 'full' });
+
+// onRecords : reçoit toutes les fiches programmes → alimente la recherche
+grist.onRecords(function(records) {
+  if (!records || !records.length) {
+    allFiches = [];
+    showWidget();
+    showEmpty();
+    return;
+  }
+  allFiches    = records;
+  filteredList = records.slice(0, 50);
+  showWidget();
+  // Si onRecord a déjà sélectionné une fiche, ne pas écraser
+  if (!currentId) showEmpty();
+});
+
+// onRecord : si "Sélectionner par" est configuré (ou depuis la Maison)
+grist.onRecord(function(rec) {
+  if (!rec || !rec.id) return;
+  // Mettre à jour allFiches si pas encore chargé
+  if (!allFiches.length) return;
+  currentId = rec.id;
+  var f = allFiches.find(function(x){ return x.id === rec.id; }) || rec;
+  // Mettre à jour le champ de recherche
+  var inp = document.getElementById('searchInput');
+  if (inp) inp.value = f.Programme || f.Nom || '';
+  var clr = document.getElementById('searchClear');
+  if (clr) clr.classList.add('visible');
+  showWidget();
+  renderFiche(f);
+});
+
+// Charger la table Actions en parallèle
+setTimeout(function() {
+  try {
+    grist.docApi.fetchTable('Actions').then(function(raw) {
+      var cols = Object.keys(raw);
+      var n    = raw[cols[0]] ? raw[cols[0]].length : 0;
+      allActions = [];
+      for (var i = 0; i < n; i++) {
+        var r = {};
+        cols.forEach(function(c){ r[c] = raw[c][i]; });
+        allActions.push(r);
+      }
+      // Re-rendre les actions si une fiche est déjà affichée
+      if (currentId) {
+        var f = allFiches.find(function(x){ return x.id === currentId; });
+        if (f) {
+          var linked = allActions.filter(function(a) {
+            var raw2 = a.Initiative_ID;
+            var id = typeof raw2 === 'number' ? raw2
+                   : Array.isArray(raw2) ? (raw2.find(function(v){ return typeof v==='number'&&v>0; })||null)
+                   : null;
+            return id === f.id;
+          });
+          if (linked.length) {
+            renderList('actions-list', linked.map(function(a){
+              return '[' + (a.Statut||'?') + '] ' + (a.Libelle||'—');
+            }));
+          }
+        }
+      }
+    }).catch(function(e){ console.warn('Actions:', e && e.message); });
+  } catch(e) {}
+}, 800);
+
+// Fallback 5s
+setTimeout(function() {
+  if (document.getElementById('loading').style.display !== 'none') {
+    showWidget(); showEmpty();
+  }
+}, 5000);
 </script>
 </body>
 </html>
