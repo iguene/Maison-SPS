@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -42,7 +42,7 @@
 }
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--text); font-family:var(--font); font-size:13px; }
-body { background:#ffffff; }
+body { background:#ffffff; display:flex; flex-direction:column; }
 
 /* ══════════════════════════════════════════════
    TOOLBAR
@@ -182,7 +182,8 @@ body { background:#ffffff; }
 .gantt-wrap {
   display: flex;
   flex-direction: column;
-  height: calc(100% - var(--header-h));
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 /* Header row (months + days) */
@@ -683,6 +684,7 @@ body { background:#ffffff; }
   border-bottom: 1px solid rgba(0,0,0,0.08);
   padding: 6px 14px;
   flex-shrink: 0;
+  width: 100%;
   z-index: 1000;
   box-shadow: 0 1px 6px rgba(0,0,0,0.06);
 }
@@ -1053,11 +1055,21 @@ function fitTimelineToAll() {
   const totalDays = Math.max(daysDiff(earliest, latest) + 1, 1);
   const withMargin = totalDays + 14;
 
-  if (withMargin <= ZOOM_CFG.week.days) zoom = 'week';
-  else if (withMargin <= ZOOM_CFG.month.days) zoom = 'month';
-  else if (withMargin <= ZOOM_CFG.quarter.days) zoom = 'quarter';
+  if (withMargin <= ZOOM_CFG.week.days)     zoom = 'week';
+  else if (withMargin <= ZOOM_CFG.month.days)    zoom = 'month';
+  else if (withMargin <= ZOOM_CFG.quarter.days)  zoom = 'quarter';
   else if (withMargin <= ZOOM_CFG.halfyear.days) zoom = 'halfyear';
-  else zoom = 'year';
+  else if (withMargin <= ZOOM_CFG.year.days)     zoom = 'year';
+  else {
+    // Planning > 1 an : zoom dynamique pour tout faire tenir
+    zoom = 'year';
+    // Calculer le cellW nécessaire pour que tout tienne dans la zone visible
+    const scrollEl = document.getElementById('ganttScroll');
+    const availWidth = scrollEl ? scrollEl.clientWidth : 800;
+    const neededCellW = Math.max(2, Math.floor(availWidth / withMargin));
+    // Mettre à jour ZOOM_CFG.year dynamiquement
+    ZOOM_CFG.year = { cellW: neededCellW, days: withMargin, navDays: Math.round(withMargin / 4) };
+  }
 
   document.querySelectorAll('.zoom-btn').forEach(b => b.classList.toggle('active', b.dataset.zoom===zoom));
   viewStart = startOfMonth(addDays(earliest, -7));
