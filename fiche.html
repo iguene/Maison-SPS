@@ -173,9 +173,66 @@ body { font-family: 'Segoe UI', -apple-system, sans-serif; background: #f0f4f8; 
   animation: spin .7s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── BARRE NAVIGATION SPS ─── */
+.sps-nav-bar {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  background: rgba(255,255,255,0.95);
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  padding: 6px 14px;
+  flex-shrink: 0;
+  z-index: 1000;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+}
+.sps-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border-radius: 7px;
+  border: 1.5px solid transparent;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 12.5px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 150ms ease;
+  white-space: nowrap;
+  cursor: pointer;
+  font-family: inherit;
+}
+.sps-nav-btn:hover {
+  background: #e0f2f1;
+  border-color: #01696f;
+  color: #01696f;
+}
+.sps-nav-btn.sps-active {
+  background: #c0392b;
+  color: white;
+  border-color: #c0392b;
+}
+/* ─────────────────────────── */
 </style>
 </head>
 <body>
+
+<!-- ═══ BARRE NAVIGATION SPS ═══ -->
+<div class="sps-nav-bar" id="spsNav">
+  <a class="sps-nav-btn" data-page="10"
+     href="https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/10"
+     target="_top">📊 Dashboard</a>
+  <a class="sps-nav-btn" data-page="7"
+     href="https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/7"
+     target="_top">🏠 Maison SPS</a>
+  <a class="sps-nav-btn" data-page="9"
+     href="https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/9"
+     target="_top">📅 Planning</a>
+  <a class="sps-nav-btn sps-active" data-page="8"
+     href="https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/8"
+     target="_top">📋 Programmes</a>
+</div>
 
 <div id="loading"><div class="spinner"></div>Chargement...</div>
 
@@ -620,6 +677,24 @@ setTimeout(function() {
     showWidget(); showEmpty();
   }
 }, 5000);
+</script>
+<script>
+/* ─── Détection page active SPS nav ─── */
+(function() {
+  try {
+    var url = window.parent.location.href;
+    var match = url.match(/\/p\/(\d+)/);
+    if (match) {
+      document.querySelectorAll('.sps-nav-btn').forEach(function(btn) {
+        btn.classList.remove('sps-active');
+        if (btn.getAttribute('data-page') === match[1]) {
+          btn.classList.add('sps-active');
+        }
+      });
+    }
+  } catch(e) {}
+})();
+/* ────────────────────────────────── */
 </script>
 </body>
 </html>
