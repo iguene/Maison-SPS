@@ -2,83 +2,696 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fiches Programmes — SPS Medical</title>
+<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'Segoe UI', sans-serif;
-    background: transparent;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    padding: 12px;
-  }
-  .nav-container {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255,255,255,0.92);
-    border: 1px solid rgba(0,0,0,0.08);
-    border-radius: 14px;
-    padding: 10px 14px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-  }
-  .nav-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    border-radius: 8px;
-    border: 1.5px solid transparent;
-    background: #f3f4f6;
-    color: #374151;
-    font-size: 13px;
-    font-weight: 500;
-    text-decoration: none;
-    transition: all 150ms ease;
-    white-space: nowrap;
-  }
-  .nav-btn:hover {
-    background: #e0f2f1;
-    border-color: #01696f;
-    color: #01696f;
-  }
-  .nav-btn.active {
-    background: #01696f;
-    color: white;
-    border-color: #01696f;
-  }
+:root {
+  --bg:      #f5f7fb;
+  --card:    #ffffff;
+  --border:  #e4e9f2;
+  --border2: #c8d3e6;
+  --text:    #111827;
+  --text2:   #4b5563;
+  --text3:   #9ca3af;
+  --blue:    #2563eb;
+  --blue-lt: #dbeafe;
+  --green:   #16a34a;
+  --green-lt:#dcfce7;
+  --orange:  #d97706;
+  --orange-lt:#fef3c7;
+  --red:     #dc2626;
+  --red-lt:  #fee2e2;
+  --grey-lt: #f3f4f6;
+  --sps:     #c0392b;
+  --font:    'Sora', sans-serif;
+  --mono:    'JetBrains Mono', monospace;
+  --r:       10px; --r-sm: 6px;
+  --shadow:  0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.05);
+  --shadow-h:0 2px 8px rgba(0,0,0,.1), 0 8px 24px rgba(0,0,0,.08);
+  --panel-w: 460px;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;font-family:var(--font);background:var(--bg);color:var(--text);font-size:13px;}
+button,input,select,textarea{font-family:var(--font);}
+*{scrollbar-width:thin;scrollbar-color:var(--border2) transparent;}
+*::-webkit-scrollbar{width:5px;}*::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+
+/* ── LAYOUT ── */
+.app{display:flex;flex-direction:column;height:100%;overflow:hidden;}
+
+/* ── NAV SPS ── */
+.sps-nav-bar{display:flex;gap:6px;align-items:center;background:rgba(255,255,255,.95);border-bottom:1px solid rgba(0,0,0,.08);padding:6px 14px;flex-shrink:0;z-index:1000;box-shadow:0 1px 6px rgba(0,0,0,.06);}
+.sps-nav-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:7px;border:1.5px solid transparent;background:#f3f4f6;color:#374151;font-size:12.5px;font-weight:500;text-decoration:none;transition:all 150ms;white-space:nowrap;cursor:pointer;}
+.sps-nav-btn:hover{background:#e0f2f1;border-color:#01696f;color:#01696f;}
+.sps-nav-btn.sps-active{background:var(--sps);color:white;border-color:var(--sps);}
+
+/* ── TOPBAR ── */
+.topbar{
+  background:var(--card);border-bottom:1px solid var(--border);
+  padding:0 20px;height:54px;display:flex;align-items:center;gap:12px;
+  flex-shrink:0;z-index:30;
+}
+.topbar-title{font-size:15px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;}
+.topbar-sep{flex:1;}
+
+/* Search */
+.search-wrap{position:relative;width:260px;}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:12px;pointer-events:none;}
+.search-input{width:100%;padding:7px 11px 7px 30px;border:1px solid var(--border2);border-radius:var(--r-sm);background:var(--bg);font-family:var(--font);font-size:12px;color:var(--text);outline:none;transition:border-color .15s,box-shadow .15s;}
+.search-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+.search-input::placeholder{color:var(--text3);}
+
+/* Filters */
+.filter-sel{padding:6px 10px;border:1px solid var(--border2);border-radius:var(--r-sm);font-family:var(--font);font-size:12px;color:var(--text);background:var(--bg);outline:none;cursor:pointer;}
+.filter-sel:focus{border-color:var(--blue);}
+
+/* Btn new */
+.btn-new{
+  background:var(--sps);color:white;border:none;border-radius:var(--r-sm);
+  padding:8px 16px;font-size:12.5px;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;gap:6px;transition:opacity .15s;white-space:nowrap;
+}
+.btn-new:hover{opacity:.88;}
+
+/* ── BODY ── */
+.body-wrap{flex:1;display:flex;overflow:hidden;position:relative;}
+
+/* ── LIST ── */
+.list-area{flex:1;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:10px;transition:margin-right .3s;}
+.list-area.panel-open{margin-right:var(--panel-w);}
+
+/* Fiche row card */
+.fiche-row{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--r);
+  padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:14px;
+  box-shadow:var(--shadow);transition:box-shadow .15s,border-color .15s,transform .15s;
+  position:relative;
+}
+.fiche-row:hover{box-shadow:var(--shadow-h);border-color:var(--border2);transform:translateY(-1px);}
+.fiche-row.selected{border-color:var(--blue);box-shadow:0 0 0 2px rgba(37,99,235,.15);}
+
+/* Pilier dot */
+.pilier-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+
+/* Infos principales */
+.fiche-main{flex:1;min-width:0;}
+.fiche-name{font-size:13.5px;font-weight:700;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.fiche-sub{font-size:11.5px;color:var(--text3);display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.fiche-sub-item{display:flex;align-items:center;gap:4px;}
+
+/* Progress bar */
+.prog-wrap{width:100px;flex-shrink:0;}
+.prog-bg{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:3px;}
+.prog-fill{height:100%;border-radius:3px;background:var(--blue);transition:width .3s;}
+.prog-label{font-size:10px;color:var(--text3);text-align:right;font-family:var(--mono);}
+
+/* Badges */
+.badge{font-size:10.5px;font-weight:600;padding:3px 8px;border-radius:8px;white-space:nowrap;flex-shrink:0;}
+.badge.ec{background:var(--blue-lt);color:var(--blue);}
+.badge.ok{background:var(--green-lt);color:var(--green);}
+.badge.av{background:var(--orange-lt);color:var(--orange);}
+.badge.af{background:var(--grey-lt);color:var(--text2);}
+
+/* Pilier badge */
+.pilier-badge{font-size:10.5px;font-weight:600;padding:3px 8px;border-radius:8px;flex-shrink:0;}
+.pilier-badge.dev{background:#dbeafe;color:#1d4ed8;}
+.pilier-badge.imp{background:#dcfce7;color:#15803d;}
+.pilier-badge.cul{background:#fee2e2;color:#b91c1c;}
+
+/* Actions count */
+.actions-count{font-size:11px;color:var(--text3);flex-shrink:0;white-space:nowrap;font-family:var(--mono);}
+
+/* Arrow */
+.fiche-arrow{font-size:14px;color:var(--text3);flex-shrink:0;transition:color .15s,transform .15s;}
+.fiche-row:hover .fiche-arrow{color:var(--blue);transform:translateX(2px);}
+.fiche-row.selected .fiche-arrow{color:var(--blue);}
+
+/* Empty state */
+.empty-state{padding:40px;text-align:center;color:var(--text3);}
+.empty-icon{font-size:2.5rem;opacity:.3;margin-bottom:10px;}
+.empty-title{font-size:14px;font-weight:600;color:var(--text2);margin-bottom:5px;}
+.empty-sub{font-size:12px;line-height:1.6;}
+
+/* ── SIDE PANEL ── */
+.side-panel{
+  position:absolute;right:0;top:0;bottom:0;
+  width:var(--panel-w);
+  background:var(--card);border-left:1px solid var(--border);
+  display:flex;flex-direction:column;
+  transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);
+  z-index:20;box-shadow:-4px 0 20px rgba(0,0,0,.08);
+  overflow:hidden;
+}
+.side-panel.open{transform:translateX(0);}
+
+/* Panel header */
+.panel-head{
+  padding:16px 18px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;flex-shrink:0;
+}
+.panel-head-title{flex:1;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.panel-close{background:none;border:none;font-size:18px;cursor:pointer;color:var(--text3);padding:2px;line-height:1;}
+.panel-close:hover{color:var(--text);}
+
+/* Panel actions buttons */
+.panel-btns{display:flex;gap:8px;padding:12px 18px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.btn-edit{background:var(--blue);color:white;border:none;border-radius:var(--r-sm);padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;transition:opacity .15s;}
+.btn-edit:hover{opacity:.88;}
+.btn-save{background:var(--green);color:white;border:none;border-radius:var(--r-sm);padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;transition:opacity .15s;}
+.btn-save:hover{opacity:.88;}
+.btn-cancel{background:var(--grey-lt);color:var(--text2);border:none;border-radius:var(--r-sm);padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;transition:background .15s;}
+.btn-cancel:hover{background:var(--border);}
+.btn-delete{background:none;color:var(--red);border:1px solid var(--red-lt);border-radius:var(--r-sm);padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;margin-left:auto;transition:background .15s;}
+.btn-delete:hover{background:var(--red-lt);}
+
+/* Panel body */
+.panel-body{flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:14px;}
+
+/* Fields */
+.field-group{display:flex;flex-direction:column;gap:5px;}
+.field-label{font-size:10.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;}
+.field-value{font-size:13px;color:var(--text);line-height:1.6;}
+.field-input{width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--r-sm);font-family:var(--font);font-size:12.5px;color:var(--text);background:var(--bg);outline:none;transition:border-color .15s,box-shadow .15s;}
+.field-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1);background:white;}
+.field-textarea{width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--r-sm);font-family:var(--font);font-size:12.5px;color:var(--text);background:var(--bg);outline:none;resize:vertical;min-height:80px;transition:border-color .15s;}
+.field-textarea:focus{border-color:var(--blue);background:white;}
+.field-select{width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--r-sm);font-family:var(--font);font-size:12.5px;color:var(--text);background:var(--bg);outline:none;}
+.field-select:focus{border-color:var(--blue);}
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+/* Section separator */
+.panel-section{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;padding-bottom:6px;border-bottom:1px solid var(--border);margin-top:4px;}
+
+/* Actions list in panel */
+.action-item{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg);border-radius:var(--r-sm);border:1px solid var(--border);}
+.action-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.action-name{flex:1;font-size:12px;color:var(--text2);}
+.action-status{font-size:10.5px;color:var(--text3);}
+
+/* Avancement display */
+.avancement-bar{height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin-top:6px;}
+.avancement-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--blue),#60a5fa);transition:width .4s;}
+
+/* Toast */
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%) translateY(60px);background:#1e293b;color:#fff;padding:7px 18px;border-radius:20px;font-size:12px;font-weight:500;z-index:9999;pointer-events:none;opacity:0;transition:all .3s;white-space:nowrap;}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+
+/* Spinner */
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--sps);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading{display:flex;align-items:center;justify-content:center;flex:1;gap:10px;color:var(--text3);}
+
+/* Saving indicator */
+.save-pill{font-size:11px;font-weight:600;padding:3px 10px;border-radius:12px;background:var(--green-lt);color:var(--green);opacity:0;transition:opacity .3s;}
+.save-pill.show{opacity:1;}
 </style>
 </head>
 <body>
-<nav class="nav-container">
-  <a class="nav-btn" data-page="10"
-     href="https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/10"
-     target="_top">📊 Dashboard</a>
-  <a class="nav-btn" data-page="7"
-     href="https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/7"
-     target="_top">🏠 Maison SPS</a>
-  <a class="nav-btn" data-page="9"
-     href="https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/9"
-     target="_top">📅 Planning</a>
-  <a class="nav-btn" data-page="8"
-     href="https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/8"
-     target="_top">📋 Programmes</a>
-</nav>
+<div class="app">
+
+<!-- NAV SPS -->
+<div class="sps-nav-bar" id="spsNav">
+  <a class="sps-nav-btn" data-page="10" href="https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/10" target="_top">📊 Dashboard</a>
+  <a class="sps-nav-btn" data-page="7"  href="https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/7"  target="_top">🏠 Maison SPS</a>
+  <a class="sps-nav-btn" data-page="9"  href="https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/9"  target="_top">📅 Planning</a>
+  <a class="sps-nav-btn" data-page="8"  href="https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/8"  target="_top">📋 Programmes</a>
+  <a class="sps-nav-btn sps-active" data-page="11" href="https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/11" target="_top">📁 Fiches</a>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-title">📁 Fiches Programmes</div>
+  <div class="topbar-sep"></div>
+  <!-- Search -->
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input class="search-input" id="searchInput" type="text" placeholder="Rechercher une fiche…" oninput="applyFilters()" autocomplete="off">
+  </div>
+  <!-- Filtres -->
+  <select class="filter-sel" id="filterPilier" onchange="applyFilters()">
+    <option value="">Tous les piliers</option>
+    <option value="dev">Développement Business</option>
+    <option value="imp">Impact</option>
+    <option value="cul">Culture Managériale</option>
+  </select>
+  <select class="filter-sel" id="filterStatut" onchange="applyFilters()">
+    <option value="">Tous les statuts</option>
+    <option value="En cours">En cours</option>
+    <option value="A venir">À venir</option>
+    <option value="Terminé">Terminé</option>
+  </select>
+  <select class="filter-sel" id="filterLeader" onchange="applyFilters()">
+    <option value="">Tous les leaders</option>
+  </select>
+  <!-- Bouton nouveau -->
+  <button class="btn-new" onclick="openCreate()">+ Nouvelle fiche</button>
+  <!-- Save pill -->
+  <span class="save-pill" id="savePill">✓ Enregistré</span>
+</div>
+
+<!-- BODY -->
+<div class="body-wrap">
+  <!-- List -->
+  <div class="list-area" id="listArea">
+    <div class="loading"><div class="spinner"></div>Chargement…</div>
+  </div>
+  <!-- Side Panel -->
+  <div class="side-panel" id="sidePanel">
+    <div class="panel-head">
+      <div class="panel-head-title" id="panelTitle">—</div>
+      <button class="panel-close" onclick="closePanel()" title="Fermer">✕</button>
+    </div>
+    <div class="panel-btns" id="panelBtns"></div>
+    <div class="panel-body" id="panelBody"></div>
+  </div>
+</div>
+
+</div>
+<div class="toast" id="toast"></div>
+
 <script>
-  try {
-    var url = window.parent.location.href;
-    var match = url.match(/\/p\/(\d+)/);
-    if (match) {
-      document.querySelectorAll('.nav-btn').forEach(function(btn) {
-        if (btn.getAttribute('data-page') === match[1]) {
-          btn.classList.add('active');
-        }
+/* ══════════════════════════════════════
+   STATE
+══════════════════════════════════════ */
+var allFiches    = [];
+var allActions   = [];
+var membresRows  = [];
+var programSheetById = {};
+var resolvedTable = 'Fiches_Programmes';
+var selectedId   = null;
+var panelMode    = null; // 'view' | 'edit' | 'create'
+var editData     = {};   // données en cours d'édition
+
+/* ══════════════════════════════════════
+   UTILS
+══════════════════════════════════════ */
+var esc = function(t){ var d=document.createElement('div'); d.textContent=String(t||''); return d.innerHTML; };
+var toast_t;
+function toast(msg){
+  var el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show');
+  clearTimeout(toast_t); toast_t=setTimeout(function(){el.classList.remove('show');},2400);
+}
+function savePill(){
+  var el=document.getElementById('savePill'); el.classList.add('show');
+  setTimeout(function(){el.classList.remove('show');},2000);
+}
+function getPilierKey(p){
+  if(!p) return 'dev'; var s=String(p).toLowerCase();
+  if(s.includes('impact')) return 'imp';
+  if(s.includes('culture')||s.includes('manag')) return 'cul';
+  return 'dev';
+}
+function getPilierLabel(k){ return k==='imp'?'Impact':k==='cul'?'Culture Managériale':'Dév. Business'; }
+function getPilierColor(k){ return k==='imp'?'#16a34a':k==='cul'?'#dc2626':'#2563eb'; }
+function getStatutClass(s){
+  if(!s) return 'af'; var sl=s.toLowerCase();
+  if(sl.includes('cours')) return 'ec';
+  if(sl.includes('termin')) return 'ok';
+  if(sl.includes('venir')) return 'av';
+  return 'af';
+}
+function getStatutLabel(s){ if(!s) return 'À venir'; return s; }
+function refLabel(val){ if(!val) return ''; if(Array.isArray(val)) return String(val[0]||''); return String(val); }
+function splitBullets(t){ if(!t) return []; return String(t).split(/[\n;]+/).map(function(s){return s.trim();}).filter(Boolean); }
+
+/* ══════════════════════════════════════
+   FILTERS & RENDER LIST
+══════════════════════════════════════ */
+function applyFilters(){
+  var q      = document.getElementById('searchInput').value.trim().toLowerCase();
+  var pilier = document.getElementById('filterPilier').value;
+  var statut = document.getElementById('filterStatut').value;
+  var leader = document.getElementById('filterLeader').value;
+
+  var filtered = allFiches.filter(function(f){
+    if(q && !String(f.Programme||'').toLowerCase().includes(q) &&
+           !String(f.Contexte||'').toLowerCase().includes(q) &&
+           !String(f.Objectifs||'').toLowerCase().includes(q)) return false;
+    if(pilier && getPilierKey(f.Pilier) !== pilier) return false;
+    if(statut && String(f.Statut||'') !== statut) return false;
+    if(leader && refLabel(f.Leader) !== leader) return false;
+    return true;
+  });
+  renderList(filtered);
+}
+
+function renderList(list){
+  var area = document.getElementById('listArea');
+  if(!list.length){
+    area.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">Aucune fiche trouvée</div><div class="empty-sub">Modifiez les filtres ou créez une nouvelle fiche.</div></div>';
+    return;
+  }
+  area.innerHTML = list.map(function(f){
+    var pk    = getPilierKey(f.Pilier);
+    var sc    = getStatutClass(f.Statut);
+    var pct   = Math.min(100, Math.max(0, Number(f.Avancement_Global||0)));
+    var leader= refLabel(f.Leader)||'—';
+    var nbAct = allActions.filter(function(a){
+      var raw=a.Initiative_ID; var id=typeof raw==='number'?raw:Array.isArray(raw)?(raw.find(function(v){return typeof v==='number'&&v>0;})||null):null;
+      return id===f.id;
+    }).length;
+    var isSel = f.id === selectedId;
+    return '<div class="fiche-row'+(isSel?' selected':'')+'" onclick="openView('+f.id+')" data-id="'+f.id+'">'
+      +'<div class="pilier-dot" style="background:'+getPilierColor(pk)+'"></div>'
+      +'<div class="fiche-main">'
+        +'<div class="fiche-name">'+esc(f.Programme||'Sans titre')+'</div>'
+        +'<div class="fiche-sub">'
+          +'<span class="fiche-sub-item">👤 '+esc(leader)+'</span>'
+          +(f.Priorite?'<span class="fiche-sub-item">🎯 '+esc(f.Priorite)+'</span>':'')
+          +(f.Capex?'<span class="fiche-sub-item">💶 '+esc(f.Capex)+'</span>':'')
+        +'</div>'
+      +'</div>'
+      +'<span class="pilier-badge '+pk+'">'+getPilierLabel(pk)+'</span>'
+      +'<span class="badge '+sc+'">'+esc(getStatutLabel(f.Statut))+'</span>'
+      +'<div class="prog-wrap">'
+        +'<div class="prog-bg"><div class="prog-fill" style="width:'+pct+'%"></div></div>'
+        +'<div class="prog-label">'+Math.round(pct)+'%</div>'
+      +'</div>'
+      +'<span class="actions-count">'+nbAct+' action'+(nbAct!==1?'s':'')+'</span>'
+      +'<span class="fiche-arrow">›</span>'
+    +'</div>';
+  }).join('');
+}
+
+/* ══════════════════════════════════════
+   PANEL — VIEW MODE
+══════════════════════════════════════ */
+function openView(id){
+  selectedId = id;
+  panelMode  = 'view';
+  var f = allFiches.find(function(x){return x.id===id;});
+  if(!f) return;
+  // Highlight selected row
+  document.querySelectorAll('.fiche-row').forEach(function(r){
+    r.classList.toggle('selected', parseInt(r.dataset.id)===id);
+  });
+  document.getElementById('panelTitle').textContent = f.Programme||'—';
+  // Buttons
+  document.getElementById('panelBtns').innerHTML =
+    '<button class="btn-edit" onclick="openEdit('+id+')">✏️ Modifier</button>'
+    +'<button class="btn-delete" onclick="confirmDelete('+id+')">🗑 Supprimer</button>';
+  // Body
+  var actions = allActions.filter(function(a){
+    var raw=a.Initiative_ID; var id2=typeof raw==='number'?raw:Array.isArray(raw)?(raw.find(function(v){return typeof v==='number'&&v>0;})||null):null;
+    return id2===f.id;
+  });
+  var pct = Math.min(100, Math.max(0, Number(f.Avancement_Global||0)));
+  var pk  = getPilierKey(f.Pilier);
+
+  document.getElementById('panelBody').innerHTML =
+    // Statut + Pilier + Priorité
+    '<div class="field-grid">'
+      +'<div class="field-group"><div class="field-label">Statut</div><span class="badge '+getStatutClass(f.Statut)+'">'+esc(getStatutLabel(f.Statut))+'</span></div>'
+      +'<div class="field-group"><div class="field-label">Pilier</div><span class="pilier-badge '+pk+'">'+getPilierLabel(pk)+'</span></div>'
+    +'</div>'
+    // Avancement
+    +'<div class="field-group"><div class="field-label">Avancement global</div>'
+      +'<div style="font-size:18px;font-weight:800;font-family:var(--mono);color:var(--blue)">'+Math.round(pct)+'%</div>'
+      +'<div class="avancement-bar"><div class="avancement-fill" style="width:'+pct+'%"></div></div>'
+    +'</div>'
+    // Leader + Priorité
+    +'<div class="field-grid">'
+      +'<div class="field-group"><div class="field-label">Leader</div><div class="field-value">'+esc(refLabel(f.Leader)||'—')+'</div></div>'
+      +'<div class="field-group"><div class="field-label">Priorité</div><div class="field-value">'+esc(f.Priorite||'—')+'</div></div>'
+    +'</div>'
+    // Contexte
+    +(f.Contexte?'<div class="field-group"><div class="field-label">Contexte</div><div class="field-value" style="font-size:12px;line-height:1.6">'+esc(f.Contexte)+'</div></div>':'')
+    // Objectifs
+    +(f.Objectifs?'<div class="field-group"><div class="field-label">Objectifs</div><div class="field-value" style="font-size:12px;line-height:1.7">'
+      +splitBullets(f.Objectifs).map(function(o){return '<div>• '+esc(o)+'</div>';}).join('')
+    +'</div></div>':'')
+    // KPIs
+    +(f.KPIs?'<div class="field-group"><div class="field-label">KPIs</div><div class="field-value" style="font-size:12px;line-height:1.7">'
+      +splitBullets(f.KPIs).map(function(k){return '<div>• '+esc(k)+'</div>';}).join('')
+    +'</div></div>':'')
+    // Key Success Factor
+    +(f.KeySuccessFactor?'<div class="field-group"><div class="field-label">Key Success Factor</div><div class="field-value" style="font-size:12px;line-height:1.6">'+esc(f.KeySuccessFactor)+'</div></div>':'')
+    // Ressources
+    +(f.Ressources?'<div class="field-group"><div class="field-label">Ressources</div><div class="field-value" style="font-size:12px;line-height:1.7">'
+      +splitBullets(f.Ressources).map(function(r){return '<div>• '+esc(r)+'</div>';}).join('')
+    +'</div></div>':'')
+    // Actions liées
+    +(actions.length?'<div class="panel-section">Actions liées ('+actions.length+')</div>'
+      +actions.map(function(a){
+        var sc=getStatutClass(a.Statut);
+        var colors={'ec':'#2563eb','ok':'#16a34a','av':'#d97706','af':'#9ca3af'};
+        return '<div class="action-item">'
+          +'<div class="action-dot" style="background:'+( colors[sc]||'#9ca3af' )+'"></div>'
+          +'<div class="action-name">'+esc(a.Libelle||'—')+'</div>'
+          +'<div class="action-status">'+esc(a.Statut||'')+'</div>'
+        +'</div>';
+      }).join(''):'')
+    ;
+  openPanel();
+}
+
+/* ══════════════════════════════════════
+   PANEL — EDIT MODE
+══════════════════════════════════════ */
+function openEdit(id){
+  selectedId = id;
+  panelMode  = 'edit';
+  var f = allFiches.find(function(x){return x.id===id;});
+  if(!f) return;
+  editData = Object.assign({}, f);
+  document.getElementById('panelTitle').textContent = '✏️ Modifier — '+( f.Programme||'—' );
+  document.getElementById('panelBtns').innerHTML =
+    '<button class="btn-save" onclick="saveEdit()">💾 Enregistrer</button>'
+    +'<button class="btn-cancel" onclick="openView('+id+')">Annuler</button>';
+  renderEditForm(editData);
+  openPanel();
+}
+
+function renderEditForm(d){
+  var leaders = membresRows.map(function(m){
+    var name = String(m.Nom||m.name||'');
+    var isSelected = name === refLabel(d.Leader);
+    return '<option value="'+esc(name)+'"'+(isSelected?' selected':'')+'>'+esc(name)+'</option>';
+  }).join('');
+  var pilierOptions = [
+    {v:'Développement Business',k:'dev'},
+    {v:'Impact',k:'imp'},
+    {v:'Culture Managériale',k:'cul'}
+  ].map(function(o){
+    var sel = getPilierKey(d.Pilier)===o.k;
+    return '<option value="'+o.v+'"'+(sel?' selected':'')+'>'+o.v+'</option>';
+  }).join('');
+  var statutOptions = ['En cours','A venir','Terminé'].map(function(s){
+    return '<option value="'+s+'"'+(String(d.Statut||'')===s?' selected':'')+'>'+s+'</option>';
+  }).join('');
+  var prioOptions = ['Critique','Haute','Moyenne','Basse'].map(function(p){
+    return '<option value="'+p+'"'+(String(d.Priorite||'')===p?' selected':'')+'>'+p+'</option>';
+  }).join('');
+
+  document.getElementById('panelBody').innerHTML =
+    '<div class="field-group"><div class="field-label">Nom du programme *</div>'
+      +'<input class="field-input" id="ef_Programme" value="'+esc(d.Programme||'')+'" placeholder="Nom du programme"></div>'
+    +'<div class="field-grid">'
+      +'<div class="field-group"><div class="field-label">Pilier</div><select class="field-select" id="ef_Pilier"><option value="">—</option>'+pilierOptions+'</select></div>'
+      +'<div class="field-group"><div class="field-label">Statut</div><select class="field-select" id="ef_Statut"><option value="">—</option>'+statutOptions+'</select></div>'
+    +'</div>'
+    +'<div class="field-grid">'
+      +'<div class="field-group"><div class="field-label">Leader</div><select class="field-select" id="ef_Leader"><option value="">—</option>'+leaders+'</select></div>'
+      +'<div class="field-group"><div class="field-label">Priorité</div><select class="field-select" id="ef_Priorite"><option value="">—</option>'+prioOptions+'</select></div>'
+    +'</div>'
+    +'<div class="field-group"><div class="field-label">Contexte</div>'
+      +'<textarea class="field-textarea" id="ef_Contexte" placeholder="Contexte du programme…">'+esc(d.Contexte||'')+'</textarea></div>'
+    +'<div class="field-group"><div class="field-label">Objectifs (un par ligne)</div>'
+      +'<textarea class="field-textarea" id="ef_Objectifs" placeholder="Objectif 1&#10;Objectif 2…">'+esc(d.Objectifs||'')+'</textarea></div>'
+    +'<div class="field-group"><div class="field-label">KPIs (un par ligne)</div>'
+      +'<textarea class="field-textarea" id="ef_KPIs" placeholder="KPI 1&#10;KPI 2…">'+esc(d.KPIs||'')+'</textarea></div>'
+    +'<div class="field-group"><div class="field-label">Key Success Factor</div>'
+      +'<textarea class="field-textarea" id="ef_KeySuccessFactor" placeholder="Facteur clé de succès…">'+esc(d.KeySuccessFactor||'')+'</textarea></div>'
+    +'<div class="field-group"><div class="field-label">Ressources (une par ligne)</div>'
+      +'<textarea class="field-textarea" id="ef_Ressources" placeholder="People : …&#10;Capex : …">'+esc(d.Ressources||'')+'</textarea></div>'
+    +'<div class="field-group"><div class="field-label">Départements (un par ligne)</div>'
+      +'<textarea class="field-textarea" id="ef_Departements" placeholder="Département 1&#10;Département 2…">'+esc(d.Departements||d.Departement||'')+'</textarea></div>'
+    +'<div class="field-group"><div class="field-label">Capex (€)</div>'
+      +'<input class="field-input" id="ef_Capex" type="number" value="'+esc(d.Capex||0)+'" placeholder="0"></div>'
+    ;
+}
+
+/* ══════════════════════════════════════
+   PANEL — CREATE MODE
+══════════════════════════════════════ */
+function openCreate(){
+  selectedId = null;
+  panelMode  = 'create';
+  editData   = { Programme:'', Pilier:'', Statut:'A venir', Priorite:'Moyenne', Leader:'', Contexte:'', Objectifs:'', KPIs:'', KeySuccessFactor:'', Ressources:'', Departements:'', Capex:0 };
+  document.getElementById('panelTitle').textContent = '✨ Nouvelle fiche';
+  document.getElementById('panelBtns').innerHTML =
+    '<button class="btn-save" onclick="saveCreate()">✨ Créer la fiche</button>'
+    +'<button class="btn-cancel" onclick="closePanel()">Annuler</button>';
+  renderEditForm(editData);
+  // Deselect rows
+  document.querySelectorAll('.fiche-row').forEach(function(r){r.classList.remove('selected');});
+  openPanel();
+}
+
+/* ══════════════════════════════════════
+   SAVE EDIT
+══════════════════════════════════════ */
+function collectFormData(){
+  var fields = ['Programme','Pilier','Statut','Leader','Priorite','Contexte','Objectifs','KPIs','KeySuccessFactor','Ressources','Departements','Capex'];
+  var data = {};
+  fields.forEach(function(f){
+    var el = document.getElementById('ef_'+f);
+    if(!el) return;
+    data[f] = el.value;
+  });
+  if(data.Capex!==undefined) data.Capex = parseFloat(data.Capex)||0;
+  return data;
+}
+
+function saveEdit(){
+  if(!selectedId) return;
+  var data = collectFormData();
+  if(!data.Programme){ toast('⚠ Le nom du programme est obligatoire'); return; }
+  // Update local state
+  var idx = allFiches.findIndex(function(x){return x.id===selectedId;});
+  if(idx>=0) allFiches[idx] = Object.assign({}, allFiches[idx], data);
+  // Save to Grist
+  var payload = {};
+  Object.keys(data).forEach(function(k){ payload[k] = data[k]; });
+  grist.docApi.applyUserActions([['UpdateRecord', resolvedTable, selectedId, payload]])
+  .then(function(){
+    savePill();
+    toast('✓ Fiche mise à jour');
+    applyFilters();
+    openView(selectedId);
+  }).catch(function(e){
+    toast('⚠ Erreur : '+( e&&e.message||'?' ));
+  });
+}
+
+function saveCreate(){
+  var data = collectFormData();
+  if(!data.Programme){ toast('⚠ Le nom du programme est obligatoire'); return; }
+  grist.docApi.applyUserActions([['AddRecord', resolvedTable, null, data]])
+  .then(function(result){
+    toast('✓ Fiche créée !');
+    savePill();
+    // Reload
+    return loadAll();
+  }).then(function(){
+    applyFilters();
+    closePanel();
+  }).catch(function(e){
+    toast('⚠ Erreur : '+( e&&e.message||'?' ));
+  });
+}
+
+/* ══════════════════════════════════════
+   DELETE
+══════════════════════════════════════ */
+function confirmDelete(id){
+  var f = allFiches.find(function(x){return x.id===id;});
+  if(!f) return;
+  if(!confirm('Supprimer la fiche "'+( f.Programme||'—' )+'" ?\n\nCette action est irréversible.')) return;
+  grist.docApi.applyUserActions([['RemoveRecord', resolvedTable, id]])
+  .then(function(){
+    toast('🗑 Fiche supprimée');
+    allFiches = allFiches.filter(function(x){return x.id!==id;});
+    closePanel();
+    applyFilters();
+  }).catch(function(e){
+    toast('⚠ Erreur : '+( e&&e.message||'?' ));
+  });
+}
+
+/* ══════════════════════════════════════
+   PANEL HELPERS
+══════════════════════════════════════ */
+function openPanel(){
+  document.getElementById('sidePanel').classList.add('open');
+  document.getElementById('listArea').classList.add('panel-open');
+}
+function closePanel(){
+  document.getElementById('sidePanel').classList.remove('open');
+  document.getElementById('listArea').classList.remove('panel-open');
+  selectedId = null; panelMode = null;
+  document.querySelectorAll('.fiche-row').forEach(function(r){r.classList.remove('selected');});
+}
+
+/* ══════════════════════════════════════
+   POPULATE LEADER FILTER
+══════════════════════════════════════ */
+function populateLeaderFilter(){
+  var leaders = [...new Set(allFiches.map(function(f){return refLabel(f.Leader);}).filter(Boolean))].sort();
+  var sel = document.getElementById('filterLeader');
+  var cur = sel.value;
+  sel.innerHTML = '<option value="">Tous les leaders</option>'
+    + leaders.map(function(l){return '<option value="'+esc(l)+'"'+(l===cur?' selected':'')+'>'+esc(l)+'</option>';}).join('');
+}
+
+/* ══════════════════════════════════════
+   GRIST DATA
+══════════════════════════════════════ */
+function convertColumnar(data){
+  if(!data) return []; if(Array.isArray(data)) return data;
+  var cols=Object.keys(data); if(!cols.length) return [];
+  var n=data[cols[0]]&&data[cols[0]].length||0;
+  return Array.from({length:n},function(_,i){var r={};cols.forEach(function(c){r[c]=data[c][i];});return r;});
+}
+async function fetchT(candidates){
+  for(var i=0;i<candidates.length;i++){
+    try{ return{name:candidates[i],rows:convertColumnar(await grist.docApi.fetchTable(candidates[i]))}; }catch(e){}
+  }
+  try{
+    var all=await grist.docApi.listTables();
+    var norm=function(s){return String(s).toLowerCase().replace(/[\s_]/g,'');};
+    var match=all.find(function(t){return candidates.map(norm).includes(norm(t));});
+    if(match) return{name:match,rows:convertColumnar(await grist.docApi.fetchTable(match))};
+  }catch(e){}
+  return{name:null,rows:[]};
+}
+
+async function loadAll(){
+  var results = await Promise.all([
+    fetchT(['Fiches_Programmes','Fiches Programmes','FichesProgrammes']),
+    fetchT(['Actions']),
+    fetchT(['Membres','Table1']),
+  ]);
+  if(results[0].name) resolvedTable = results[0].name;
+  allFiches   = results[0].rows;
+  allActions  = results[1].rows;
+  membresRows = results[2].rows;
+  populateLeaderFilter();
+  applyFilters();
+}
+
+/* ══════════════════════════════════════
+   GRIST INIT
+══════════════════════════════════════ */
+grist.ready({ requiredAccess: 'full' });
+grist.onRecords(function(records){
+  // onRecords donne les fiches si table liée = Fiches Programmes
+  if(records && records.length){
+    allFiches = records;
+    populateLeaderFilter();
+    applyFilters();
+  }
+});
+setTimeout(loadAll, 400);
+
+/* ══════════════════════════════════════
+   NAV DETECTION
+══════════════════════════════════════ */
+(function(){
+  try{
+    var url=window.parent.location.href;
+    var match=url.match(/\/p\/(\d+)/);
+    if(match){
+      document.querySelectorAll('.sps-nav-btn').forEach(function(btn){
+        btn.classList.remove('sps-active');
+        if(btn.getAttribute('data-page')===match[1]) btn.classList.add('sps-active');
       });
     }
-  } catch(e) {}
+  }catch(e){}
+})();
 </script>
 </body>
 </html>
