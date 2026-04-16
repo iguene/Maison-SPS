@@ -314,7 +314,25 @@ function getStatutClass(s){
   return 'af';
 }
 function getStatutLabel(s){ if(!s) return 'À venir'; return s; }
-function refLabel(val){ if(!val) return ''; if(Array.isArray(val)) return String(val[0]||''); return String(val); }
+function refLabel(val){
+  if(!val && val !== 0) return '';
+  // Grist Ref column peut envoyer : ["Nom", id] | id_number | "Nom string"
+  var raw = val;
+  if(Array.isArray(raw)) {
+    // Si le premier élément est un string non-vide → c'est le label
+    if(raw[0] && typeof raw[0] === 'string' && isNaN(raw[0])) return raw[0];
+    // Sinon c'est [id] ou [null, id] → résoudre via membresRows
+    raw = raw.find(function(v){ return typeof v === 'number' && v > 0; }) || raw[0];
+  }
+  if(typeof raw === 'number' || (typeof raw === 'string' && !isNaN(raw) && raw !== '')) {
+    // C'est un id → chercher dans membresRows
+    var id = Number(raw);
+    var membre = membresRows.find(function(m){ return m.id === id; });
+    if(membre) return String(membre.Nom || membre.name || membre.Prénom || '');
+    return String(raw);
+  }
+  return String(raw || '');
+}
 function splitBullets(t){ if(!t) return []; return String(t).split(/[\n;]+/).map(function(s){return s.trim();}).filter(Boolean); }
 
 /* ══════════════════════════════════════
@@ -543,6 +561,13 @@ function collectFormData(){
     data[f] = el.value;
   });
   if(data.Capex!==undefined) data.Capex = parseFloat(data.Capex)||0;
+  // Leader : si c'est un nom → retrouver l'id Grist du membre
+  if(data.Leader && membresRows.length) {
+    var membre = membresRows.find(function(m){
+      return String(m.Nom||m.name||'') === data.Leader;
+    });
+    if(membre) data.Leader = membre.id; // Envoyer l'id pour la colonne Ref
+  }
   return data;
 }
 
@@ -620,7 +645,21 @@ function closePanel(){
    POPULATE LEADER FILTER
 ══════════════════════════════════════ */
 function populateLeaderFilter(){
-  var leaders = [...new Set(allFiches.map(function(f){return refLabel(f.Leader);}).filter(Boolean))].sort();
+  // Utiliser les leaders qui apparaissent réellement dans les fiches
+  var usedNames = new Set();
+  allFiches.forEach(function(f){
+    var name = refLabel(f.Leader);
+    if(name && name !== '0' && !isNaN(name) === false) usedNames.add(name);
+    else if(name && name !== '0') usedNames.add(name);
+  });
+  // Compléter avec tous les membres si disponibles
+  membresRows.forEach(function(m){
+    var name = String(m.Nom||m.name||'');
+    if(name) usedNames.add(name);
+  });
+  var leaders = Array.from(usedNames).filter(function(n){
+    return n && isNaN(n); // Exclure les ids numériques purs
+  }).sort();
   var sel = document.getElementById('filterLeader');
   var cur = sel.value;
   sel.innerHTML = '<option value="">Tous les leaders</option>'
