@@ -40,6 +40,7 @@
 }
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 html,body{height:100%;overflow:hidden;font-family:var(--font);background:var(--bg);color:var(--text);font-size:13px;}
+body{display:flex;flex-direction:column;}
 button{font-family:var(--font);}
 *{scrollbar-width:thin;scrollbar-color:var(--border2) transparent;}
 *::-webkit-scrollbar{width:5px;height:5px;}
@@ -48,7 +49,7 @@ button{font-family:var(--font);}
 /* ═══════════════════════════
    APP SHELL
 ═══════════════════════════ */
-.app{display:flex;flex-direction:column;height:100%;overflow:hidden;}
+.app{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;}
 
 /* ── NAV BAR ── */
 .navbar{
@@ -277,9 +278,15 @@ button{font-family:var(--font);}
   border-bottom: 1px solid rgba(0,0,0,0.08);
   padding: 6px 14px;
   flex-shrink: 0;
+  width: 100%;
   z-index: 1000;
   box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+  overflow-x: auto;       /* scroll si trop étroit */
+  overflow-y: hidden;
+  scrollbar-width: none;  /* scrollbar invisible */
+  flex-wrap: nowrap;      /* boutons sur une seule ligne */
 }
+.sps-nav-bar::-webkit-scrollbar { display: none; }
 .sps-nav-btn {
   display: inline-flex;
   align-items: center;
@@ -311,10 +318,6 @@ button{font-family:var(--font);}
 </style>
 </head>
 <body>
-<div class="app">
-
-
-<!-- ═══ BARRE NAVIGATION SPS ═══ -->
 <div class="sps-nav-bar" id="spsNav">
   <a class="sps-nav-btn sps-active" data-page="10"
      href="https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/10"
@@ -331,6 +334,10 @@ button{font-family:var(--font);}
   <a class="sps-nav-btn" data-page="11" href="https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/11" target="_top">📁 Fiches</a>
 </div>
 
+<div class="app">
+
+
+<!-- ═══ BARRE NAVIGATION SPS ═══ -->
 <div class="navbar">
   <div class="nav-logo">SPS<span>MEDICAL</span></div>
   <div class="nav-right" style="margin-left:0">
