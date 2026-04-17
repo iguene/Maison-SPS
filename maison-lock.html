@@ -10,7 +10,7 @@
 html, body {
   width: 100%; height: 100%;
   margin: 0; padding: 0;
-  overflow: hidden;
+  overflow: auto; /* scroll si trop petit */
 }
 
 body {
@@ -19,6 +19,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  min-width: fit-content;
 }
 
 #maison {
@@ -599,16 +600,33 @@ let resolvedFichesTable = 'Fiches_Programmes';
 function scaleToFit() {
   const el = document.getElementById('maison');
   if (!el) return;
-  // Hauteur disponible = fenêtre - nav SPS - hauteur de la nav Grist éventuelle
-  const navH  = document.getElementById('spsNav') ? document.getElementById('spsNav').offsetHeight : 0;
-  const avW   = window.innerWidth;
-  const avH   = window.innerHeight - navH;
-  const scale = Math.min(avW / W, avH / H, 1); // jamais > 1 (pas d'agrandissement)
-  const ml    = Math.max(0, (avW  - W * scale) / 2);
-  const mt    = Math.max(0, (avH  - H * scale) / 2);
+
+  const navH = document.getElementById('spsNav')
+    ? document.getElementById('spsNav').offsetHeight : 0;
+  const avW  = window.innerWidth;
+  const avH  = window.innerHeight - navH;
+
+  // Seuil minimal : en dessous de 900px de large ou 500px de haut
+  // → pas de scale, on laisse les scrollbars prendre le relais
+  if (avW < 900 || avH < 500) {
+    el.style.transform  = 'none';
+    el.style.marginLeft = '0px';
+    el.style.marginTop  = '0px';
+    // S'assurer que le body est scrollable
+    document.body.style.overflow = 'auto';
+    return;
+  }
+
+  const scale = Math.min(avW / W, avH / H, 1);
+  const ml    = Math.max(0, (avW - W * scale) / 2);
+  const mt    = Math.max(0, (avH - H * scale) / 2);
+
   el.style.transform  = `scale(${scale})`;
   el.style.marginLeft = ml + 'px';
   el.style.marginTop  = mt + 'px';
+
+  // Si le scale fait tenir tout l'écran → pas besoin de scroll
+  document.body.style.overflow = (scale >= 0.99) ? 'hidden' : 'auto';
 }
 
 /* ═══════════════════════════════════════════════════════
