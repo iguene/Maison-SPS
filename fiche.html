@@ -624,22 +624,25 @@ grist.onRecords(function(records) {
   filteredList = records.slice(0, 50);
   showWidget();
 
-  // Vérifier si la Maison a stocké une fiche à ouvrir
+  // Vérifier si la Maison a stocké une fiche à ouvrir (valide 5 secondes max)
   try {
-    var pendingId = localStorage.getItem('sps_selected_fiche_id');
-    if (pendingId) {
-      var id = parseInt(pendingId);
-      var f  = allFiches.find(function(x){ return x.id === id; });
-      if (f) {
-        localStorage.removeItem('sps_selected_fiche_id'); // consommer l'item
-        currentId = id;
-        // Mettre à jour la barre de recherche
-        var inp = document.getElementById('searchInput');
-        if (inp) inp.value = f.Programme || f.Nom || '';
-        var clr = document.getElementById('searchClear');
-        if (clr) clr.classList.add('visible');
-        renderFiche(f);
-        return;
+    var raw = localStorage.getItem('sps_selected_fiche');
+    if (raw) {
+      var parsed = JSON.parse(raw);
+      var age    = Date.now() - (parsed.ts || 0);
+      localStorage.removeItem('sps_selected_fiche'); // toujours consommer
+      if (age < 5000 && parsed.id) {        // moins de 5 secondes → valide
+        var id = parseInt(parsed.id);
+        var f  = allFiches.find(function(x){ return x.id === id; });
+        if (f) {
+          currentId = id;
+          var inp = document.getElementById('searchInput');
+          if (inp) inp.value = f.Programme || f.Nom || '';
+          var clr = document.getElementById('searchClear');
+          if (clr) clr.classList.add('visible');
+          renderFiche(f);
+          return;
+        }
       }
     }
   } catch(e) {}
