@@ -915,8 +915,8 @@ function selectFiche(id) {
   // Notifier Grist
   try { grist.setSelectedRows([id]); } catch(e) {}
 
-  // Stocker l'ID dans localStorage pour que la page Programmes le récupère
-  try { localStorage.setItem('sps_selected_fiche_id', String(id)); } catch(e) {}
+  // Stocker l'ID + timestamp dans localStorage (expire après 5s)
+  try { localStorage.setItem('sps_selected_fiche', JSON.stringify({id: id, ts: Date.now()})); } catch(e) {}
 
   // Highlight visuel
   highlightSelected();
@@ -1053,7 +1053,7 @@ function renderPilier(list, bodyId) {
       e.stopPropagation();
       selectedId = f.id;
       try { grist.setSelectedRows([f.id]); } catch(err) {}
-      try { localStorage.setItem('sps_selected_fiche_id', String(f.id)); } catch(err) {}
+      try { localStorage.setItem('sps_selected_fiche', JSON.stringify({id: f.id, ts: Date.now()})); } catch(err) {}
       tryNavigateToFiche();
     });
 
