@@ -636,6 +636,7 @@ grist.onRecords(function(records) {
         var f  = allFiches.find(function(x){ return x.id === id; });
         if (f) {
           currentId = id;
+          _onRecordEnabled = true; // activer onRecord pour les navigations suivantes
           var inp = document.getElementById('searchInput');
           if (inp) inp.value = f.Programme || f.Nom || '';
           var clr = document.getElementById('searchClear');
@@ -647,18 +648,25 @@ grist.onRecords(function(records) {
     }
   } catch(e) {}
 
-  // Si onRecord a déjà sélectionné une fiche, ne pas écraser
-  if (!currentId) showEmpty();
+  // Si navigation depuis Maison (localStorage valide) → déjà géré ci-dessus
+  // Sinon afficher l'état vide (ne pas afficher le "curseur courant" Grist)
+  if (!currentId) {
+    showEmpty();
+    // Activer onRecord maintenant que les données sont chargées
+    // (pour les navigations futures depuis la Maison)
+    _onRecordEnabled = true;
+  }
 });
 
-// onRecord : si "Sélectionner par" est configuré (ou depuis la Maison)
+// onRecord : uniquement si une navigation explicite vient de la Maison
+// (on ignore le "curseur courant" Grist pour ne pas afficher une fiche par défaut)
+var _onRecordEnabled = false;
 grist.onRecord(function(rec) {
+  if (!_onRecordEnabled) return; // désactivé jusqu'à un clic explicit depuis la Maison
   if (!rec || !rec.id) return;
-  // Mettre à jour allFiches si pas encore chargé
   if (!allFiches.length) return;
   currentId = rec.id;
   var f = allFiches.find(function(x){ return x.id === rec.id; }) || rec;
-  // Mettre à jour le champ de recherche
   var inp = document.getElementById('searchInput');
   if (inp) inp.value = f.Programme || f.Nom || '';
   var clr = document.getElementById('searchClear');
