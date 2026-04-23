@@ -2061,11 +2061,11 @@ async function loadSideData() {
    2. ready() ensuite
    La première réception de onRecords déclenche l'affichage
 ═══════════════════════════════════════════════════════ */
-async function initGrist() {
+async function initGrist_MAISON_DISABLED() {
 
   // ── 1. onRecords : canal principal des données widget ──
   // Déclenché à chaque fois que Grist pousse les données (y compris au démarrage)
-  grist.onRecords(records => {
+  /* DISABLED_grist.onRecords(records => {
     if (Date.now() < suppressReloadUntil) {
       return;
     }
@@ -2129,7 +2129,7 @@ async function initGrist() {
   // Doit être appelé APRÈS l'enregistrement des handlers
   // pour que Grist sache quoi pusher
   try {
-    await grist.ready({ requiredAccess: 'full' });
+    await /* DISABLED_grist.ready({ requiredAccess: 'full' });
   } catch(err) {
     console.error('grist.ready error:', err);
     document.getElementById('app-loading').innerHTML =
@@ -2156,7 +2156,7 @@ setTimeout(() => {
 /* ═══════════════════════════════════════════════════════
    START
 ═══════════════════════════════════════════════════════ */
-initGrist();
+/* initGrist_MAISON_DISABLED(); */
 </script>
 <script>
 /* ─── Détection page active SPS nav ─── */
@@ -4582,13 +4582,13 @@ async function refreshFromGrist() {
   render();
 }
 
-async function initGrist() {
+async function initGanttGrist_DISABLED() {
   try {
-    await grist.ready({ requiredAccess:'full' });
+ /* DISABLED_grist.ready(grist.ready( */{ requiredAccess:'full' });
     gristReady = true;
     await refreshFromGrist();
 
-    grist.onRecords(async (records) => {
+    /* GANTT_ON_RECORDS_DISABLED(async (records) => {
       if (suppressNextRecordRefresh) {
         suppressNextRecordRefresh = false;
         return;
@@ -4659,8 +4659,7 @@ function loadDemo() {
   const badge = document.createElement('div');
   badge.style.cssText='position:fixed;bottom:8px;left:8px;background:#f59e0b;color:#000;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;z-index:9999;letter-spacing:.5px;';
   badge.textContent='DÉMO';
-  document.body.appendChild(badge);
-}
+  document.body.appendChi/* initGanttGrist_DISABLED(); */
 
 initGrist();
 
