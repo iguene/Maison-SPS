@@ -635,19 +635,23 @@ function showFiche(f) {
   var top = getNavHeight() + 'px';
   document.getElementById('maison').style.display       = 'none';
   var vf = document.getElementById('view-fiche');
-  vf.style.top     = top;
-  vf.style.display = 'flex';
+  vf.style.top        = top;
+  vf.style.display    = 'flex';
+  vf.style.visibility = 'visible';
   document.getElementById('view-planning').style.display = 'none';
   renderFicheDetail(f);
 }
 function showMaison() {
+  // Cacher les vues flottantes EN PREMIER
+  var vf = document.getElementById('view-fiche');
+  if (vf) { vf.style.display = 'none'; vf.style.visibility = 'hidden'; }
+  var vp = document.getElementById('view-planning');
+  if (vp) { vp.style.display = 'none'; vp.style.visibility = 'hidden'; }
+  // Puis afficher la Maison
   var maison = document.getElementById('maison');
   if (maison) maison.style.display = 'flex';
-  var vf = document.getElementById('view-fiche');
-  if (vf) vf.style.display = 'none';
-  var vp = document.getElementById('view-planning');
-  if (vp) vp.style.display = 'none';
-  scaleToFit();
+  // Recalculer le scale après un tick (le DOM doit se mettre à jour)
+  setTimeout(scaleToFit, 50);
 }
 function showPlanning() {
   if (!selectedFiche) return;
@@ -655,8 +659,9 @@ function showPlanning() {
   document.getElementById('maison').style.display        = 'none';
   document.getElementById('view-fiche').style.display    = 'none';
   var vp = document.getElementById('view-planning');
-  vp.style.top     = top;
-  vp.style.display = 'flex';
+  vp.style.top        = top;
+  vp.style.display    = 'flex';
+  vp.style.visibility = 'visible';
   document.getElementById('planningProgName').textContent = '📅 Planning — ' + (selectedFiche.Programme || '—');
   renderActionsTable(selectedFiche);
 }
