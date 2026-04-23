@@ -1249,6 +1249,7 @@ async function showMaison() {
    Appelé après le premier onRecords
 ═══════════════════════════════════════════════════════ */
 let sideDataLoaded = false;
+let allActions     = [];   // table Actions (pour vues fiche et planning)
 async function loadSideData() {
   if (sideDataLoaded) return;
   sideDataLoaded = true;
@@ -1274,6 +1275,14 @@ async function loadSideData() {
       if (membre) currentUser.name = String(membre.Nom || membre.name || currentUser.name);
     }
   } catch(e) {}
+
+  // Table Actions → pour la vue Fiche et Planning
+  try {
+    const ACTIONS_CANDIDATES = ['Actions'];
+    const aResult = await fetchFirstAvailable(ACTIONS_CANDIDATES);
+    allActions = aResult.rows || [];
+    console.log('[Maison] Actions chargées:', allActions.length);
+  } catch(e) { console.warn('Actions load failed:', e && e.message); }
 
   updateEditModeBtn();
   updateUserPill();
