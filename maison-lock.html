@@ -406,7 +406,12 @@ body {
   flex-shrink: 0;
   z-index: 1000;
   box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  flex-wrap: nowrap;
 }
+.sps-nav-bar::-webkit-scrollbar { display: none; }
 .sps-nav-btn {
   display: inline-flex;
   align-items: center;
@@ -454,6 +459,7 @@ body {
      href="https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/8"
      target="_top">📋 Programmes</a>
   <a class="sps-nav-btn" data-page="11" href="https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/11" target="_top">📁 Fiches</a>
+  <a class="sps-nav-btn" data-page="12" href="https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/12" target="_top">🔍 Visualisation</a>
 </div>
 
 <div id="app-loading"><div class="spinner"></div>Chargement...</div>
@@ -1341,6 +1347,50 @@ initGrist();
   } catch(e) {}
 })();
 /* ────────────────────────────────── */
+</script>
+
+<script>
+/* ── RESTRICTION VIEWERS ── */
+(function() {
+  function redirectViewer() {
+    try {
+      window.top.location.href = 'https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/12';
+    } catch(e) {
+      window.location.href = 'https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/12';
+    }
+  }
+
+  // Attendre que grist soit disponible
+  function checkAccess() {
+    if (typeof grist === 'undefined') {
+      setTimeout(checkAccess, 200);
+      return;
+    }
+    grist.getUserInfo().then(function(user) {
+      if (!user) return; // pas d'info → laisser passer
+      var access = String(user.access || user.role || '').toLowerCase();
+      // viewer = lecture seule → rediriger
+      if (access === 'viewer' || access === 'read only' || access === 'readonly') {
+        // Masquer la nav immédiatement
+        var nav = document.getElementById('spsNav');
+        if (nav) nav.style.display = 'none';
+        // Rediriger vers Visualisation
+        redirectViewer();
+      }
+      // editor / owner → ne rien faire, accès normal
+    }).catch(function() {
+      // En cas d'erreur → laisser passer (fail open)
+    });
+  }
+
+  // Lancer la vérification dès que possible
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAccess);
+  } else {
+    checkAccess();
+  }
+})();
+/* ─────────────────────────── */
 </script>
 </body>
 </html>
