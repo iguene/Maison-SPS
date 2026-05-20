@@ -430,130 +430,108 @@ function renderPilier(list, bodyId) {
     return;
   }
 
-  // Séparer indicateurs (critique/haute) et éléments normaux
-  var indicateurs = list.filter(f => {
-    var p = String(f.Priorite||'').toLowerCase();
-    return p.includes('critique') || p.includes('haute');
+  // Indicateurs fixes par pilier (données codées en dur)
+  var FIXED_IND = {
+    'dev': ['EBITDA↗', 'CA 60M€', 'OTIF 95%'],
+    'imp': ['0 accident', '-30% production de déchets', 'Recyclage déchets +20%'],
+    'cul': ['Enquête Collaborateur 65%', 'Absentéisme 3%', 'Fidélisation 90%'],
+  };
+  var IND_BG = {
+    'dev': 'rgba(0,101,128,0.18)',
+    'imp': 'rgba(5,99,29,0.18)',
+    'cul': 'rgba(172,77,88,0.18)',
+  };
+
+  // Structure : wrapper flex colonne (bande indicateurs + zone cartes)
+  var wrapper = document.createElement('div');
+  wrapper.style.cssText = 'display:flex;flex-direction:column;width:100%;height:100%;position:absolute;inset:0;';
+
+  // ── BANDE INDICATEURS (données fixes) ──
+  var band = document.createElement('div');
+  band.style.cssText = [
+    'width:100%',
+    'background:' + (IND_BG[pk]||'rgba(0,0,0,0.1)'),
+    'border-bottom:2px solid rgba(255,255,255,0.6)',
+    'padding:8px 12px',
+    'display:flex',
+    'flex-wrap:wrap',
+    'gap:6px 24px',
+    'align-items:center',
+    'justify-content:center',
+    'flex-shrink:0',
+    'min-height:40px',
+  ].join(';');
+
+  (FIXED_IND[pk] || []).forEach(function(label) {
+    var span = document.createElement('span');
+    span.textContent = label;
+    span.style.cssText = 'font-size:16px;font-weight:700;color:'+color+';white-space:nowrap;';
+    band.appendChild(span);
   });
-  var elements = list.filter(f => {
-    var p = String(f.Priorite||'').toLowerCase();
-    return !p.includes('critique') && !p.includes('haute');
+  wrapper.appendChild(band);
+
+  // ── ZONE CARTES (fiches programmes) ──
+  var cardsZone = document.createElement('div');
+  cardsZone.style.cssText = 'flex:1;position:relative;overflow:hidden;';
+
+  list.forEach(function(f, idx) {
+    var p    = String(f.Priorite||'').toLowerCase();
+    var card = document.createElement('span');
+    card.className      = 'fiche-card';
+    card.dataset.id     = f.id;
+    card.textContent    = f.Programme || '—';
+    card.title          = f.Programme || '';
+    card.style.position = 'absolute';
+
+    if (p.includes('haute') || p.includes('critique')) {
+      card.style.fontSize   = '20px';
+      card.style.fontWeight = '700';
+      card.style.color      = color;
+    } else if (p.includes('moyenne') || p.includes('moyen')) {
+      card.style.fontSize   = '14px';
+      card.style.fontWeight = '500';
+      card.style.color      = color;
+    } else {
+      card.style.fontSize   = '12px';
+      card.style.fontWeight = '400';
+      card.style.color      = '#000';
+    }
+
+    card.dataset.posX  = f.Position_X || 0;
+    card.dataset.posY  = f.Position_Y || 0;
+    card.dataset.idx   = idx;
+    card.dataset.total = list.length;
+    card.addEventListener('click', function() { selectedFiche=f; showView('fiche'); });
+    cardsZone.appendChild(card);
   });
 
-  // ── BANDE INDICATEURS en haut du bloc ──
-  if (indicateurs.length > 0) {
-    var band = document.createElement('div');
-    band.style.cssText = [
-      'position:relative',
-      'width:100%',
-      'background:rgba(255,255,255,0.35)',
-      'border-bottom:1px solid rgba(255,255,255,0.5)',
-      'padding:6px 10px',
-      'display:flex',
-      'flex-wrap:wrap',
-      'gap:8px 20px',
-      'align-items:center',
-      'flex-shrink:0',
-      'z-index:2',
-    ].join(';');
+  wrapper.appendChild(cardsZone);
+  body.appendChild(wrapper);
 
-    indicateurs.forEach(f => {
-      var p    = String(f.Priorite||'').toLowerCase();
-      var sz   = p.includes('critique') ? '16px' : '20px';
-      var span = document.createElement('span');
-      span.textContent      = f.Programme || '—';
-      span.title            = f.Programme || '';
-      span.style.cssText    = 'font-size:'+sz+';font-weight:700;color:'+color+';cursor:pointer;white-space:nowrap;';
-      span.addEventListener('click', () => { selectedFiche=f; showView('fiche'); });
-      band.appendChild(span);
-    });
-
-    // Wrapper flex colonne pour band + zone cartes
-    var wrapper = document.createElement('div');
-    wrapper.style.cssText = 'display:flex;flex-direction:column;width:100%;height:100%;position:absolute;inset:0;';
-    wrapper.appendChild(band);
-
-    // Zone cartes
-    var cardsZone = document.createElement('div');
-    cardsZone.style.cssText = 'flex:1;position:relative;overflow:hidden;';
-
-    elements.forEach((f, idx) => {
-      var p    = String(f.Priorite||'').toLowerCase();
-      var card = document.createElement('span');
-      card.className = 'fiche-card';
-      card.dataset.id = f.id;
-      card.textContent = f.Programme || '—';
-      card.title = f.Programme || '';
-
-      if (p.includes('moyenne') || p.includes('moyen')) {
-        card.style.fontSize   = '14px';
-        card.style.fontWeight = '500';
-        card.style.color      = color;
+  // Positionner les cartes après rendu
+  requestAnimationFrame(function() {
+    var bw = cardsZone.clientWidth  || 300;
+    var bh = cardsZone.clientHeight || 300;
+    cardsZone.querySelectorAll('.fiche-card').forEach(function(card) {
+      var posX = parseFloat(card.dataset.posX);
+      var posY = parseFloat(card.dataset.posY);
+      var idx  = parseInt(card.dataset.idx);
+      var tot  = parseInt(card.dataset.total);
+      var left, top;
+      if (posX > 0) {
+        left = Math.round((posX/100)*bw);
+        top  = Math.round((posY/100)*bh);
       } else {
-        // Basse
-        card.style.fontSize   = '12px';
-        card.style.fontWeight = '400';
-        card.style.color      = '#000';
+        var cols = Math.ceil(Math.sqrt(tot));
+        var col  = idx%cols, row=Math.floor(idx/cols);
+        left = Math.round((col+0.5)*(bw/cols));
+        top  = Math.round((row+0.5)*(bh/Math.ceil(tot/cols)));
       }
-
-      // Position dans la zone cartes
-      // On calcule APRÈS que cardsZone soit dans le DOM
-      card.dataset.posX = f.Position_X || 0;
-      card.dataset.posY = f.Position_Y || 0;
-      card.dataset.idx  = idx;
-      card.dataset.total= elements.length;
-      card.style.position = 'absolute';
-
-      card.addEventListener('click', () => { selectedFiche=f; showView('fiche'); });
-      cardsZone.appendChild(card);
+      card.style.left      = left+'px';
+      card.style.top       = top+'px';
+      card.style.transform = 'translate(-50%,-50%)';
     });
-
-    wrapper.appendChild(cardsZone);
-    body.appendChild(wrapper);
-
-    // Positionner les cartes après rendu
-    requestAnimationFrame(() => {
-      var bw = cardsZone.clientWidth  || 300;
-      var bh = cardsZone.clientHeight || 300;
-      cardsZone.querySelectorAll('.fiche-card').forEach(card => {
-        var posX = parseFloat(card.dataset.posX);
-        var posY = parseFloat(card.dataset.posY);
-        var idx  = parseInt(card.dataset.idx);
-        var tot  = parseInt(card.dataset.total);
-        var left, top;
-        if (posX > 0) {
-          left = Math.round((posX/100)*bw);
-          top  = Math.round((posY/100)*bh);
-        } else {
-          var cols = Math.ceil(Math.sqrt(tot));
-          var col  = idx%cols, row=Math.floor(idx/cols);
-          left = Math.round((col+0.5)*(bw/cols));
-          top  = Math.round((row+0.5)*(bh/Math.ceil(tot/cols)));
-        }
-        card.style.left      = left+'px';
-        card.style.top       = top+'px';
-        card.style.transform = 'translate(-50%,-50%)';
-      });
-    });
-
-  } else {
-    // Pas d'indicateurs — zone cartes directe
-    var bw = body.clientWidth||300, bh=body.clientHeight||300;
-    elements.forEach((f,idx) => {
-      var p    = String(f.Priorite||'').toLowerCase();
-      var card = document.createElement('span');
-      card.className='fiche-card'; card.dataset.id=f.id;
-      card.textContent=f.Programme||'—'; card.title=f.Programme||'';
-      if(p.includes('moyenne')||p.includes('moyen')){card.style.fontSize='14px';card.style.fontWeight='500';card.style.color=color;}
-      else{card.style.fontSize='12px';card.style.fontWeight='400';card.style.color='#000';}
-      var left,top;
-      if(f.Position_X>0){left=Math.round((f.Position_X/100)*bw);top=Math.round((f.Position_Y/100)*bh);}
-      else{var cols=Math.ceil(Math.sqrt(elements.length)),col=idx%cols,row=Math.floor(idx/cols);left=Math.round((col+0.5)*(bw/cols));top=Math.round((row+0.5)*(bh/Math.ceil(elements.length/cols)));}
-      card.style.left=left+'px';card.style.top=top+'px';card.style.transform='translate(-50%,-50%)';
-      card.addEventListener('click',()=>{selectedFiche=f;showView('fiche');});
-      body.appendChild(card);
-    });
-  }
+  });
 }
 
 function scaleMaison() {
