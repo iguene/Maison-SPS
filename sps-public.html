@@ -431,25 +431,22 @@ function renderPilier(list, bodyId) {
   }
 
   // Indicateurs fixes avec URLs placeholders
+  // Indicateurs avec agencement sur 2 lignes comme référence
   var FIXED_IND = {
-    'dev': [
-      {label:'EBITDA↗',  url:'#ebitda'},
-      {label:'CA 60M€',  url:'#ca60m'},
-      {label:'OTIF 95%', url:'#otif95'},
-    ],
-    'imp': [
-      {label:'0 accident',                 url:'#0accident'},
-      {label:'-30% production de déchets', url:'#prod-dechets'},
-      {label:'Recyclage déchets +20%',     url:'#recyclage'},
-    ],
-    'cul': [
-      {label:'Enquête Collaborateur 65%',  url:'#enquete-collab'},
-      {label:'Absentéisme 3%',             url:'#absenteisme'},
-      {label:'Fidélisation 90%',           url:'#fidelisation'},
-    ],
+    'dev': {
+      row1: [{label:'EBITDA↗', url:'#ebitda'}, {label:'CA 60M€', url:'#ca60m'}, {label:'OTIF 95%', url:'#otif95'}],
+      row2: []
+    },
+    'imp': {
+      row1: [{label:'0 accident', url:'#0accident'}],
+      row2: [{label:'-30% production de déchets', url:'#prod-dechets'}, {label:'Recyclage déchets +20%', url:'#recyclage'}]
+    },
+    'cul': {
+      row1: [{label:'Absentéisme 3%', url:'#absenteisme'}],
+      row2: [{label:'Enquête Collaborateur 65%', url:'#enquete-collab'}, {label:'Fidélisation 90%', url:'#fidelisation'}]
+    },
   };
 
-  // Structure : bande indicateurs (border-radius) + zone cartes
   var wrapper = document.createElement('div');
   wrapper.style.cssText = 'display:flex;flex-direction:column;width:100%;height:100%;position:absolute;inset:0;';
 
@@ -459,33 +456,40 @@ function renderPilier(list, bodyId) {
     'margin:8px 8px 0 8px',
     'background:rgba(255,255,255,0.30)',
     'border-radius:10px',
-    'padding:7px 12px',
+    'padding:6px 12px',
     'display:flex',
-    'flex-wrap:wrap',
-    'gap:4px 20px',
-    'align-items:center',
-    'justify-content:center',
+    'flex-direction:column',
+    'gap:3px',
     'flex-shrink:0',
   ].join(';');
 
-  (FIXED_IND[pk] || []).forEach(function(ind) {
-    var a = document.createElement('a');
-    a.textContent = ind.label;
-    a.href        = ind.url;
-    a.target      = '_blank';
-    a.style.cssText = [
-      'font-size:14px',
-      'font-weight:700',
-      'color:' + color,
-      'white-space:nowrap',
-      'text-decoration:none',
-      'cursor:pointer',
-      'transition:opacity .15s',
-    ].join(';');
-    a.addEventListener('mouseenter', function(){ this.style.opacity='.7'; });
-    a.addEventListener('mouseleave', function(){ this.style.opacity='1'; });
-    band.appendChild(a);
-  });
+  var indData = FIXED_IND[pk] || {row1:[], row2:[]};
+
+  function makeRow(items, justify) {
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;justify-content:'+justify+';align-items:center;gap:16px;';
+    items.forEach(function(ind) {
+      var a = document.createElement('a');
+      a.textContent = ind.label;
+      a.href        = ind.url;
+      a.target      = '_blank';
+      a.style.cssText = 'font-size:14px;font-weight:700;color:'+color+';white-space:nowrap;text-decoration:none;cursor:pointer;transition:opacity .15s;';
+      a.addEventListener('mouseenter', function(){ this.style.opacity='.7'; });
+      a.addEventListener('mouseleave', function(){ this.style.opacity='1'; });
+      row.appendChild(a);
+    });
+    return row;
+  }
+
+  // Ligne 1 : centrée si 1 élément, space-between si plusieurs
+  if (indData.row1.length) {
+    band.appendChild(makeRow(indData.row1, indData.row1.length===1 ? 'center' : 'space-between'));
+  }
+  // Ligne 2 : toujours space-between
+  if (indData.row2.length) {
+    band.appendChild(makeRow(indData.row2, 'space-between'));
+  }
+
   wrapper.appendChild(band);
 
   // ── ZONE CARTES ──
