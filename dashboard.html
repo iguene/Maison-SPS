@@ -1065,5 +1065,49 @@ initGrist();
 })();
 /* ────────────────────────────────── */
 </script>
+
+<script>
+/* ── RESTRICTION VIEWERS ── */
+(function() {
+  function redirectViewer() {
+    try {
+      window.top.location.href = 'https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/12';
+    } catch(e) {
+      window.location.href = 'https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/12';
+    }
+  }
+
+  // Attendre que grist soit disponible
+  function checkAccess() {
+    if (typeof grist === 'undefined') {
+      setTimeout(checkAccess, 200);
+      return;
+    }
+    grist.getUserInfo().then(function(user) {
+      if (!user) return; // pas d'info → laisser passer
+      var access = String(user.access || user.role || '').toLowerCase();
+      // viewer = lecture seule → rediriger
+      if (access === 'viewer' || access === 'read only' || access === 'readonly') {
+        // Masquer la nav immédiatement
+        var nav = document.getElementById('spsNav');
+        if (nav) nav.style.display = 'none';
+        // Rediriger vers Visualisation
+        redirectViewer();
+      }
+      // editor / owner → ne rien faire, accès normal
+    }).catch(function() {
+      // En cas d'erreur → laisser passer (fail open)
+    });
+  }
+
+  // Lancer la vérification dès que possible
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAccess);
+  } else {
+    checkAccess();
+  }
+})();
+/* ─────────────────────────── */
+</script>
 </body>
 </html>
