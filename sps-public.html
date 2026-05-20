@@ -172,15 +172,10 @@ button{font-family:var(--font);cursor:pointer;}
   <div class="maison-wrap" id="maisonWrap">
     <div id="maison-scale">
 
-  <!-- TITRE -->
-  <div style="text-align:center;padding:6px 0 2px;background:white;flex-shrink:0;">
-    <span style="font-size:18px;font-weight:700;color:#c0392b;">Maison SPS Medical &nbsp;(Vision 3 ans)</span>
-  </div>
-
   <!-- TRIANGLE EXCELLENCE -->
   <svg viewBox="0 0 1400 120" style="display:block;flex-shrink:0;width:100%;">
     <defs><linearGradient id="tg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#5b7fa6"/><stop offset="100%" stop-color="#2c3e50"/>
+      <stop offset="0%" stop-color="#C9DBE3"/><stop offset="100%" stop-color="#32596A"/>
     </linearGradient></defs>
     <polygon points="700,4 1396,118 4,118" fill="url(#tg)"/>
     <text x="700" y="62" text-anchor="middle" fill="white" font-size="40" font-weight="800" font-family="Sora,sans-serif" letter-spacing="6">EXCELLENCE</text>
@@ -193,13 +188,13 @@ button{font-family:var(--font);cursor:pointer;}
   <!-- ZONE PILIERS avec titres flottants et flèches -->
   <div style="flex:1;display:flex;flex-direction:column;min-height:0;padding:0 28px;position:relative;">
 
-    <!-- Flèche gauche -->
-    <div style="position:absolute;left:0;top:36px;bottom:0;width:28px;display:flex;align-items:center;justify-content:center;z-index:10;">
-      <svg width="20" height="80" viewBox="0 0 20 80"><polygon points="10,0 20,16 13,16 13,80 7,80 7,16 0,16" fill="#999"/></svg>
+    <!-- Flèche gauche — positionnée sur la zone des blocs uniquement -->
+    <div id="arrow-left" style="position:absolute;left:0;top:36px;bottom:0;width:28px;display:flex;align-items:flex-start;justify-content:center;padding-top:8px;z-index:10;">
+      <svg width="20" id="arrow-left-svg" viewBox="0 0 20 100" preserveAspectRatio="none"><polygon points="10,0 20,16 13,16 13,100 7,100 7,16 0,16" fill="#aaa"/></svg>
     </div>
     <!-- Flèche droite -->
-    <div style="position:absolute;right:0;top:36px;bottom:0;width:28px;display:flex;align-items:center;justify-content:center;z-index:10;">
-      <svg width="20" height="80" viewBox="0 0 20 80"><polygon points="10,0 20,16 13,16 13,80 7,80 7,16 0,16" fill="#999"/></svg>
+    <div id="arrow-right" style="position:absolute;right:0;top:36px;bottom:0;width:28px;display:flex;align-items:flex-start;justify-content:center;padding-top:8px;z-index:10;">
+      <svg width="20" id="arrow-right-svg" viewBox="0 0 20 100" preserveAspectRatio="none"><polygon points="10,0 20,16 13,16 13,100 7,100 7,16 0,16" fill="#aaa"/></svg>
     </div>
 
     <!-- Titres flottants (au-dessus des blocs) -->
@@ -409,9 +404,9 @@ function renderMaison() {
 
 /* Couleurs par pilier */
 var PILIER_COLORS = {
-  dev: { indicator: '#006580', card_moy: '#006580', card_haute: '#006580' },
-  imp: { indicator: '#05631d', card_moy: '#05631d', card_haute: '#05631d' },
-  cul: { indicator: '#ac4d58', card_moy: '#ac4d58', card_haute: '#ac4d58' },
+  dev: '#006580',
+  imp: '#05631d',
+  cul: '#ac4d58',
 };
 function getPilierKeyFromBodyId(bodyId) {
   if(bodyId==='body-dev') return 'dev';
@@ -421,67 +416,144 @@ function getPilierKeyFromBodyId(bodyId) {
 }
 
 function renderPilier(list, bodyId) {
-  var body = document.getElementById(bodyId); if(!body) return;
+  var body = document.getElementById(bodyId);
+  if(!body) return;
   body.innerHTML = '';
-  if(!list.length) { body.innerHTML='<div class="m-empty-hint">Aucune fiche</div>'; return; }
+  body.style.position = 'relative';
+  body.style.overflow = 'hidden';
 
-  var pk      = getPilierKeyFromBodyId(bodyId);
-  var colors  = PILIER_COLORS[pk];
-  var bw      = body.clientWidth  || 300;
-  var bh      = body.clientHeight || 300;
+  var pk    = getPilierKeyFromBodyId(bodyId);
+  var color = PILIER_COLORS[pk];
 
-  list.forEach((f, idx) => {
-    var prio = String(f.Priorite||'').toLowerCase();
-    var card = document.createElement('span');
-    card.className   = 'fiche-card';
-    card.dataset.id  = f.id;
-    card.textContent = f.Programme || '—';
-    card.title       = f.Programme || '';
+  if(!list.length) {
+    body.innerHTML='<div class="m-empty-hint">Aucune fiche</div>';
+    return;
+  }
 
-    // ── Style selon priorité ──
-    if (prio.includes('haute') || prio.includes('critique')) {
-      // Indicateur : 16px, gras, couleur pilier
-      // Haute : 20px, gras, couleur pilier
-      var sz = prio.includes('critique') ? '16px' : '20px';
-      card.style.fontSize   = sz;
-      card.style.fontWeight = '700';
-      card.style.color      = colors.indicator;
-      card.style.background = 'transparent';
-    } else if (prio.includes('moyenne') || prio.includes('moyen')) {
-      // Moyenne : 14px, couleur pilier
-      card.style.fontSize   = '14px';
-      card.style.fontWeight = '500';
-      card.style.color      = colors.card_moy;
-      card.style.background = 'transparent';
-    } else {
-      // Basse : 12px, noir
-      card.style.fontSize   = '12px';
-      card.style.fontWeight = '400';
-      card.style.color      = '#000000';
-      card.style.background = 'transparent';
-    }
-
-    // ── Position depuis Grist ──
-    var left, top;
-    if (f.Position_X && f.Position_X > 0) {
-      left = Math.round((f.Position_X / 100) * bw);
-      top  = Math.round((f.Position_Y / 100) * bh);
-    } else {
-      var cols = Math.ceil(Math.sqrt(list.length));
-      var col  = idx % cols;
-      var row  = Math.floor(idx / cols);
-      left = Math.round((col + 0.5) * (bw / cols));
-      top  = Math.round((row + 0.5) * (bh / Math.ceil(list.length / cols)));
-    }
-    card.style.left = left + 'px';
-    card.style.top  = top  + 'px';
-
-    card.addEventListener('click', () => {
-      selectedFiche = f;
-      showView('fiche');
-    });
-    body.appendChild(card);
+  // Séparer indicateurs (critique/haute) et éléments normaux
+  var indicateurs = list.filter(f => {
+    var p = String(f.Priorite||'').toLowerCase();
+    return p.includes('critique') || p.includes('haute');
   });
+  var elements = list.filter(f => {
+    var p = String(f.Priorite||'').toLowerCase();
+    return !p.includes('critique') && !p.includes('haute');
+  });
+
+  // ── BANDE INDICATEURS en haut du bloc ──
+  if (indicateurs.length > 0) {
+    var band = document.createElement('div');
+    band.style.cssText = [
+      'position:relative',
+      'width:100%',
+      'background:rgba(255,255,255,0.35)',
+      'border-bottom:1px solid rgba(255,255,255,0.5)',
+      'padding:6px 10px',
+      'display:flex',
+      'flex-wrap:wrap',
+      'gap:8px 20px',
+      'align-items:center',
+      'flex-shrink:0',
+      'z-index:2',
+    ].join(';');
+
+    indicateurs.forEach(f => {
+      var p    = String(f.Priorite||'').toLowerCase();
+      var sz   = p.includes('critique') ? '16px' : '20px';
+      var span = document.createElement('span');
+      span.textContent      = f.Programme || '—';
+      span.title            = f.Programme || '';
+      span.style.cssText    = 'font-size:'+sz+';font-weight:700;color:'+color+';cursor:pointer;white-space:nowrap;';
+      span.addEventListener('click', () => { selectedFiche=f; showView('fiche'); });
+      band.appendChild(span);
+    });
+
+    // Wrapper flex colonne pour band + zone cartes
+    var wrapper = document.createElement('div');
+    wrapper.style.cssText = 'display:flex;flex-direction:column;width:100%;height:100%;position:absolute;inset:0;';
+    wrapper.appendChild(band);
+
+    // Zone cartes
+    var cardsZone = document.createElement('div');
+    cardsZone.style.cssText = 'flex:1;position:relative;overflow:hidden;';
+
+    elements.forEach((f, idx) => {
+      var p    = String(f.Priorite||'').toLowerCase();
+      var card = document.createElement('span');
+      card.className = 'fiche-card';
+      card.dataset.id = f.id;
+      card.textContent = f.Programme || '—';
+      card.title = f.Programme || '';
+
+      if (p.includes('moyenne') || p.includes('moyen')) {
+        card.style.fontSize   = '14px';
+        card.style.fontWeight = '500';
+        card.style.color      = color;
+      } else {
+        // Basse
+        card.style.fontSize   = '12px';
+        card.style.fontWeight = '400';
+        card.style.color      = '#000';
+      }
+
+      // Position dans la zone cartes
+      // On calcule APRÈS que cardsZone soit dans le DOM
+      card.dataset.posX = f.Position_X || 0;
+      card.dataset.posY = f.Position_Y || 0;
+      card.dataset.idx  = idx;
+      card.dataset.total= elements.length;
+      card.style.position = 'absolute';
+
+      card.addEventListener('click', () => { selectedFiche=f; showView('fiche'); });
+      cardsZone.appendChild(card);
+    });
+
+    wrapper.appendChild(cardsZone);
+    body.appendChild(wrapper);
+
+    // Positionner les cartes après rendu
+    requestAnimationFrame(() => {
+      var bw = cardsZone.clientWidth  || 300;
+      var bh = cardsZone.clientHeight || 300;
+      cardsZone.querySelectorAll('.fiche-card').forEach(card => {
+        var posX = parseFloat(card.dataset.posX);
+        var posY = parseFloat(card.dataset.posY);
+        var idx  = parseInt(card.dataset.idx);
+        var tot  = parseInt(card.dataset.total);
+        var left, top;
+        if (posX > 0) {
+          left = Math.round((posX/100)*bw);
+          top  = Math.round((posY/100)*bh);
+        } else {
+          var cols = Math.ceil(Math.sqrt(tot));
+          var col  = idx%cols, row=Math.floor(idx/cols);
+          left = Math.round((col+0.5)*(bw/cols));
+          top  = Math.round((row+0.5)*(bh/Math.ceil(tot/cols)));
+        }
+        card.style.left      = left+'px';
+        card.style.top       = top+'px';
+        card.style.transform = 'translate(-50%,-50%)';
+      });
+    });
+
+  } else {
+    // Pas d'indicateurs — zone cartes directe
+    var bw = body.clientWidth||300, bh=body.clientHeight||300;
+    elements.forEach((f,idx) => {
+      var p    = String(f.Priorite||'').toLowerCase();
+      var card = document.createElement('span');
+      card.className='fiche-card'; card.dataset.id=f.id;
+      card.textContent=f.Programme||'—'; card.title=f.Programme||'';
+      if(p.includes('moyenne')||p.includes('moyen')){card.style.fontSize='14px';card.style.fontWeight='500';card.style.color=color;}
+      else{card.style.fontSize='12px';card.style.fontWeight='400';card.style.color='#000';}
+      var left,top;
+      if(f.Position_X>0){left=Math.round((f.Position_X/100)*bw);top=Math.round((f.Position_Y/100)*bh);}
+      else{var cols=Math.ceil(Math.sqrt(elements.length)),col=idx%cols,row=Math.floor(idx/cols);left=Math.round((col+0.5)*(bw/cols));top=Math.round((row+0.5)*(bh/Math.ceil(elements.length/cols)));}
+      card.style.left=left+'px';card.style.top=top+'px';card.style.transform='translate(-50%,-50%)';
+      card.addEventListener('click',()=>{selectedFiche=f;showView('fiche');});
+      body.appendChild(card);
+    });
+  }
 }
 
 function scaleMaison() {
@@ -608,6 +680,19 @@ function renderGantt(f) {
    INIT
 ══════════════════════════════════════ */
 loadData();
+
+// Synchroniser la hauteur des flèches avec les blocs
+function syncArrowHeight() {
+  var bloc = document.getElementById('body-dev');
+  if (!bloc) return;
+  var h = bloc.clientHeight;
+  ['arrow-left-svg','arrow-right-svg'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.setAttribute('height', h);
+  });
+}
+window.addEventListener('resize', syncArrowHeight);
+setTimeout(syncArrowHeight, 800);
 </script>
 </body>
 </html>
