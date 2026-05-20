@@ -294,14 +294,22 @@ async function fetchTable(tableName) {
 async function loadData() {
   setLoading(true);
   try {
-    const [fiches, actions, membres] = await Promise.all([
+    // Charger Fiches et Actions (obligatoires)
+    const [fiches, actions] = await Promise.all([
       fetchTable('Fiches_Programmes'),
       fetchTable('Actions'),
-      fetchTable('Membres'),
     ]);
     allFiches  = fiches;
     allActions = actions;
-    allMembres = membres;
+
+    // Charger Membres (optionnel — plusieurs noms possibles)
+    for (const name of ['Table1', 'Membres', 'membres', 'Member', 'Members']) {
+      try {
+        allMembres = await fetchTable(name);
+        if (allMembres.length) break;
+      } catch(e) { /* essayer le suivant */ }
+    }
+
     document.getElementById('lastUpdate').textContent =
       new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'});
     renderMaison();
@@ -321,9 +329,17 @@ function gristTs(ts) { if(!ts) return null;var n=Number(ts);if(isNaN(n)) return 
 function fmtD(ts) { var d=gristTs(ts);return d?d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short'}):'—'; }
 function refLabel(val) {
   if(!val && val!==0) return '';
+  // Tableau Grist ref : [label, id] ou [id]
+  if(Array.isArray(val)) {
+    if(val[0] && typeof val[0]==='string' && isNaN(val[0])) return val[0];
+    val = val.find(v=>typeof v==='number'&&v>0) || val[0];
+  }
   if(typeof val==='string' && isNaN(val)) return val;
   var id=Number(val);
-  if(id>0) { var m=allMembres.find(m=>m.id===id);if(m) return String(m.Nom||m.name||''); }
+  if(id>0) {
+    var m=allMembres.find(m=>m.id===id);
+    if(m) return String(m.Nom||m.name||m.Prénom||'');
+  }
   return String(val||'');
 }
 function getPilierKey(p) { if(!p) return 'dev';var s=String(p).toLowerCase();if(s.includes('impact')) return 'imp';if(s.includes('culture')||s.includes('manag')) return 'cul';return 'dev'; }
@@ -456,7 +472,7 @@ function renderActionsTable(f) {
     var late=isLate(a), sc=stCls(a.Statut,late);
     return '<tr><td style="font-weight:600">'+esc(a.Libelle||'—')+'</td>'
       +'<td>'+esc(a.Niveau||'—')+'</td>'
-      +'<td>'+esc(refLabel(a.Pilote)||'—')+'</td>'
+      +'<td>'+esc(refLabel(a.Pilote) || refLabel(a.Pilote_Nom) || '—')+'</td>'
       +'<td style="font-family:var(--mono)">'+fmtD(a.Date_Demarrage)+'</td>'
       +'<td style="font-family:var(--mono)">'+fmtD(a.Date_Fin)+'</td>'
       +'<td><span class="sbadge '+sc+'">'+stLabel(a.Statut,late)+'</span></td></tr>';
