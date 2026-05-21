@@ -178,10 +178,10 @@ body {
   background: #e05d5d;
   color: white;
   text-align: center;
-  padding: 18px 60px;
-  font-size: 1.25rem;
-  font-weight: 500;
-  line-height: 1.6;
+  padding: 10px 40px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.4;
   flex-shrink: 0;
 }
 
@@ -219,19 +219,25 @@ body {
   overflow: hidden;
   height: 100%;
 }
+.pillar-inner {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
 .pillar-header {
-  padding: 7px 14px;
-  font-size: 0.78rem;
+  font-size: 22px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
   text-align: center;
   flex-shrink: 0;
-  background: white;
+  background: transparent;
+  padding: 5px 0 3px;
+  white-space: nowrap;
 }
-.pillar.dev     .pillar-header { color: #2980b9; }
-.pillar.impact  .pillar-header { color: #27ae60; }
-.pillar.culture .pillar-header { color: #c0392b; }
+.pillar.dev     .pillar-header { color: #7ca7ba; }
+.pillar.impact  .pillar-header { color: #5a9e2f; }
+.pillar.culture .pillar-header { color: #c06070; }
 
 /* ── CANVAS LIBRE PAR PILIER ── */
 .pillar-body {
@@ -243,9 +249,9 @@ body {
 .pillar-body.editable   { cursor: default; }
 .pillar-body.read-only  { cursor: default; }
 
-.pillar.dev     .pillar-body { background: #d6e8f7; }
-.pillar.impact  .pillar-body { background: #d5ecd5; }
-.pillar.culture .pillar-body { background: #f7d6d6; }
+.pillar.dev     .pillar-body { background: #7ca7ba; }
+.pillar.impact  .pillar-body { background: #bfe397; }
+.pillar.culture .pillar-body { background: #fab3ae; }
 
 .empty-hint {
   position: absolute;
@@ -257,6 +263,37 @@ body {
   pointer-events: none;
   text-align: center;
 }
+/* ── BANDE INDICATEURS FIXES ── */
+.ind-band {
+  margin: 6px 6px 0 6px;
+  background: rgba(255,255,255,0.30);
+  border-radius: 10px;
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+  z-index: 2;
+}
+.ind-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ind-row.center  { justify-content: center; }
+.ind-row.between { justify-content: space-between; }
+.ind-link {
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.ind-link:hover { opacity: .7; }
+.ind-link.dev     { color: #006580; }
+.ind-link.imp     { color: #05631d; }
+.ind-link.cul     { color: #ac4d58; }
 
 /* ── CARTES ── */
 .fiche-card {
@@ -343,8 +380,8 @@ body {
   background: #e05d5d;
   color: white;
   text-align: center;
-  padding: 18px 8px;
-  font-size: 2rem;
+  padding: 10px 8px;
+  font-size: 26px;
   font-weight: 700;
   letter-spacing: 2px;
   flex-shrink: 0;
@@ -406,12 +443,7 @@ body {
   flex-shrink: 0;
   z-index: 1000;
   box-shadow: 0 1px 6px rgba(0,0,0,0.06);
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
-  flex-wrap: nowrap;
 }
-.sps-nav-bar::-webkit-scrollbar { display: none; }
 .sps-nav-btn {
   display: inline-flex;
   align-items: center;
@@ -459,7 +491,6 @@ body {
      href="https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/8"
      target="_top">📋 Programmes</a>
   <a class="sps-nav-btn" data-page="11" href="https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/11" target="_top">📁 Fiches</a>
-  <a class="sps-nav-btn" data-page="12" href="https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/12" target="_top">🔍 Visualisation</a>
 </div>
 
 <div id="app-loading"><div class="spinner"></div>Chargement...</div>
@@ -492,8 +523,8 @@ body {
     <svg class="triangle-svg" viewBox="0 0 1400 160">
       <defs>
         <linearGradient id="triGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stop-color="#5b7fa6"/>
-          <stop offset="100%" stop-color="#2c3e50"/>
+          <stop offset="0%"   stop-color="#C9DBE3"/>
+          <stop offset="100%" stop-color="#32596A"/>
         </linearGradient>
       </defs>
       <polygon points="700,6 1392,154 8,154" fill="url(#triGrad)"/>
@@ -521,14 +552,41 @@ body {
     <div class="pillars">
       <div class="pillar dev">
         <div class="pillar-header">DEVELOPPEMENT BUSINESS</div>
+        <div class="ind-band" id="ind-dev">
+          <div class="ind-row center">
+            <a class="ind-link dev" href="https://iguene.github.io/Maison-SPS/indicateur.html?id=ca60m" target="_top">CA 60M€</a>
+          </div>
+          <div class="ind-row between">
+            <a class="ind-link dev" href="https://iguene.github.io/Maison-SPS/indicateur.html?id=ebitda" target="_top">EBITDA↗</a>
+            <a class="ind-link dev" href="https://iguene.github.io/Maison-SPS/indicateur.html?id=otif95" target="_top">OTIF 95%</a>
+          </div>
+        </div>
         <div class="pillar-body" id="body-dev"></div>
       </div>
       <div class="pillar impact">
         <div class="pillar-header">IMPACT</div>
+        <div class="ind-band" id="ind-imp">
+          <div class="ind-row center">
+            <a class="ind-link imp" href="https://iguene.github.io/Maison-SPS/indicateur.html?id=0accident" target="_top">0 accident</a>
+          </div>
+          <div class="ind-row between">
+            <a class="ind-link imp" href="https://iguene.github.io/Maison-SPS/indicateur.html?id=prod-dechets" target="_top">-30% production de déchets</a>
+            <a class="ind-link imp" href="https://iguene.github.io/Maison-SPS/indicateur.html?id=recyclage" target="_top">Recyclage déchets +20%</a>
+          </div>
+        </div>
         <div class="pillar-body" id="body-impact"></div>
       </div>
       <div class="pillar culture">
         <div class="pillar-header">CULTURE MANAGERIALE</div>
+        <div class="ind-band" id="ind-cul">
+          <div class="ind-row center">
+            <a class="ind-link cul" href="https://iguene.github.io/Maison-SPS/indicateur.html?id=absenteisme" target="_top">Absentéisme 3%</a>
+          </div>
+          <div class="ind-row between">
+            <a class="ind-link cul" href="https://iguene.github.io/Maison-SPS/indicateur.html?id=enquete-collab" target="_top">Enquête Collaborateur 65%</a>
+            <a class="ind-link cul" href="https://iguene.github.io/Maison-SPS/indicateur.html?id=fidelisation" target="_top">Fidélisation 90%</a>
+          </div>
+        </div>
         <div class="pillar-body" id="body-culture"></div>
       </div>
     </div>
@@ -1347,50 +1405,6 @@ initGrist();
   } catch(e) {}
 })();
 /* ────────────────────────────────── */
-</script>
-
-<script>
-/* ── RESTRICTION VIEWERS ── */
-(function() {
-  function redirectViewer() {
-    try {
-      window.top.location.href = 'https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/12';
-    } catch(e) {
-      window.location.href = 'https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/12';
-    }
-  }
-
-  // Attendre que grist soit disponible
-  function checkAccess() {
-    if (typeof grist === 'undefined') {
-      setTimeout(checkAccess, 200);
-      return;
-    }
-    grist.getUserInfo().then(function(user) {
-      if (!user) return; // pas d'info → laisser passer
-      var access = String(user.access || user.role || '').toLowerCase();
-      // viewer = lecture seule → rediriger
-      if (access === 'viewer' || access === 'read only' || access === 'readonly') {
-        // Masquer la nav immédiatement
-        var nav = document.getElementById('spsNav');
-        if (nav) nav.style.display = 'none';
-        // Rediriger vers Visualisation
-        redirectViewer();
-      }
-      // editor / owner → ne rien faire, accès normal
-    }).catch(function() {
-      // En cas d'erreur → laisser passer (fail open)
-    });
-  }
-
-  // Lancer la vérification dès que possible
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', checkAccess);
-  } else {
-    checkAccess();
-  }
-})();
-/* ─────────────────────────── */
 </script>
 </body>
 </html>
