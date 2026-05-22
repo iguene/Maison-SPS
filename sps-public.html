@@ -382,6 +382,8 @@ function refLabel(val) {
   return String(val||'');
 }
 function getPilierKey(p) { if(!p) return 'dev';var s=String(p).toLowerCase();if(s.includes('impact')) return 'imp';if(s.includes('culture')||s.includes('manag')) return 'cul';return 'dev'; }
+function isFicheVisible(f) { var v = f && (f.Afficher ?? f.afficher ?? f.AFFICHER); if(v === undefined || v === null || v === '') return true; return String(v).trim().toUpperCase() !== 'NON'; }
+function visibleFiches() { return allFiches.filter(isFicheVisible); }
 function isLate(a) { var e=gristTs(a.Date_Fin);if(!e) return false;if(String(a.Statut||'').toLowerCase().includes('termin')) return false;var t=new Date();t.setHours(0,0,0,0);return e<t; }
 function stCls(s,l) { if(l) return 'rt';if(!s) return 'af';var sl=s.toLowerCase();if(sl.includes('cours')) return 'ec';if(sl.includes('termin')) return 'ok';return 'af'; }
 function stLabel(s,l) { if(l) return 'Retard';if(!s) return 'À faire';var sl=s.toLowerCase();if(sl.includes('cours')) return 'En cours';if(sl.includes('termin')) return 'Terminé';return s; }
@@ -397,11 +399,11 @@ function showView(name) {
   document.getElementById('view-' + name).classList.add('active');
   currentView = name;
   if (name === 'maison') renderMaison();
-  if (name === 'fiche' && selectedFiche) renderFiche(selectedFiche);
+  if (name === 'fiche' && selectedFiche && isFicheVisible(selectedFiche)) renderFiche(selectedFiche);
 }
 
 function showPlanning() {
-  if (!selectedFiche) return;
+  if (!selectedFiche || !isFicheVisible(selectedFiche)) return;
   showView('planning');
   document.getElementById('planTitle').textContent = '📅 Planning — ' + (selectedFiche.Programme || '—');
   renderActionsTable(selectedFiche);
@@ -412,9 +414,10 @@ function showPlanning() {
    VUE 1 — MAISON
 ══════════════════════════════════════ */
 function renderMaison() {
-  var dev = allFiches.filter(f => getPilierKey(f.Pilier)==='dev');
-  var imp = allFiches.filter(f => getPilierKey(f.Pilier)==='imp');
-  var cul = allFiches.filter(f => getPilierKey(f.Pilier)==='cul');
+  var fiches = visibleFiches();
+  var dev = fiches.filter(f => getPilierKey(f.Pilier)==='dev');
+  var imp = fiches.filter(f => getPilierKey(f.Pilier)==='imp');
+  var cul = fiches.filter(f => getPilierKey(f.Pilier)==='cul');
   renderPilier(dev, 'body-dev');
   renderPilier(imp, 'body-imp');
   renderPilier(cul, 'body-cul');
