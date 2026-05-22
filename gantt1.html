@@ -42,98 +42,108 @@
 }
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--text); font-family:var(--font); font-size:13px; }
-body { background:#ffffff; }
+body { background:#ffffff; display:flex; flex-direction:column; }
 
 /* ══════════════════════════════════════════════
    TOOLBAR
 ══════════════════════════════════════════════ */
 .toolbar {
-  height: var(--header-h);
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 14px;
+  gap: 5px;
+  padding: 0 8px;
   flex-shrink: 0;
   position: relative;
   z-index: 40;
+  flex-wrap: nowrap;
+  min-height: var(--header-h);
+  overflow-x: auto;        /* scroll horizontal si vraiment trop étroit */
+  overflow-y: hidden;
+  scrollbar-width: none;   /* masquer la scrollbar */
 }
+.toolbar::-webkit-scrollbar { display: none; }
 .toolbar-brand {
   font-weight: 700;
-  font-size: 14px;
-  letter-spacing: -.3px;
+  font-size: 13px;
   color: var(--text);
   display: flex;
   align-items: center;
-  gap: 7px;
-  margin-right: 8px;
+  gap: 5px;
+  flex-shrink: 0;
 }
 .toolbar-brand svg { color: var(--accent); }
-.sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+.sep { width: 1px; height: 18px; background: var(--border); margin: 0 2px; flex-shrink:0; }
 
 /* NAV BUTTONS */
-.nav-group { display:flex; align-items:center; gap:3px; }
+.nav-group { display:flex; align-items:center; gap:2px; flex-shrink:0; }
 .btn-icon {
-  width: 30px; height: 30px;
+  width: 26px; height: 26px;
   border: 1px solid var(--border);
   background: transparent;
   border-radius: var(--radius-sm);
   color: var(--text2);
   cursor: pointer;
   display: flex; align-items:center; justify-content:center;
-  font-size: 14px;
+  font-size: 13px;
   transition: all .15s;
+  flex-shrink: 0;
 }
 .btn-icon:hover { background:var(--surface3); color:var(--text); border-color:var(--border2); }
 
 .period-label {
   font-weight: 600;
-  font-size: 13px;
-  min-width: 120px;
+  font-size: 11px;
+  min-width: 70px;
+  max-width: 95px;
   text-align: center;
   color: var(--text);
   font-family: var(--mono);
-  letter-spacing: -.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ZOOM TOGGLE */
-.zoom-group { display:flex; background:var(--surface3); border-radius:var(--radius-sm); padding:2px; gap:2px; border:1px solid var(--border); }
+.zoom-group { display:flex; background:var(--surface3); border-radius:var(--radius-sm); padding:2px; gap:1px; border:1px solid var(--border); flex-shrink:0; }
 .zoom-btn {
-  padding: 4px 11px;
+  padding: 3px 7px;
   border-radius: 4px;
   border: none;
   background: transparent;
   color: var(--text2);
   font-family: var(--font);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   cursor: pointer;
   transition: all .15s;
+  white-space: nowrap;
 }
 .zoom-btn.active { background: var(--accent); color: #fff; }
 .zoom-btn:hover:not(.active) { color: var(--text); }
 
 /* FILTERS */
-.filter-group { display:flex; align-items:center; gap:6px; margin-left:auto; }
-.filter-label { font-size:11px; color:var(--text3); font-weight:500; text-transform:uppercase; letter-spacing:.6px; }
+.filter-group { display:flex; align-items:center; gap:4px; margin-left:auto; flex-shrink:0; }
+.filter-label { font-size:10px; color:var(--text3); font-weight:600; text-transform:uppercase; letter-spacing:.5px; white-space:nowrap; }
 .filter-select {
   background: var(--surface3);
   border: 1px solid var(--border);
   color: var(--text);
   font-family: var(--font);
-  font-size: 12px;
-  padding: 5px 9px;
+  font-size: 11px;
+  padding: 4px 6px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   outline: none;
   transition: border-color .15s;
+  max-width: 100px;
 }
 .filter-select:focus { border-color: var(--accent); }
 .filter-select option { background: var(--surface2); }
 
 /* UNDO & SAVE */
-.save-area { display:flex; align-items:center; gap:6px; }
+.save-area { display:flex; align-items:center; gap:4px; flex-shrink:0; }
 .btn-undo {
   padding: 5px 10px;
   border: 1px solid var(--border2);
@@ -172,7 +182,8 @@ body { background:#ffffff; }
 .gantt-wrap {
   display: flex;
   flex-direction: column;
-  height: calc(100% - var(--header-h));
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 /* Header row (months + days) */
@@ -628,19 +639,115 @@ body { background:#ffffff; }
 .panel-actions { margin-top:auto; display:flex; gap:8px; padding-top:4px; }
 .panel-empty { color:var(--text3); font-size:12px; line-height:1.5; }
 
+/* ── AUTOCOMPLETE ── */
+.ac-wrap { position:relative; width:100%; }
+.ac-input {
+  width:100%; border:1px solid var(--border); background:var(--surface); color:var(--text);
+  border-radius:var(--radius-sm); padding:9px 30px 9px 10px;
+  font:inherit; outline:none; transition:border-color .15s; cursor:text;
+}
+.ac-input:focus { border-color:var(--accent); }
+.ac-input.has-value { border-color:var(--accent); background:#f0f5ff; font-weight:500; }
+.ac-clear {
+  position:absolute; right:8px; top:50%; transform:translateY(-50%);
+  background:none; border:none; color:var(--text3); cursor:pointer;
+  font-size:14px; line-height:1; padding:2px; display:none;
+}
+.ac-clear.visible { display:block; }
+.ac-dropdown {
+  position:absolute; top:calc(100% + 3px); left:0; right:0;
+  background:var(--surface); border:1px solid var(--border2);
+  border-radius:var(--radius-sm); box-shadow:0 8px 24px rgba(15,23,42,.12);
+  z-index:500; max-height:200px; overflow-y:auto; display:none;
+}
+.ac-dropdown.open { display:block; }
+.ac-option {
+  padding:8px 12px; cursor:pointer; font-size:12.5px; color:var(--text);
+  border-bottom:1px solid var(--border); display:flex; align-items:center;
+  gap:6px; transition:background .1s;
+}
+.ac-option:last-child { border-bottom:none; }
+.ac-option:hover, .ac-option.focused { background:var(--surface3); }
+.ac-option.selected { background:#e8f0ff; color:var(--accent); font-weight:600; }
+.ac-option .ac-opt-label { flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ac-option .ac-opt-check { font-size:12px; color:var(--accent); flex-shrink:0; }
+.ac-empty { padding:10px 12px; font-size:12px; color:var(--text3); font-style:italic; }
+.ac-option mark { background:#fff3cd; border-radius:2px; padding:0 1px; font-weight:600; }
+
+
+/* ─── BARRE NAVIGATION SPS ─── */
+.sps-nav-bar {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  background: rgba(255,255,255,0.95);
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  padding: 6px 14px;
+  flex-shrink: 0;
+  width: 100%;
+  z-index: 1000;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+  overflow-x: auto;       /* scroll si trop étroit */
+  overflow-y: hidden;
+  scrollbar-width: none;  /* scrollbar invisible */
+  flex-wrap: nowrap;      /* boutons sur une seule ligne */
+}
+.sps-nav-bar::-webkit-scrollbar { display: none; }
+.sps-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border-radius: 7px;
+  border: 1.5px solid transparent;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 12.5px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 150ms ease;
+  white-space: nowrap;
+  cursor: pointer;
+  font-family: inherit;
+}
+.sps-nav-btn:hover {
+  background: #e0f2f1;
+  border-color: #01696f;
+  color: #01696f;
+}
+.sps-nav-btn.sps-active {
+  background: #c0392b;
+  color: white;
+  border-color: #c0392b;
+}
+/* ─────────────────────────── */
 </style>
 </head>
 <body>
 
+<!-- ═══ BARRE NAVIGATION SPS ═══ -->
+<div class="sps-nav-bar" id="spsNav">
+  <a class="sps-nav-btn" data-page="10"
+     href="https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/10"
+     target="_top">📊 Dashboard</a>
+  <a class="sps-nav-btn" data-page="7"
+     href="https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/7"
+     target="_top">🏠 Maison SPS</a>
+  <a class="sps-nav-btn sps-active" data-page="9"
+     href="https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/9"
+     target="_top">📅 Planning</a>
+  <a class="sps-nav-btn" data-page="8"
+     href="https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/8"
+     target="_top">📋 Programmes</a>
+  <a class="sps-nav-btn" data-page="11" href="https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/11" target="_top">📁 Fiches</a>
+  <a class="sps-nav-btn" data-page="12" href="https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/12" target="_top">🔍 Visualisation</a>
+</div>
+
 <!-- TOOLBAR -->
 <div class="toolbar">
+  <!-- BRAND -->
   <div class="toolbar-brand">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-      <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
-      <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-      <line x1="8" y1="14" x2="14" y2="14"/><line x1="8" y1="18" x2="16" y2="18"/>
-    </svg>
-    Gantt
+    <img src="data:image/png;base64,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exNkUJ4bSt0HB3aajwpw2lboODu01HhTTuNexNkUJ4bSt0HB3aajwpw2lboODu01HhTTuNexNkUJ4bSt0HB3aajwpw2lboODu01HhTTuNexNkUJ4bSt0HB3aajwpw2lboODu01HhTTuNexNkUJ4bSt0HB3aajwpw2lboODu01HhTTuNexNkUJ4bSt0HB3aajwpw2lboODu01HhTTuNexNkUJ4bSt0HB3aajwpw2lboODu01HhTTuNexNkUJ4bSt0HB3aajwpw2lboODu01HhTTuNexNkULZNpT1269Fg/VzGtlUVGeX1VNAsNYNk8hERYMhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAX5keyNhfI9rGje5xyAVbYj0i3OtxPNhPR7Z2Xm5Uzg2urZnatJR84cR6ThzAjdlt25Y/F12qLpcqgP1auKnqWUFDTkfgpag+nK9v4wHIN20e/nXn4MU33JfD7V3tRxi8JdWWrTVVLVAupqmGcDeY3h2XwXcqtwfTVFRcw+lu4h4OV0EU0rgOMyMGbxHEABqAe/LmVnUzpHQtMzQ2Tc4Ddn6vUsUqjmstYM3trG3npjLP7fX+zsREXUhhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBVzpKnvVzvTrdh2sqIJrFR/dWYQvIE82t+BgdlvDmtkJHrarGKr/D+BKe5GvvmKKarju1yq3yyRxV0jBFEDqxRng3AHJgHvJW8GlzZzqJvkiaWO5U14s1HdaN2tT1cDJoz+q4Aj7VXOkO7XKz6VrRcIa2dlsorcJK+nDzwb4pKgQueW7iWa4dnzAqU6OrRW4eo7hYZIHNttJWPNrkMmtrU7/PDN+ebHFzdvJkui94clu2O6iarpta01OHpbfLJrD03yg5Zb/RzOaysKRiWqUV6kd09Xa5MpaO1WitnpJIS24VkkLy1whbKyNjMxyOe/4MK/ONq2ws0pTUuJ73XUFELPC+nZDWzQtMhlkDjlGRmcgN66IMI4rqcBXv7r07Jr/VGlpImtkadanpntDXZ55Au/CSEfrKRXZt8tekmpvdHh2sutHUWqGmDqeaJpa9ssjiCHuHI4LZYSwc3lvL2/cw2IpLJDojxLXYRvdwla6LUN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ZAQQ3IAb9wWRo6i00uMbFDgjENddTPUObcqcXGSsgbTajs5HFznBjg7VyIIJzy2r1twhdoMEYctcsUVVWQ3uKvuAY4ajdaV8kmWe8DWy9eSsSCCCBpbDDHEDtIY0DP4LMpJGIwb67HYiIuR3CIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiALz3CKokgzpJWx1DNsZcM2k8xHMvQiw1kzF6XkqTEkN6nuUktcySOpfG6AS6rpOCjPpCKNjdpdtGZPLyLKWHCV0qKCrqIp5bHM6i4jbXObry08ZObpSMx552nfsJVjouELdRnrbyWlbis6lDwYxSXTl6ben16siWj3AFjwXFPLRcPWXGqOdXcKt+vPMfW7kGfIPmpaiKS228sqYxUVhBERYMhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAQEV9fkP8AvanrXd654/XdNqetd3oi3OY4/XdNqetd3px+u6bU9a7vREA4/XdNqetd3px+u6bU9a7vREA4/XdNqetd3px+u6bU9a7vREA4/XdNqetd3px+u6bU9a7vREA4/XdNqetd3px+u6bU9a7vREA4/XdNqetd3px+u6bU9a7vREA4/XdNqetd3px+u6bU9a7vREA4/XdNqetd3px+u6bU9a7vREA4/XdNqetd3px+u6bU9a7vREA4/XdNqetd3px+u6bU9a7vREA4/XdNqetd3px+u6bU9a7vREA4/XdNqetd3px+u6bU9a7vREA4/XdNqetd3px+u6bU9a7vREA4/XdNqetd3px+u6bU9a7vREA4/XdNqetd3px+u6bU9a7vREA4/XdNqetd3px+u6bU9a7vREA4/XdNqetd3px+u6bU9a7vREA4/XdNqetd3px+u6bU9a7vREA4/XdNqetd3px+u6bU9a7vREA4/XdNqetd3px+u6bU9a7vREA4/XdNqetd3px+u6bU9a7vREA4/XdNqetd3px+u6bU9a7vREA4/XdNqetd3px+u6bU9a7vREA4/XdNqetd3px+u6bU9a7vREA4/XdNqetd3px+u6bU9a7vREA4/XdNqetd3r8/dCv6bU9a7vREByK+v6bU9a7vXPH67ptT1ru9EQDj9d02p613enH67ptT1ru9EQDj9d02p613enH67ptT1ru9EQDj9d02p613enH67ptT1ru9EQDj9d02p613enH67ptT1ru9EQDj9d02p613enH67ptT1ru9EQDj9d02p613enH67ptT1ru9EQHLK+uL2jjtTvH/AMru9TwIiwzaIREWpsf/2Q==" alt="SPS Medical" style="height:32px;width:auto;object-fit:contain;">
   </div>
   <div class="sep"></div>
   <!-- NAV -->
@@ -648,17 +755,18 @@ body { background:#ffffff; }
     <button class="btn-icon" onclick="navigate(-1)" title="Précédent">‹</button>
     <span class="period-label" id="periodLabel">—</span>
     <button class="btn-icon" onclick="navigate(1)" title="Suivant">›</button>
+    <button class="btn-icon" onclick="goToday()" title="Aujourd'hui" style="font-size:10px;width:auto;padding:0 6px;">Auj.</button>
   </div>
-  <button class="btn-icon" onclick="goToday()" title="Aujourd'hui" style="font-size:11px;padding:0 8px;width:auto;">Auj.</button>
   <div class="sep"></div>
   <!-- ZOOM -->
   <div class="zoom-group">
-    <button class="zoom-btn" data-zoom="week" onclick="setZoom('week')">Semaine</button>
+    <button class="zoom-btn" data-zoom="week"     onclick="setZoom('week')">Sem.</button>
     <button class="zoom-btn active" data-zoom="month" onclick="setZoom('month')">Mois</button>
-    <button class="zoom-btn" data-zoom="quarter" onclick="setZoom('quarter')">Trimestre</button>
-    <button class="zoom-btn" data-zoom="halfyear" onclick="setZoom('halfyear')">6 mois</button>
-    <button class="zoom-btn" data-zoom="year" onclick="setZoom('year')">1 an</button>
+    <button class="zoom-btn" data-zoom="quarter"  onclick="setZoom('quarter')">Trim.</button>
+    <button class="zoom-btn" data-zoom="halfyear" onclick="setZoom('halfyear')">6 m.</button>
+    <button class="zoom-btn" data-zoom="year"     onclick="setZoom('year')">1 an</button>
   </div>
+  <div class="sep"></div>
   <!-- FILTERS -->
   <div class="filter-group">
     <span class="filter-label">Statut</span>
@@ -668,20 +776,24 @@ body { background:#ffffff; }
       <option value="A faire">À faire</option>
       <option value="Terminé">Terminé</option>
     </select>
-    <span class="filter-label" style="margin-left:6px">Programme</span>
+    <span class="filter-label">Prog.</span>
     <select class="filter-select" id="filterProg" onchange="applyFilters()">
       <option value="">Tous</option>
     </select>
-    <span class="filter-label" style="margin-left:6px">Pilote</span>
+    <span class="filter-label">Pilote</span>
     <select class="filter-select" id="filterPilot" onchange="applyFilters()">
       <option value="">Tous</option>
     </select>
   </div>
-  <button class="btn-secondary" onclick="fitAndRender()" title="Afficher tout le planning">Ajuster</button>
-  <button class="btn-primary" onclick="openCreateTaskPanel()">+ Tâche</button>
+  <div class="sep"></div>
+  <!-- ACTIONS -->
+  <button class="btn-secondary" onclick="fitAndRender()" title="Afficher tout le planning"
+    style="white-space:nowrap;flex-shrink:0;font-size:11px;padding:3px 7px;border-radius:4px;">⤢ Ajuster</button>
+  <button class="btn-primary" onclick="openCreateTaskPanel()"
+    style="white-space:nowrap;flex-shrink:0;font-size:11px;padding:4px 9px;">+ Tâche</button>
   <!-- SAVE -->
-  <div class="save-area">
-    <button class="btn-undo" id="undoBtn" onclick="undoChanges()">↺ Annuler</button>
+  <div class="save-area" style="flex-shrink:0;gap:3px;">
+    <button class="btn-undo" id="undoBtn" onclick="undoChanges()" style="padding:4px 7px;font-size:11px;">↺</button>
     <div class="save-pill" id="savePill"></div>
   </div>
 </div>
@@ -946,11 +1058,21 @@ function fitTimelineToAll() {
   const totalDays = Math.max(daysDiff(earliest, latest) + 1, 1);
   const withMargin = totalDays + 14;
 
-  if (withMargin <= ZOOM_CFG.week.days) zoom = 'week';
-  else if (withMargin <= ZOOM_CFG.month.days) zoom = 'month';
-  else if (withMargin <= ZOOM_CFG.quarter.days) zoom = 'quarter';
+  if (withMargin <= ZOOM_CFG.week.days)     zoom = 'week';
+  else if (withMargin <= ZOOM_CFG.month.days)    zoom = 'month';
+  else if (withMargin <= ZOOM_CFG.quarter.days)  zoom = 'quarter';
   else if (withMargin <= ZOOM_CFG.halfyear.days) zoom = 'halfyear';
-  else zoom = 'year';
+  else if (withMargin <= ZOOM_CFG.year.days)     zoom = 'year';
+  else {
+    // Planning > 1 an : zoom dynamique pour tout faire tenir
+    zoom = 'year';
+    // Calculer le cellW nécessaire pour que tout tienne dans la zone visible
+    const scrollEl = document.getElementById('ganttScroll');
+    const availWidth = scrollEl ? scrollEl.clientWidth : 800;
+    const neededCellW = Math.max(2, Math.floor(availWidth / withMargin));
+    // Mettre à jour ZOOM_CFG.year dynamiquement
+    ZOOM_CFG.year = { cellW: neededCellW, days: withMargin, navDays: Math.round(withMargin / 4) };
+  }
 
   document.querySelectorAll('.zoom-btn').forEach(b => b.classList.toggle('active', b.dataset.zoom===zoom));
   viewStart = startOfMonth(addDays(earliest, -7));
@@ -1002,6 +1124,99 @@ function computeProgDates(progId) {
   const progEnd = gristTs(p.Date_Fin);
   const overdue = progEnd && maxE && maxE > progEnd;
   return { start:minS, end:maxE, overdue };
+}
+
+function taskDurationDays(task) {
+  const s = gristTs(task?.Date_Demarrage);
+  const e = gristTs(task?.Date_Fin);
+  if (!s || !e) return 1;
+  return Math.max(daysDiff(s, e) + 1, 1);
+}
+
+function setTaskDateRange(task, startDate, endDate) {
+  if (!task || !startDate || !endDate) return;
+  task.Date_Demarrage = toGristTs(startDate);
+  task.Date_Fin = toGristTs(endDate);
+}
+
+function shiftTaskToStart(task, newStart) {
+  if (!task || !newStart) return;
+  const duration = taskDurationDays(task);
+  const newEnd = addDays(newStart, duration - 1);
+  setTaskDateRange(task, newStart, newEnd);
+}
+
+function shiftTaskToEnd(task, newEnd) {
+  if (!task || !newEnd) return;
+  const duration = taskDurationDays(task);
+  const newStart = addDays(newEnd, -(duration - 1));
+  setTaskDateRange(task, newStart, newEnd);
+}
+
+function syncProgramDatesFromTasks(progId) {
+  const prog = programs.find(p => String(p.id) === String(progId));
+  const tks = (tasksByProg[progId] || []).filter(t => gristTs(t.Date_Demarrage) && gristTs(t.Date_Fin));
+  if (!prog || !tks.length) return;
+
+  let minTask = tks[0];
+  let maxTask = tks[0];
+  tks.forEach(t => {
+    if (gristTs(t.Date_Demarrage) < gristTs(minTask.Date_Demarrage)) minTask = t;
+    if (gristTs(t.Date_Fin) > gristTs(maxTask.Date_Fin)) maxTask = t;
+  });
+
+  prog.Date_Demarrage = toGristTs(gristTs(minTask.Date_Demarrage));
+  prog.Date_Fin = toGristTs(gristTs(maxTask.Date_Fin));
+}
+
+function alignBoundaryTasksToProgram(progId) {
+  const prog = programs.find(p => String(p.id) === String(progId));
+  const tks = (tasksByProg[progId] || []).filter(t => gristTs(t.Date_Demarrage) && gristTs(t.Date_Fin));
+  if (!prog || !tks.length) return;
+
+  const progStart = gristTs(prog.Date_Demarrage);
+  const progEnd = gristTs(prog.Date_Fin);
+  if (!progStart && !progEnd) return;
+
+  let firstTask = tks[0];
+  let lastTask = tks[0];
+  tks.forEach(t => {
+    if (gristTs(t.Date_Demarrage) < gristTs(firstTask.Date_Demarrage)) firstTask = t;
+    if (gristTs(t.Date_Fin) > gristTs(lastTask.Date_Fin)) lastTask = t;
+  });
+
+  if (progStart && progEnd && String(firstTask.id) === String(lastTask.id)) {
+    setTaskDateRange(firstTask, progStart, progEnd);
+    return;
+  }
+  if (progStart) shiftTaskToStart(firstTask, progStart);
+  if (progEnd) shiftTaskToEnd(lastTask, progEnd);
+}
+
+function enforceDependenciesInProgram(progId) {
+  const tks = tasksByProg[progId] || [];
+  if (!tks.length) return;
+
+  let changed = true;
+  let safety = 0;
+  while (changed && safety++ < 50) {
+    changed = false;
+    tks.forEach(task => {
+      if (!task._prevId) return;
+      const prev = tks.find(t => String(t.id) === String(task._prevId));
+      if (!prev) return;
+
+      const prevEnd = gristTs(prev.Date_Fin);
+      const taskStart = gristTs(task.Date_Demarrage);
+      if (!prevEnd || !taskStart) return;
+
+      const minStart = addDays(prevEnd, 1);
+      if (taskStart < minStart) {
+        shiftTaskToStart(task, minStart);
+        changed = true;
+      }
+    });
+  }
 }
 
 /* ════════════════════════════════════════════
@@ -1558,51 +1773,34 @@ function getTaskPredecessorOptions(parentId, excludeId=null) {
 }
 
 function syncCreateLinkedFields() {
-  const progSel = document.getElementById('panelInitiative');
-  const parentSel = document.getElementById('panelParent');
-  const predSel = document.getElementById('panelPrev');
-  if (!progSel || !parentSel || !predSel) return;
-
-  const selectedProgramId = progSel.value || '';
-  const currentParent = parentSel.value || '';
-  const parentOptions = getParentProjectOptions(selectedProgramId);
-  parentSel.innerHTML = '<option value="">Sélectionner…</option>' + parentOptions.map(p => {
-    const selected = String(p.id) === String(currentParent) ? 'selected' : '';
-    const label = esc(p.Libelle || p.Programme_Nom || ('Projet ' + p.id));
-    return `<option value="${p.id}" ${selected}>${label}</option>`;
-  }).join('');
-
-  if (currentParent && !parentOptions.some(p => String(p.id) === String(currentParent))) {
-    parentSel.value = '';
-  }
-  if (!parentSel.value && parentOptions.length === 1) {
-    parentSel.value = String(parentOptions[0].id);
-  }
-
-  const selectedParentId = parentSel.value || '';
-  const currentPrev = predSel.value || '';
-  const predOptions = getTaskPredecessorOptions(selectedParentId);
-  predSel.innerHTML = '<option value="">Aucune</option>' + predOptions.map(t => {
-    const selected = String(t.id) === String(currentPrev) ? 'selected' : '';
-    return `<option value="${t.id}" ${selected}>${esc(t.Libelle || ('Tâche ' + t.id))}</option>`;
-  }).join('');
-
-  if (currentPrev && !predOptions.some(t => String(t.id) === String(currentPrev))) {
-    predSel.value = '';
+  // With autocomplete, syncing is handled by onSelect callbacks in initFormAC
+  // This is kept as a no-op for backward compatibility
+  const initiativeHid = document.getElementById('panelInitiative');
+  const parentHid     = document.getElementById('panelParent');
+  if (!initiativeHid) return;
+  const progId  = initiativeHid.value || '';
+  const parentOpts = buildParentOptions(progId);
+  const curParent  = parentHid ? parentHid.value : '';
+  acInit('parent', parentOpts, curParent, (val) => {
+    const prevOpts = buildPrevOptions(val, null);
+    acInit('prev', prevOpts, '', null);
+  });
+  if (!curParent && parentOpts.length === 1) {
+    // Auto-select if only one option
+    const {inp, hid} = acIds('parent');
+    if (inp) inp.value = parentOpts[0].label;
+    if (hid) hid.value = parentOpts[0].value;
+    if (inp) inp.classList.add('has-value');
   }
 }
 
 function syncEditTaskPredecessors(excludeId=null) {
-  const parentSel = document.getElementById('panelParent');
-  const predSel = document.getElementById('panelPrev');
-  if (!parentSel || !predSel) return;
-  const currentPrev = predSel.value || '';
-  const options = getTaskPredecessorOptions(parentSel.value || '', excludeId);
-  predSel.innerHTML = '<option value="">Aucune</option>' + options.map(t => {
-    const selected = String(t.id) === String(currentPrev) ? 'selected' : '';
-    return `<option value="${t.id}" ${selected}>${esc(t.Libelle || ('Tâche ' + t.id))}</option>`;
-  }).join('');
-  if (currentPrev && !options.some(t => String(t.id) === String(currentPrev))) predSel.value = '';
+  const parentHid = document.getElementById('panelParent');
+  const prevHid   = document.getElementById('panelPrev');
+  if (!parentHid) return;
+  const prevOpts  = buildPrevOptions(parentHid.value || '', excludeId);
+  const curPrev   = prevHid ? prevHid.value : '';
+  acInit('prev', prevOpts, curPrev, null);
 }
 
 function resolvePilotFieldForSave(obj, pilotLabel) {
@@ -1709,11 +1907,12 @@ function renderSidePanel() {
     const defaultParentObj = programs.find(p => String(p.id) === String(defaultParent)) || {};
     const defaultInitiative = selectedProg ? (directInitiativeIdOf(selectedProg) || linkedProgramIdForAction(selectedProg)) : (selectedTask ? (directInitiativeIdOf(selectedTask) || linkedProgramIdForAction(selectedTask)) : (defaultParent ? (directInitiativeIdOf(defaultParentObj) || linkedProgramIdForAction(defaultParentObj)) : ''));
 
-    body.innerHTML = formHtml({
+    const createItem = {
       Libelle:'', Statut:'A faire', PDCA:0, Description:'', Pilote:null, Initiative_ID: defaultInitiative || '',
       Tache_precedente: selectedTask?.id || null, Date_Demarrage:'', Date_Fin:'', Action_Parent: defaultParent, Niveau:'2 - Tâche'
-    }, 'create');
-    if (typeof syncCreateLinkedFields === 'function') setTimeout(syncCreateLinkedFields, 0);
+    };
+    body.innerHTML = formHtml(createItem, 'create');
+    setTimeout(() => initFormAC(createItem, 'create', true), 0);
     if (typeof syncCreateLevelFields === 'function') setTimeout(syncCreateLevelFields, 0);
     return;
   }
@@ -1732,6 +1931,7 @@ function renderSidePanel() {
   title.textContent = sel.type === 'prog' ? 'Programme' : 'Tâche';
   meta.innerHTML = `<span>ID ${item.id}</span><span>${esc(sel.type === 'prog' ? 'Projet' : 'Action')}</span>`;
   body.innerHTML = formHtml(item, sel.type);
+  setTimeout(() => initFormAC(item, sel.type, false), 0);
 }
 
 function formHtml(item, mode) {
@@ -1804,31 +2004,85 @@ function formHtml(item, mode) {
     <div class="form-grid-2">
       <div class="form-row">
         <label class="form-label">Programme lié (Programme_Nom)</label>
-        <select class="form-select" id="panelInitiative" onchange="syncCreateLinkedFields()">${initiativeOptions}</select>
+        <div class="ac-wrap" id="acWrap_initiative">
+          <input class="ac-input" id="panelInitiative_text" placeholder="Rechercher un programme…"
+                 autocomplete="off"
+                 oninput="acFilter('initiative')"
+                 onfocus="acOpen('initiative')"
+                 onkeydown="acKeydown(event,'initiative')">
+          <button class="ac-clear" id="acClear_initiative" onclick="acClear('initiative')" tabindex="-1">✕</button>
+          <div class="ac-dropdown" id="acDrop_initiative"></div>
+          <input type="hidden" id="panelInitiative">
+        </div>
       </div>
       <div class="form-row" id="panelParentRow">
         <label class="form-label" id="panelParentLabel">Projet parent (Action_Parent)</label>
-        <select class="form-select" id="panelParent" onchange="${isCreate ? 'syncCreateLinkedFields()' : `syncEditTaskPredecessors(${item.id})`}">${projectOptions}</select>
+        <div class="ac-wrap" id="acWrap_parent">
+          <input class="ac-input" id="panelParent_text" placeholder="Rechercher un projet…"
+                 autocomplete="off"
+                 oninput="acFilter('parent')"
+                 onfocus="acOpen('parent')"
+                 onkeydown="acKeydown(event,'parent')">
+          <button class="ac-clear" id="acClear_parent" onclick="acClear('parent')" tabindex="-1">✕</button>
+          <div class="ac-dropdown" id="acDrop_parent"></div>
+          <input type="hidden" id="panelParent">
+        </div>
       </div>
     </div>
     <div class="form-grid-2">
       <div class="form-row" id="panelPrevRow">
         <label class="form-label" id="panelPrevLabel">Tâche précédente (Tache_précédente)</label>
-        <select class="form-select" id="panelPrev">${predecessorOptions}</select>
+        <div class="ac-wrap" id="acWrap_prev">
+          <input class="ac-input" id="panelPrev_text" placeholder="Aucune tâche précédente…"
+                 autocomplete="off"
+                 oninput="acFilter('prev')"
+                 onfocus="acOpen('prev')"
+                 onkeydown="acKeydown(event,'prev')">
+          <button class="ac-clear" id="acClear_prev" onclick="acClear('prev')" tabindex="-1">✕</button>
+          <div class="ac-dropdown" id="acDrop_prev"></div>
+          <input type="hidden" id="panelPrev">
+        </div>
       </div>
       <div class="form-row">
         <label class="form-label">Pilote (réf. Membres)</label>
-        <select class="form-select" id="panelPilot">${pilotOptions}</select>
+        <div class="ac-wrap" id="acWrap_pilot">
+          <input class="ac-input" id="panelPilot_text" placeholder="Rechercher un pilote…"
+                 autocomplete="off"
+                 oninput="acFilter('pilot')"
+                 onfocus="acOpen('pilot')"
+                 onkeydown="acKeydown(event,'pilot')">
+          <button class="ac-clear" id="acClear_pilot" onclick="acClear('pilot')" tabindex="-1">✕</button>
+          <div class="ac-dropdown" id="acDrop_pilot"></div>
+          <input type="hidden" id="panelPilot">
+        </div>
       </div>
     </div>` : `
     <div class="form-grid-2">
       <div class="form-row">
         <label class="form-label">Programme lié (Programme_Nom)</label>
-        <select class="form-select" id="panelInitiative">${initiativeOptions}</select>
+        <div class="ac-wrap" id="acWrap_initiative">
+          <input class="ac-input" id="panelInitiative_text" placeholder="Rechercher un programme…"
+                 autocomplete="off"
+                 oninput="acFilter('initiative')"
+                 onfocus="acOpen('initiative')"
+                 onkeydown="acKeydown(event,'initiative')">
+          <button class="ac-clear" id="acClear_initiative" onclick="acClear('initiative')" tabindex="-1">✕</button>
+          <div class="ac-dropdown" id="acDrop_initiative"></div>
+          <input type="hidden" id="panelInitiative">
+        </div>
       </div>
       <div class="form-row">
         <label class="form-label">Pilote (réf. Membres)</label>
-        <select class="form-select" id="panelPilot">${pilotOptions}</select>
+        <div class="ac-wrap" id="acWrap_pilot">
+          <input class="ac-input" id="panelPilot_text" placeholder="Rechercher un pilote…"
+                 autocomplete="off"
+                 oninput="acFilter('pilot')"
+                 onfocus="acOpen('pilot')"
+                 onkeydown="acKeydown(event,'pilot')">
+          <button class="ac-clear" id="acClear_pilot" onclick="acClear('pilot')" tabindex="-1">✕</button>
+          <div class="ac-dropdown" id="acDrop_pilot"></div>
+          <input type="hidden" id="panelPilot">
+        </div>
       </div>
     </div>`}
     <div class="form-row">
@@ -1852,10 +2106,24 @@ async function saveSelectedFromPanel(id, mode) {
   obj.Description = document.getElementById('panelDescription').value;
   obj._pilotEditId = normalizeRefValue(document.getElementById('panelPilot')?.value || '');
   obj._initiativeEditId = normalizeRefValue(document.getElementById('panelInitiative')?.value || '');
+
   if (mode !== 'prog') {
     obj.Action_Parent = normalizeRefValue(document.getElementById('panelParent').value);
-    obj['Tache_précédente'] = normalizeRefValue(document.getElementById('panelPrev')?.value || '');
+    const prevId = normalizeRefValue(document.getElementById('panelPrev')?.value || '');
+    obj['Tache_précédente'] = prevId;
+    obj.Tache_precedente = prevId;
+    obj._prevId = prevId;
+
+    if (obj.Action_Parent) {
+      enforceDependenciesInProgram(obj.Action_Parent);
+      syncProgramDatesFromTasks(obj.Action_Parent);
+    }
+  } else {
+    alignBoundaryTasksToProgram(id);
+    enforceDependenciesInProgram(id);
+    syncProgramDatesFromTasks(id);
   }
+
   render();
   await saveFullRecord(obj);
 }
@@ -2157,6 +2425,9 @@ function onDragEnd(e) {
           t.Date_Fin       = toGristTs(addDays(snap.end,   days));
         }
       });
+      alignBoundaryTasksToProgram(prog.id);
+      enforceDependenciesInProgram(prog.id);
+      syncProgramDatesFromTasks(prog.id);
       scheduleSave(prog.id, 'prog');
     }
   }
@@ -2195,6 +2466,7 @@ function cascadeTasksAfter(movedTask, progId) {
     });
     changed = next;
   }
+  syncProgramDatesFromTasks(progId);
 }
 
 /* ════════════════════════════════════════════
@@ -2299,6 +2571,217 @@ function findTask(id) {
     if (t) return t;
   }
   return null;
+}
+
+
+/* ═══════════════════════════════════════════════════════
+   AUTOCOMPLETE ENGINE
+═══════════════════════════════════════════════════════ */
+const AC_CONFIGS = {};  // id → { options:[{value,label}], currentValue, onSelect }
+
+function acInit(id, options, currentValue, onSelect) {
+  // options = [{value, label}]
+  AC_CONFIGS[id] = { options, currentValue: currentValue ?? '', onSelect };
+  const inp  = document.getElementById('panelInitiative_text'.replace('initiative', id === 'initiative' ? 'initiative' : id));
+  const inpId = `panel${id.charAt(0).toUpperCase()+id.slice(1)}_text`;
+  const hidId = `panel${id.charAt(0).toUpperCase()+id.slice(1)}`;
+  const inp2  = document.getElementById(inpId);
+  const hid   = document.getElementById(hidId);
+  if (!inp2 || !hid) return;
+
+  // Set current value display
+  const cur = options.find(o => String(o.value) === String(currentValue));
+  inp2.value = cur ? cur.label : (currentValue ? String(currentValue) : '');
+  inp2.classList.toggle('has-value', !!cur);
+  hid.value  = cur ? cur.value : (currentValue || '');
+  const clr  = document.getElementById(`acClear_${id}`);
+  if (clr) clr.classList.toggle('visible', !!cur || !!currentValue);
+}
+
+// Map id → field name for input/hidden IDs
+function acIds(id) {
+  const cap = id.charAt(0).toUpperCase() + id.slice(1);
+  return {
+    inp:  document.getElementById(`panel${cap}_text`),
+    hid:  document.getElementById(`panel${cap}`),
+    drop: document.getElementById(`acDrop_${id}`),
+    clr:  document.getElementById(`acClear_${id}`),
+  };
+}
+
+function acFilter(id) {
+  const cfg = AC_CONFIGS[id]; if (!cfg) return;
+  const {inp, hid, drop} = acIds(id);
+  if (!inp || !drop) return;
+  const q = inp.value.trim().toLowerCase();
+  const filtered = q
+    ? cfg.options.filter(o => o.label.toLowerCase().includes(q))
+    : cfg.options;
+  acRenderDropdown(id, filtered, q, String(hid ? hid.value : ''));
+  drop.classList.add('open');
+  // Clear hidden if text doesn't match any option exactly
+  if (hid) {
+    const exact = cfg.options.find(o => o.label.toLowerCase() === q);
+    if (!exact) {
+      hid.value = '';
+      inp.classList.remove('has-value');
+    }
+  }
+  const clr = acIds(id).clr;
+  if (clr) clr.classList.toggle('visible', inp.value.length > 0);
+}
+
+function acOpen(id) {
+  const cfg = AC_CONFIGS[id]; if (!cfg) return;
+  const {inp, hid, drop} = acIds(id);
+  if (!drop) return;
+  const q = inp ? inp.value.trim().toLowerCase() : '';
+  const filtered = q ? cfg.options.filter(o => o.label.toLowerCase().includes(q)) : cfg.options;
+  acRenderDropdown(id, filtered, q, hid ? String(hid.value) : '');
+  drop.classList.add('open');
+  // Close other dropdowns
+  document.querySelectorAll('.ac-dropdown').forEach(d => {
+    if (d.id !== `acDrop_${id}`) d.classList.remove('open');
+  });
+}
+
+function acRenderDropdown(id, options, q, selectedVal) {
+  const {drop} = acIds(id);
+  if (!drop) return;
+  if (!options.length) {
+    drop.innerHTML = `<div class="ac-empty">Aucun résultat pour "${q}"</div>`;
+    return;
+  }
+  drop.innerHTML = options.map((o, i) => {
+    const isSel = String(o.value) === selectedVal;
+    const label = q ? o.label.replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi'), '<mark>$1</mark>') : esc(o.label);
+    return `<div class="ac-option${isSel?' selected':''}" data-value="${o.value}" data-label="${esc(o.label)}" data-index="${i}"
+      onmousedown="acSelect('${id}', this)" >
+      <span class="ac-opt-label">${label}</span>
+      ${isSel ? '<span class="ac-opt-check">✓</span>' : ''}
+    </div>`;
+  }).join('');
+}
+
+function acSelect(id, optEl) {
+  const cfg = AC_CONFIGS[id]; if (!cfg) return;
+  const {inp, hid, drop, clr} = acIds(id);
+  const val   = optEl.dataset.value;
+  const label = optEl.dataset.label;
+  if (inp) { inp.value = label; inp.classList.add('has-value'); }
+  if (hid) hid.value = val;
+  if (clr) clr.classList.add('visible');
+  if (drop) drop.classList.remove('open');
+  cfg.currentValue = val;
+  if (cfg.onSelect) cfg.onSelect(val, label);
+}
+
+function acClear(id) {
+  const cfg = AC_CONFIGS[id]; if (!cfg) return;
+  const {inp, hid, drop, clr} = acIds(id);
+  if (inp) { inp.value = ''; inp.classList.remove('has-value'); inp.focus(); }
+  if (hid) hid.value = '';
+  if (clr) clr.classList.remove('visible');
+  cfg.currentValue = '';
+  if (cfg.onSelect) cfg.onSelect('', '');
+  if (drop) {
+    acRenderDropdown(id, cfg.options, '', '');
+    drop.classList.add('open');
+  }
+}
+
+function acKeydown(e, id) {
+  const {drop} = acIds(id);
+  if (!drop || !drop.classList.contains('open')) return;
+  const opts = drop.querySelectorAll('.ac-option');
+  const cur  = drop.querySelector('.ac-option.focused');
+  let idx    = cur ? parseInt(cur.dataset.index) : -1;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    idx = Math.min(idx + 1, opts.length - 1);
+    opts.forEach(o => o.classList.remove('focused'));
+    if (opts[idx]) { opts[idx].classList.add('focused'); opts[idx].scrollIntoView({block:'nearest'}); }
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    idx = Math.max(idx - 1, 0);
+    opts.forEach(o => o.classList.remove('focused'));
+    if (opts[idx]) { opts[idx].classList.add('focused'); opts[idx].scrollIntoView({block:'nearest'}); }
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    const focused = drop.querySelector('.ac-option.focused') || opts[0];
+    if (focused) acSelect(id, focused);
+  } else if (e.key === 'Escape') {
+    drop.classList.remove('open');
+  }
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('mousedown', e => {
+  if (!e.target.closest('.ac-wrap')) {
+    document.querySelectorAll('.ac-dropdown').forEach(d => d.classList.remove('open'));
+  }
+});
+
+/* ── Helpers to build option lists ── */
+function buildInitiativeOptions() {
+  return getInitiativeChoices().map(r => ({ value: String(r.id), label: r.label || `Programme ${r.id}` }));
+}
+function buildParentOptions(initiativeVal) {
+  return getParentProjectOptions(initiativeVal).map(p => ({
+    value: String(p.id),
+    label: p.Libelle || p.Programme_Nom || `Projet ${p.id}`
+  }));
+}
+function buildPrevOptions(parentId, excludeId) {
+  return [{ value: '', label: 'Aucune' }, ...getTaskPredecessorOptions(parentId, excludeId).map(t => ({
+    value: String(t.id),
+    label: t.Libelle || `Tâche ${t.id}`
+  }))];
+}
+function buildPilotOptions() {
+  return [{ value: '', label: 'Sélectionner…' }, ...membersRows.map(m => ({
+    value: String(m.id),
+    label: memberName(m) || `Membre ${m.id}`
+  }))];
+}
+
+/* ── Init all ACs after formHtml renders ── */
+function initFormAC(item, mode, isCreate) {
+  const parentVal      = refIdOf(item.Action_Parent) || '';
+  const prevVal        = refIdOf(item.Tache_precedente || item['Tache_précédente']) || '';
+  const initiativeVal  = directInitiativeIdOf(item) || linkedProgramIdForAction(item) || '';
+  const pilotCurrentId = pilotRefIdOf(item);
+  const isNotProg      = mode !== 'prog';
+
+  // Programme lié
+  if (document.getElementById('panelInitiative_text')) {
+    acInit('initiative', buildInitiativeOptions(), String(initiativeVal || ''), (val) => {
+      // When programme changes, refresh parent options
+      const parentOpts = buildParentOptions(val);
+      acInit('parent', parentOpts, '', (pVal) => {
+        const prevOpts = buildPrevOptions(pVal, item.id);
+        acInit('prev', prevOpts, '', null);
+      });
+    });
+  }
+
+  // Projet parent
+  if (document.getElementById('panelParent_text') && isNotProg) {
+    acInit('parent', buildParentOptions(String(initiativeVal || '')), String(parentVal || ''), (val) => {
+      const prevOpts = buildPrevOptions(val, item.id);
+      acInit('prev', prevOpts, '', null);
+    });
+  }
+
+  // Tâche précédente
+  if (document.getElementById('panelPrev_text') && isNotProg) {
+    acInit('prev', buildPrevOptions(String(parentVal || ''), item.id), String(prevVal || ''), null);
+  }
+
+  // Pilote
+  if (document.getElementById('panelPilot_text')) {
+    acInit('pilot', buildPilotOptions(), String(pilotCurrentId || ''), null);
+  }
 }
 
 /* ════════════════════════════════════════════
@@ -2459,6 +2942,68 @@ function loadDemo() {
 }
 
 initGrist();
+</script>
+<script>
+/* ─── Détection page active SPS nav ─── */
+(function() {
+  try {
+    var url = window.parent.location.href;
+    var match = url.match(/\/p\/(\d+)/);
+    if (match) {
+      document.querySelectorAll('.sps-nav-btn').forEach(function(btn) {
+        btn.classList.remove('sps-active');
+        if (btn.getAttribute('data-page') === match[1]) {
+          btn.classList.add('sps-active');
+        }
+      });
+    }
+  } catch(e) {}
+})();
+/* ────────────────────────────────── */
+</script>
+
+<script>
+/* ── RESTRICTION VIEWERS ── */
+(function() {
+  function redirectViewer() {
+    try {
+      window.top.location.href = 'https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/12';
+    } catch(e) {
+      window.location.href = 'https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/12';
+    }
+  }
+
+  // Attendre que grist soit disponible
+  function checkAccess() {
+    if (typeof grist === 'undefined') {
+      setTimeout(checkAccess, 200);
+      return;
+    }
+    grist.getUserInfo().then(function(user) {
+      if (!user) return; // pas d'info → laisser passer
+      var access = String(user.access || user.role || '').toLowerCase();
+      // viewer = lecture seule → rediriger
+      if (access === 'viewer' || access === 'read only' || access === 'readonly') {
+        // Masquer la nav immédiatement
+        var nav = document.getElementById('spsNav');
+        if (nav) nav.style.display = 'none';
+        // Rediriger vers Visualisation
+        redirectViewer();
+      }
+      // editor / owner → ne rien faire, accès normal
+    }).catch(function() {
+      // En cas d'erreur → laisser passer (fail open)
+    });
+  }
+
+  // Lancer la vérification dès que possible
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAccess);
+  } else {
+    checkAccess();
+  }
+})();
+/* ─────────────────────────── */
 </script>
 </body>
 </html>
