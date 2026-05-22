@@ -3036,10 +3036,13 @@ function currentActionsTable() {
   return resolvedTableNames.Actions || ACTIONS_TABLE_CANDIDATES[0];
 }
 
-async function refreshFromGrist() {
-  const actionsResult = await fetchFirstAvailableTable(ACTIONS_TABLE_CANDIDATES);
-  resolvedTableNames.Actions = actionsResult.name || ACTIONS_TABLE_CANDIDATES[0];
-  allActions = actionsResult.rows;
+async function refreshFromGrist(keepActions = false) {
+  // keepActions=true → ne pas recharger les actions (déjà fourni par onRecords)
+  if (!keepActions) {
+    const actionsResult = await fetchFirstAvailableTable(ACTIONS_TABLE_CANDIDATES);
+    resolvedTableNames.Actions = actionsResult.name || ACTIONS_TABLE_CANDIDATES[0];
+    allActions = actionsResult.rows;
+  }
 
   const membersResult = await fetchFirstAvailableTable(MEMBERS_TABLE_CANDIDATES);
   resolvedTableNames.Membres = membersResult.name;
@@ -3051,6 +3054,7 @@ async function refreshFromGrist() {
   rebuildProgramSheetIndex();   // reconstruit id→nom depuis la colonne "Programme"
 
   buildProgramStructure(allActions);
+  populatePilotFilter();
   if (!hasAutoFittedView) fitTimelineToAll();
   render();
 }
@@ -3068,8 +3072,10 @@ async function initGrist() {
       }
       if (records && Array.isArray(records) && records.length) {
         allActions = records;
-        buildProgramStructure(allActions);
-        render();
+        // Toujours recharger programSheetRows + membersRows avant de construire
+        // la structure — sinon le groupement par Initiative_ID échoue
+        // Toujours recharger members + programs pour garantir l'index
+        await refreshFromGrist(true);  // keepActions=true, on garde allActions déjà mis à jour
       } else {
         await refreshFromGrist();
       }
