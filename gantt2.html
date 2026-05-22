@@ -730,6 +730,14 @@ body { background:#ffffff; display:flex; flex-direction:column; }
   width: 280px;
   min-width: 280px;
 }
+
+/* Les menus des filtres de la toolbar sont sortis du flux pour ne pas être
+   coupés par les conteneurs Grist / la barre d'outils. */
+.toolbar .filter-group .ac-dropdown.open {
+  position: fixed;
+  right: auto;
+  z-index: 99999;
+}
 @media (max-width: 1100px) {
   .toolbar .filter-group .filter-ac { width: 92px !important; min-width:92px; max-width:92px; flex-basis:92px; }
   .toolbar .filter-group .filter-ac-program { width: 110px !important; min-width:110px; max-width:110px; flex-basis:110px; }
@@ -1001,11 +1009,72 @@ function widthPx(start, end) {
    DATA PROCESSING
 ════════════════════════════════════════════ */
 function buildProgramStructure(rawActions) {
-  // Identify programs (niveau 1) and tasks (niveau 2)
+  // Affichage demandé : niveau 1 = Fiches Programmes, puis actions/tâches au déroulé.
   programs = [];
   tasksByProg = {};
   progColors = {};
 
+  const initiativeChoices = getInitiativeChoices();
+  const actionsByInitiative = new Map();
+
+  (rawActions || []).forEach(a => {
+    const pid = linkedProgramIdForAction(a) || directInitiativeIdOf(a);
+    if (pid == null || pid === '') return;
+    const key = String(pid);
+    if (!actionsByInitiative.has(key)) actionsByInitiative.set(key, []);
+    actionsByInitiative.get(key).push(a);
+  });
+
+  // Si la table Fiches Programmes / Initiative_ID est disponible, on groupe par programme réel.
+  if (initiativeChoices.length || actionsByInitiative.size) {
+    const labelById = new Map(initiativeChoices.map(c => [String(c.id), c.label || `Programme ${c.id}`]));
+    const allKeys = new Set([...initiativeChoices.map(c => String(c.id)), ...actionsByInitiative.keys()]);
+
+    programs = Array.from(allKeys).map((key, idx) => {
+      const tks = (actionsByInitiative.get(key) || []).slice().sort((a,b) => {
+        const as = gristTs(a.Date_Demarrage)?.getTime() || 0;
+        const bs = gristTs(b.Date_Demarrage)?.getTime() || 0;
+        return as - bs || String(a.Libelle || '').localeCompare(String(b.Libelle || ''), 'fr');
+      });
+
+      let minS = null, maxE = null;
+      tks.forEach(t => {
+        const st = gristTs(t.Date_Demarrage);
+        const en = gristTs(t.Date_Fin);
+        if (st && (!minS || st < minS)) minS = st;
+        if (en && (!maxE || en > maxE)) maxE = en;
+      });
+
+      const prog = {
+        id: `initiative:${key}`,
+        _virtualProgram: true,
+        _initiativeId: key,
+        Libelle: labelById.get(key) || programSheetById[key] || `Programme ${key}`,
+        Date_Demarrage: minS ? toGristTs(minS) : null,
+        Date_Fin: maxE ? toGristTs(maxE) : null,
+        Statut: '',
+      };
+      tasksByProg[prog.id] = tks;
+      progColors[prog.id] = LEVEL1_COLOR;
+      if (!collapsed.hasOwnProperty(prog.id)) collapsed[prog.id] = false;
+      return prog;
+    }).sort((a,b) => String(a.Libelle || '').localeCompare(String(b.Libelle || ''), 'fr'));
+
+    // Chaînes de dépendances dans chaque programme.
+    programs.forEach(p => {
+      (tasksByProg[p.id] || []).forEach(t => {
+        const prevRaw = t.Tache_precedente || t['Tache_précédente'] || t.Tache_prev || null;
+        t._prevId = refIdOf(prevRaw) || null;
+      });
+    });
+
+    populateProgFilter();
+    populatePilotFilter();
+    if (!hasAutoFittedView) initViewStart();
+    return;
+  }
+
+  // Fallback ancien comportement si Initiative_ID / Fiches Programmes n'est pas disponible.
   const projs = rawActions.filter(a => {
     const niv = String(a.Niveau||'').toLowerCase();
     return niv.includes('1') || niv.includes('projet') || niv.includes('project');
@@ -1015,42 +1084,32 @@ function buildProgramStructure(rawActions) {
     return niv.includes('2') || niv.includes('tâche') || niv.includes('tache') || niv.includes('task');
   });
 
-  // Assign colors
   projs.forEach((p) => {
     progColors[p.id] = LEVEL1_COLOR;
     if (!collapsed.hasOwnProperty(p.id)) collapsed[p.id] = false;
   });
 
   programs = projs;
-
-  // Map tasks to programs
   programs.forEach(p => { tasksByProg[p.id] = []; });
 
   tasks.forEach(t => {
-    // Action_Parent is a ref to another action (the project)
     const parentId = refIdOf(t.Action_Parent) || null;
     if (parentId && tasksByProg[parentId] !== undefined) {
       tasksByProg[parentId].push(t);
     } else if (parentId) {
-      // try to find it
-      const prog = programs.find(p => p.id === parentId);
+      const prog = programs.find(p => String(p.id) === String(parentId));
       if (prog) {
         if (!tasksByProg[prog.id]) tasksByProg[prog.id] = [];
         tasksByProg[prog.id].push(t);
-      } else {
-        // add to first program or orphan
-        if (programs.length > 0) {
-          tasksByProg[programs[0].id] = tasksByProg[programs[0].id]||[];
-          tasksByProg[programs[0].id].push(t);
-        }
+      } else if (programs.length > 0) {
+        tasksByProg[programs[0].id] = tasksByProg[programs[0].id]||[];
+        tasksByProg[programs[0].id].push(t);
       }
     }
   });
 
-  // Build Tache_précédente chains within each program
   programs.forEach(p => {
     const tks = tasksByProg[p.id]||[];
-    // Resolve predecessor refs
     tks.forEach(t => {
       const prevRaw = t.Tache_precedente || t['Tache_précédente'] || t.Tache_prev || null;
       t._prevId = refIdOf(prevRaw) || null;
@@ -1087,7 +1146,7 @@ function populateStatusFilter() {
 function getFilteredPrograms() {
   return programs.filter(p => {
     if (!filterProgram) return true;
-    const pid = linkedProgramIdForAction(p) || directInitiativeIdOf(p);
+    const pid = p._initiativeId != null ? p._initiativeId : (linkedProgramIdForAction(p) || directInitiativeIdOf(p));
     return String(pid || '') === String(filterProgram);
   });
 }
@@ -1181,6 +1240,22 @@ function facInit(id, options, currentValue, onSelect) {
   if (clr) clr.classList.toggle('visible', !!currentValue);
 }
 
+
+function facPositionDropdown(id) {
+  const {inp, drop} = facIds(id);
+  if (!inp || !drop) return;
+  // Seulement pour les filtres de la toolbar : évite le clipping dans Grist.
+  if (!inp.closest('.toolbar')) return;
+  const r = inp.getBoundingClientRect();
+  const minW = id === 'program' ? 280 : 220;
+  const w = Math.max(minW, r.width);
+  let left = r.left;
+  if (left + w > window.innerWidth - 8) left = Math.max(8, window.innerWidth - w - 8);
+  drop.style.left = `${left}px`;
+  drop.style.top = `${r.bottom + 4}px`;
+  drop.style.width = `${w}px`;
+}
+
 function facFilter(id) {
   const cfg = FAC_CONFIGS[id]; if (!cfg) return;
   const {inp, hid, drop, clr} = facIds(id);
@@ -1189,6 +1264,7 @@ function facFilter(id) {
   const filtered = q ? cfg.options.filter(o => normalizeText(o.label).includes(q)) : cfg.options;
   facRenderDropdown(id, filtered, q, hid ? String(hid.value) : '');
   drop.classList.add('open');
+  facPositionDropdown(id);
   const exact = cfg.options.find(o => normalizeText(o.label) === q);
   if (!exact && hid) {
     hid.value = '';
@@ -1205,6 +1281,7 @@ function facOpen(id) {
   const filtered = q ? cfg.options.filter(o => normalizeText(o.label).includes(q)) : cfg.options;
   facRenderDropdown(id, filtered, q, hid ? String(hid.value) : '');
   drop.classList.add('open');
+  facPositionDropdown(id);
   document.querySelectorAll('.ac-dropdown').forEach(d => {
     if (d.id !== `facDrop_${id}`) d.classList.remove('open');
   });
@@ -1565,11 +1642,13 @@ function render() {
     pLeft.style.borderLeft = '3px solid '+color;
     const pName = prog.Libelle || prog.Programme_Nom || 'Programme '+prog.id;
     pLeft.innerHTML = `
-      <span class="collapse-btn ${isOpen?'open':''}" onclick="toggleCollapse(${prog.id},event)">▶</span>
+      <span class="collapse-btn ${isOpen?'open':''}">▶</span>
       <span class="prog-dot" style="background:${color}"></span>
       <span class="prog-name">${esc(pName)}</span>
       <span class="prog-count">${tks.length}</span>
     `;
+    const collapseEl = pLeft.querySelector('.collapse-btn');
+    if (collapseEl) collapseEl.onclick = (event) => toggleCollapse(prog.id, event);
     pLeft.onclick = () => { panelMode='view'; selectedId=prog.id; render(); };
     leftEl.appendChild(pLeft);
 
@@ -2004,10 +2083,15 @@ function linkedProgramLabelForAction(action) {
 }
 
 function getParentProjectOptions(selectedProgramId='') {
-  return programs.filter(p => {
+  // Pour la création d'action, le parent reste une ligne Actions potentielle,
+  // pas la ligne virtuelle Fiches Programmes affichée dans le Gantt.
+  return allActions.filter(a => {
+    const niv = normalizeText(a.Niveau || '');
+    const looksLikeParent = niv.includes('1') || niv.includes('projet') || niv.includes('project') || !refIdOf(a.Action_Parent);
+    if (!looksLikeParent) return false;
     if (!selectedProgramId) return true;
-    const projectInitiativeId = directInitiativeIdOf(p);
-    return String(projectInitiativeId || '') === String(selectedProgramId);
+    const pid = linkedProgramIdForAction(a) || directInitiativeIdOf(a);
+    return String(pid || '') === String(selectedProgramId);
   }).sort((a,b)=> String(a.Libelle||'').localeCompare(String(b.Libelle||''), 'fr'));
 }
 
@@ -2566,13 +2650,15 @@ function setupProgDrag(bar, progId) {
   bar.addEventListener('mousedown', e => {
     if (e.button!==0) return;
     e.preventDefault();
-    const prog = programs.find(p=>p.id===progId);
+    const prog = programs.find(p=>String(p.id)===String(progId));
     if (!prog) return;
     const tks = tasksByProg[progId]||[];
+    const dates = computeProgDates(progId);
+    if (!dates || !dates.start || !dates.end) return;
     startDrag(e, { type:'prog', progId, bar,
-      origProgStart: gristTs(prog.Date_Demarrage),
-      origProgEnd:   gristTs(prog.Date_Fin),
-      taskSnapshots: tks.map(t=>({ id:t.id, start:gristTs(t.Date_Demarrage), end:gristTs(t.Date_Fin) })),
+      origProgStart: dates.start,
+      origProgEnd:   dates.end,
+      taskSnapshots: tks.map(t=>({ id:t.id, start:gristTs(t.Date_Demarrage), end:gristTs(t.Date_Fin) })).filter(x=>x.start&&x.end),
     });
   });
 }
@@ -2659,7 +2745,7 @@ function onDragEnd(e) {
       scheduleSave(task.id, 'task');
     }
   } else if (dragCtx.type==='prog') {
-    const prog = programs.find(p=>p.id===dragCtx.progId);
+    const prog = programs.find(p=>String(p.id)===String(dragCtx.progId));
     if (prog) {
       prog.Date_Demarrage = toGristTs(addDays(dragCtx.origProgStart, days));
       prog.Date_Fin       = toGristTs(addDays(dragCtx.origProgEnd,   days));
@@ -2770,7 +2856,7 @@ async function doSave(id, type) {
           Date_Fin: t.Date_Fin,
         }
       ]));
-      const prog_actions = programs.map(p=>([
+      const prog_actions = programs.filter(p => !p._virtualProgram).map(p=>([
         'UpdateRecord','Actions',p.id,{
           Date_Demarrage: p.Date_Demarrage,
           Date_Fin: p.Date_Fin,
@@ -2779,10 +2865,10 @@ async function doSave(id, type) {
       await grist.docApi.applyUserActions([...actions_grist, ...prog_actions]);
     } else {
       // prog move: update prog + tasks
-      const prog = programs.find(p=>p.id===id);
+      const prog = programs.find(p=>String(p.id)===String(id));
       const tks  = tasksByProg[id]||[];
       const acts = [
-        ['UpdateRecord','Actions',prog.id,{Date_Demarrage:prog.Date_Demarrage, Date_Fin:prog.Date_Fin}],
+        ...(prog && !prog._virtualProgram ? [['UpdateRecord','Actions',prog.id,{Date_Demarrage:prog.Date_Demarrage, Date_Fin:prog.Date_Fin}]] : []),
         ...tks.map(t=>(['UpdateRecord','Actions',t.id,{Date_Demarrage:t.Date_Demarrage, Date_Fin:t.Date_Fin}]))
       ];
       await grist.docApi.applyUserActions(acts);
