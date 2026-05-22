@@ -704,13 +704,17 @@ function renderGantt(f) {
   monthsEl.innerHTML=months;
   document.getElementById('ganttLabelHdr').style.width=LW+'px';
 
-  var stColors={'En cours':'#2563eb','En Cours':'#2563eb','Terminé':'#16a34a','A faire':'#9ca3af','Planifié':'#d97706'};
+  function levelColor(a){
+    var n = String(a.Niveau || '').trim().toLowerCase();
+    if(n.startsWith('1')) return '#2563eb';   // Niveau 1 - Projet : bleu
+    if(n.startsWith('2')) return '#16a34a';   // Niveau 2 - Tâche : vert
+    return '#d97706';                         // Autres niveaux : orange
+  }
   var rowsHtml=visible.map(function(item){
     var a=item.action;
     var isProj=item.type==='project';
     var sd=gristTs(a.Date_Demarrage),ed=gristTs(a.Date_Fin);
-    var late=isLate(a);
-    var color=late?'#dc2626':(stColors[a.Statut]||'#9ca3af');
+    var color=levelColor(a);
     var bar='';
     if(sd&&ed){
       var left=Math.round(((sd-minD)/86400000)/totalDays*100);
