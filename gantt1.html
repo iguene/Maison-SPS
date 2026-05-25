@@ -1117,34 +1117,85 @@ function buildProgramStructure(rawActions) {
   }
 
   // Mapper les tâches (lvl2) vers leur projet via Action_Parent
+  // Si pas d'Action_Parent → rattacher directement au Programme via Initiative_ID
   const projMap = {};
   lvl1.forEach(a => { projMap[a.id] = a; });
 
+  // Créer un "pseudo-projet" par programme pour accueillir les tâches orphelines
+  const orphanProjByProg = {}; // progId → pseudo-projet
+
   lvl2.forEach(t => {
     const parentId = refIdOf(t.Action_Parent);
+    const prevRaw  = t.Tache_precedente || t['Tache_précédente'] || null;
+    t._prevId      = refIdOf(prevRaw) || null;
+
     if (parentId && projMap[parentId]) {
+      // Cas normal : tâche rattachée à un projet
       if (!tasksByProj[parentId]) tasksByProj[parentId] = [];
       tasksByProj[parentId].push(t);
-      // Aussi dans tasksByProg pour compat
       const progId = directInitiativeIdOf(projMap[parentId]);
       if (progId && tasksByProg[progId]) tasksByProg[progId].push(t);
+
+    } else {
+      // Pas d'Action_Parent → rattacher au Programme via Initiative_ID
+      const progId = directInitiativeIdOf(t);
+      if (progId != null && tasksByProg[progId] !== undefined) {
+        // Créer un pseudo-projet "Actions directes" si besoin
+        if (!orphanProjByProg[progId]) {
+          const pseudoId = 'orphan_' + progId;
+          const pseudoProj = {
+            id: pseudoId,
+            Libelle: 'Actions directes',
+            Programme_Nom: 'Actions directes',
+            Statut: '',
+            _isOrphan: true,
+          };
+          progColors[pseudoId] = '#6366f1'; // violet pour distinguer
+          if (!collapsed.hasOwnProperty(pseudoId)) collapsed[pseudoId] = false; // ouvert par défaut
+          projsByProg[progId].push(pseudoProj);
+          tasksByProj[pseudoId] = [];
+          orphanProjByProg[progId] = pseudoId;
+        }
+        const pseudoId = orphanProjByProg[progId];
+        tasksByProj[pseudoId].push(t);
+        tasksByProg[progId].push(t);
+      }
     }
-    const prevRaw = t.Tache_precedente || t['Tache_précédente'] || null;
-    t._prevId = refIdOf(prevRaw) || null;
   });
 
   // Mapper les sous-tâches (lvl3) vers leur tâche parente
+  // Si pas d'Action_Parent → rattacher directement au projet via Initiative_ID
   const taskMap = {};
   lvl2.forEach(t => { taskMap[t.id] = t; });
 
   lvl3.forEach(s => {
     const parentId = refIdOf(s.Action_Parent);
+    const prevRaw  = s.Tache_precedente || s['Tache_précédente'] || null;
+    s._prevId      = refIdOf(prevRaw) || null;
+
     if (parentId && taskMap[parentId]) {
       if (!subsByTask[parentId]) subsByTask[parentId] = [];
       subsByTask[parentId].push(s);
+    } else {
+      // Sous-tâche orpheline → la traiter comme une tâche niveau 2
+      const progId = directInitiativeIdOf(s);
+      if (progId != null && tasksByProg[progId] !== undefined) {
+        if (!orphanProjByProg[progId]) {
+          const pseudoId = 'orphan_' + progId;
+          const pseudoProj = {
+            id: pseudoId, Libelle: 'Actions directes',
+            Programme_Nom: 'Actions directes', Statut: '', _isOrphan: true,
+          };
+          progColors[pseudoId] = '#6366f1';
+          if (!collapsed.hasOwnProperty(pseudoId)) collapsed[pseudoId] = false;
+          projsByProg[progId].push(pseudoProj);
+          tasksByProj[pseudoId] = [];
+          orphanProjByProg[progId] = pseudoId;
+        }
+        tasksByProj[orphanProjByProg[progId]].push(s);
+        tasksByProg[progId].push(s);
+      }
     }
-    const prevRaw = s.Tache_precedente || s['Tache_précédente'] || null;
-    s._prevId = refIdOf(prevRaw) || null;
   });
 
   populateProgFilter();
