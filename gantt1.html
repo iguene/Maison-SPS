@@ -141,74 +141,19 @@ body { background:#ffffff; display:flex; flex-direction:column; }
 }
 .filter-select:focus { border-color: var(--accent); }
 .filter-select option { background: var(--surface2); }
-
-/* ── FILTER AUTOCOMPLETE ── */
-.filter-ac-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
+.filter-ac { width: 120px; flex-shrink: 0; }
+.filter-ac-program { width: 150px; }
 .filter-ac-input {
   background: var(--surface3);
-  border: 1px solid var(--border);
-  color: var(--text);
-  font-family: var(--font);
+  border-color: var(--border);
   font-size: 11px;
-  padding: 4px 20px 4px 6px;
-  border-radius: var(--radius-sm);
-  outline: none;
-  width: 120px;
-  transition: border-color .15s, width .2s;
+  padding: 4px 24px 4px 6px;
+  height: 27px;
 }
-.filter-ac-input:focus {
-  border-color: var(--accent);
-  width: 160px;
-  background: white;
-}
-.filter-ac-input::placeholder { color: var(--text3); font-style: italic; }
-.filter-ac-clear {
-  position: absolute;
-  right: 4px;
-  background: none;
-  border: none;
-  color: var(--text3);
-  cursor: pointer;
-  font-size: 11px;
-  display: none;
-  padding: 0;
-  line-height: 1;
-}
-.filter-ac-clear.visible { display: block; }
-.filter-ac-dropdown {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  min-width: 180px;
-  max-width: 280px;
-  background: white;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  z-index: 500;
-  max-height: 220px;
-  overflow-y: auto;
-  display: none;
-}
-.filter-ac-dropdown.open { display: block; }
-.fac-item {
-  padding: 6px 10px;
-  cursor: pointer;
-  font-size: 12px;
-  color: var(--text);
-  border-bottom: 1px solid var(--surface3);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transition: background .1s;
-}
-.fac-item:last-child { border-bottom: none; }
-.fac-item:hover, .fac-item.selected { background: var(--surface3); }
-.fac-item mark { background: #fef9c3; border-radius: 2px; padding: 0 1px; }
+.filter-ac-input.has-value { background:#f0f5ff; }
+.filter-ac .ac-dropdown { min-width: 190px; max-height: 240px; }
+.filter-ac-program .ac-dropdown { min-width: 260px; }
+.filter-ac .ac-option { font-size: 12px; padding: 7px 10px; }
 
 /* UNDO & SAVE */
 .save-area { display:flex; align-items:center; gap:4px; flex-shrink:0; }
@@ -351,44 +296,6 @@ body { background:#ffffff; display:flex; flex-direction:column; }
 /* ══════════════════════════════════════════════
    LEFT PANEL ROWS
 ══════════════════════════════════════════════ */
-/* ── COULEURS PAR NIVEAU ── */
-.prog-row {
-  background: #1e3a5f !important; /* Programme = bleu foncé */
-  color: white;
-}
-.proj-row {
-  background: #dbeafe !important; /* Projet = bleu clair */
-}
-.task-left-row {
-  background: #ffffff; /* Tâche = blanc */
-}
-.subtask-left-row {
-  background: #f8fafc; /* Sous-tâche = gris très clair */
-  padding-left: 28px !important; /* indentation */
-}
-.subtask-left-row .task-status-dot {
-  background: #94a3b8 !important;
-}
-.subtask-bar {
-  height: 60%;
-  top: 20%;
-  border-radius: 3px;
-  position: absolute;
-  opacity: 0.85;
-}
-.subtask-bar span {
-  font-size: 10px;
-  color: white;
-  padding: 0 4px;
-  white-space: nowrap;
-  overflow: hidden;
-}
-/* Override prog-row pour que le texte soit blanc */
-.prog-row .prog-name, .prog-row .prog-count { color: white; }
-.prog-row .collapse-btn { color: rgba(255,255,255,0.8); }
-.proj-row .prog-name { color: #1d4ed8; font-size: 12px; }
-.proj-row .prog-count { color: #3b82f6; }
-
 .prog-row {
   height: var(--row-h);
   display: flex;
@@ -480,6 +387,33 @@ body { background:#ffffff; display:flex; flex-direction:column; }
   font-family: var(--mono);
   flex-shrink: 0;
 }
+
+
+/* ── NIVEAUX HIÉRARCHIQUES GANTT ── */
+.prog-row.level-program {
+  background: #1e3a5f;
+  color: #fff;
+  border-bottom-color: rgba(255,255,255,.18);
+}
+.prog-row.level-program .prog-name,
+.prog-row.level-program .collapse-btn { color:#fff; }
+.prog-row.level-program .prog-count { background:rgba(255,255,255,.18); color:#fff; }
+.prog-row.level-project {
+  background: #dbeafe;
+  padding-left: 24px;
+}
+.prog-row.level-project .prog-name { color:#12315f; }
+.task-left-row.level-task { background:#fff; padding-left:46px; }
+.task-left-row.level-subtask { background:#f8fafc; padding-left:64px; }
+.task-left-row.level-task .collapse-btn { width:16px; height:16px; font-size:9px; }
+.task-left-row.level-subtask .task-left-name { color:#64748b; }
+.grid-row.level-program-bg { background:rgba(30,58,95,.10); border-bottom:1px solid rgba(30,58,95,.22); }
+.grid-row.level-project-bg { background:rgba(219,234,254,.55); border-bottom:1px solid rgba(37,99,235,.18); }
+.grid-row.level-task-bg { background:#fff; }
+.grid-row.level-subtask-bg { background:#f8fafc; }
+.summary-bar { cursor:pointer; opacity:.92; }
+.summary-bar:hover { filter:brightness(1.03); }
+.task-bar.subtask-bar { height:14px; border-radius:4px; }
 
 /* ══════════════════════════════════════════════
    GRID ROWS (RIGHT SIDE)
@@ -781,6 +715,62 @@ body { background:#ffffff; display:flex; flex-direction:column; }
 .ac-option mark { background:#fff3cd; border-radius:2px; padding:0 1px; font-weight:600; }
 
 
+/* ── CORRECTION LARGEUR FILTRES TOOLBAR ──
+   Les champs de filtre utilisent aussi .ac-wrap, qui est à width:100% pour le panneau latéral.
+   On force ici une largeur compacte uniquement dans la barre d'outils. */
+.toolbar .filter-group {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+.toolbar .filter-group .filter-ac {
+  width: 108px !important;
+  min-width: 108px;
+  max-width: 108px;
+  flex: 0 0 108px;
+}
+.toolbar .filter-group .filter-ac-program {
+  width: 128px !important;
+  min-width: 128px;
+  max-width: 128px;
+  flex-basis: 128px;
+}
+.toolbar .filter-group .filter-ac-input {
+  width: 100%;
+  height: 26px;
+  padding: 4px 22px 4px 6px;
+  font-size: 11px;
+}
+.toolbar .filter-group .ac-clear {
+  right: 6px;
+}
+.toolbar .filter-group .ac-dropdown {
+  left: 0;
+  right: auto;
+  width: 220px;
+  min-width: 220px;
+}
+.toolbar .filter-group .filter-ac-program .ac-dropdown {
+  width: 280px;
+  min-width: 280px;
+}
+
+/* Les menus des filtres de la toolbar sont sortis du flux pour ne pas être
+   coupés par les conteneurs Grist / la barre d'outils. */
+.toolbar .filter-group .ac-dropdown.open {
+  position: fixed;
+  right: auto;
+  z-index: 99999;
+}
+@media (max-width: 1100px) {
+  .toolbar .filter-group .filter-ac { width: 92px !important; min-width:92px; max-width:92px; flex-basis:92px; }
+  .toolbar .filter-group .filter-ac-program { width: 110px !important; min-width:110px; max-width:110px; flex-basis:110px; }
+}
+
+
 /* ─── BARRE NAVIGATION SPS ─── */
 .sps-nav-bar {
   display: flex;
@@ -846,6 +836,7 @@ body { background:#ffffff; display:flex; flex-direction:column; }
      href="https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/8"
      target="_top">📋 Programmes</a>
   <a class="sps-nav-btn" data-page="11" href="https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/11" target="_top">📁 Fiches</a>
+  <a class="sps-nav-btn" data-page="12" href="https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/12" target="_top">🔍 Visualisation</a>
 </div>
 
 <!-- TOOLBAR -->
@@ -874,29 +865,29 @@ body { background:#ffffff; display:flex; flex-direction:column; }
   <div class="sep"></div>
   <!-- FILTERS -->
   <div class="filter-group">
-    <!-- Filtre Statut -->
     <span class="filter-label">Statut</span>
-    <div class="filter-ac-wrap">
-      <input class="filter-ac-input" id="filterStatusInput" placeholder="Tous…"
-             oninput="facFilter('status')" onfocus="facOpen('status')" autocomplete="off">
-      <button class="filter-ac-clear" id="facClear_status" onclick="facClear('status')">✕</button>
-      <div class="filter-ac-dropdown" id="facDrop_status"></div>
+    <div class="ac-wrap filter-ac">
+      <input class="ac-input filter-ac-input" id="filterStatus_text" placeholder="Tous" autocomplete="off"
+        onfocus="facOpen('status')" oninput="facFilter('status')" onkeydown="facKeydown(event,'status')">
+      <input type="hidden" id="filterStatus" value="">
+      <button class="ac-clear" id="facClear_status" onclick="facClear('status')" type="button">×</button>
+      <div class="ac-dropdown" id="facDrop_status"></div>
     </div>
-    <!-- Filtre Programme -->
     <span class="filter-label">Prog.</span>
-    <div class="filter-ac-wrap">
-      <input class="filter-ac-input" id="filterProgInput" placeholder="Tous…"
-             oninput="facFilter('prog')" onfocus="facOpen('prog')" autocomplete="off">
-      <button class="filter-ac-clear" id="facClear_prog" onclick="facClear('prog')">✕</button>
-      <div class="filter-ac-dropdown" id="facDrop_prog"></div>
+    <div class="ac-wrap filter-ac filter-ac-program">
+      <input class="ac-input filter-ac-input" id="filterProg_text" placeholder="Tous" autocomplete="off"
+        onfocus="facOpen('program')" oninput="facFilter('program')" onkeydown="facKeydown(event,'program')">
+      <input type="hidden" id="filterProg" value="">
+      <button class="ac-clear" id="facClear_program" onclick="facClear('program')" type="button">×</button>
+      <div class="ac-dropdown" id="facDrop_program"></div>
     </div>
-    <!-- Filtre Pilote -->
     <span class="filter-label">Pilote</span>
-    <div class="filter-ac-wrap">
-      <input class="filter-ac-input" id="filterPilotInput" placeholder="Tous…"
-             oninput="facFilter('pilot')" onfocus="facOpen('pilot')" autocomplete="off">
-      <button class="filter-ac-clear" id="facClear_pilot" onclick="facClear('pilot')">✕</button>
-      <div class="filter-ac-dropdown" id="facDrop_pilot"></div>
+    <div class="ac-wrap filter-ac">
+      <input class="ac-input filter-ac-input" id="filterPilot_text" placeholder="Tous" autocomplete="off"
+        onfocus="facOpen('pilot')" oninput="facFilter('pilot')" onkeydown="facKeydown(event,'pilot')">
+      <input type="hidden" id="filterPilot" value="">
+      <button class="ac-clear" id="facClear_pilot" onclick="facClear('pilot')" type="button">×</button>
+      <div class="ac-dropdown" id="facDrop_pilot"></div>
     </div>
   </div>
   <div class="sep"></div>
@@ -956,11 +947,11 @@ body { background:#ffffff; display:flex; flex-direction:column; }
    STATE
 ════════════════════════════════════════════ */
 let allActions = [];          // raw from Grist
-let programs   = [];          // Fiches Programmes
-let projsByProg= {};          // progId → [projets niveau 1]
-let tasksByProj= {};          // projId → [taches niveau 2]
-let subsByTask = {};          // taskId → [sous-taches niveau 3]
-let tasksByProg= {};          // progId → toutes les actions (compat)
+let programs   = [];          // niveau 1 (projects)
+let tasksByProg= {};          // progId → [tasks + sous-tâches à plat]
+let projectsByProgram = {};   // programId → [projets niveau 1]
+let tasksByProject = {};      // projectId → [tâches niveau 2]
+let subsByTask = {};          // taskId → [sous-tâches niveau 3]
 let membersRows = [];         // table Membres
 let programSheetRows = [];    // table Fiches Programmes
 let programSheetById = {};   // id -> nom du programme
@@ -1047,155 +1038,195 @@ function widthPx(start, end) {
 /* ════════════════════════════════════════════
    DATA PROCESSING
 ════════════════════════════════════════════ */
+function levelKind(action) {
+  const n = normalizeText(action && action.Niveau || '');
+  if (n.includes('sous') || n.includes('sub') || n.startsWith('3') || n.includes('3 -')) return 'subtask';
+  if (n.includes('tache') || n.includes('task') || n.startsWith('2') || n.includes('2 -')) return 'task';
+  if (n.includes('projet') || n.includes('project') || n.startsWith('1') || n.includes('1 -')) return 'project';
+  return refIdOf(action && action.Action_Parent) ? 'task' : 'project';
+}
+
+function actionSort(a, b) {
+  const as = gristTs(a.Date_Demarrage)?.getTime() || 0;
+  const bs = gristTs(b.Date_Demarrage)?.getTime() || 0;
+  return as - bs || String(a.Libelle || '').localeCompare(String(b.Libelle || ''), 'fr');
+}
+
+function setDefaultCollapsed(key) {
+  if (!Object.prototype.hasOwnProperty.call(collapsed, key)) collapsed[key] = true;
+}
+
+function allChildrenOfProject(projectId) {
+  const tasks = tasksByProject[projectId] || [];
+  const out = [];
+  tasks.forEach(t => {
+    out.push(t);
+    (subsByTask[t.id] || []).forEach(s => out.push(s));
+  });
+  return out;
+}
+
+function childrenMatchFilters(items) {
+  if (!filterStatus && !filterPilot) return true;
+  return (items || []).some(t => {
+    if (filterStatus && statusFilterValueOf(t.Statut) !== filterStatus) return false;
+    if (filterPilot && pilotFilterValueOf(t) !== filterPilot) return false;
+    return true;
+  });
+}
+
+function actionMatchesFilters(t) {
+  if (filterStatus && statusFilterValueOf(t.Statut) !== filterStatus) return false;
+  if (filterPilot && pilotFilterValueOf(t) !== filterPilot) return false;
+  return true;
+}
+
+function filteredTasksForProject(projectId) {
+  const tasks = tasksByProject[projectId] || [];
+  if (!filterStatus && !filterPilot) return tasks;
+  return tasks.filter(t => actionMatchesFilters(t) || (subsByTask[t.id] || []).some(actionMatchesFilters));
+}
+
+function filteredSubsForTask(taskId) {
+  const subs = subsByTask[taskId] || [];
+  if (!filterStatus && !filterPilot) return subs;
+  return subs.filter(actionMatchesFilters);
+}
+
 function buildProgramStructure(rawActions) {
-  programs    = [];
-  projsByProg = {};
-  tasksByProj = {};
-  subsByTask  = {};
+  // Affichage cible : Programme (Fiches Programmes) → Projet (Niveau 1) → Tâche (Niveau 2) → Sous-tâche (Niveau 3).
+  programs = [];
   tasksByProg = {};
-  progColors  = {};
+  projectsByProgram = {};
+  tasksByProject = {};
+  subsByTask = {};
+  progColors = {};
 
-  // ── Séparer par Niveau ──
-  const lvl1 = rawActions.filter(a => {
-    const n = String(a.Niveau||'').toLowerCase();
-    return n.includes('1') || n.includes('projet') || n.includes('project');
-  });
-  const lvl2 = rawActions.filter(a => {
-    const n = String(a.Niveau||'').toLowerCase();
-    return n.includes('2') || n.includes('tâche') || n.includes('tache') || n.includes('task');
-  });
-  const lvl3 = rawActions.filter(a => {
-    const n = String(a.Niveau||'').toLowerCase();
-    return n.includes('3') || n.includes('sous');
-  });
+  const rows = rawActions || [];
+  const actionById = new Map(rows.map(a => [String(a.id), a]));
+  const initiativeChoices = getInitiativeChoices();
+  const labelById = new Map(initiativeChoices.map(c => [String(c.id), c.label || `Programme ${c.id}`]));
 
-  // ── Construire les programmes depuis Fiches_Programmes ──
-  const usedProgIds = new Set();
-  lvl1.forEach(a => {
-    const id = directInitiativeIdOf(a);
-    if (id) usedProgIds.add(id);
+  const programKeys = new Set(initiativeChoices.map(c => String(c.id)));
+  rows.forEach(a => {
+    const pid = directInitiativeIdOf(a) || linkedProgramIdForAction(a);
+    if (pid != null && pid !== '') programKeys.add(String(pid));
   });
 
-  const progSource = programSheetRows.length > 0 ? programSheetRows : [];
-  progSource.forEach(r => {
-    if (!r.id) return;
-    if (progSource.length > 5 && !usedProgIds.has(r.id)) return;
-    const name = programSheetById[String(r.id)] || r.Programme || r.Nom || r.Libelle || `Programme ${r.id}`;
+  // Si aucune Initiative_ID n'est disponible, on crée un programme virtuel unique pour ne rien perdre.
+  if (!programKeys.size && rows.length) programKeys.add('__sans_programme__');
+
+  programs = Array.from(programKeys).map(key => {
+    const isFallback = key === '__sans_programme__';
     const prog = {
-      id: r.id, Libelle: name, Programme_Nom: name,
-      Statut: r.Statut||'', PDCA: r.Avancement_Global||0,
-      _isFromFiches: true,
+      id: isFallback ? 'initiative:__sans_programme__' : `initiative:${key}`,
+      _virtualProgram: true,
+      _initiativeId: isFallback ? '' : key,
+      Libelle: isFallback ? 'Sans programme' : (labelById.get(key) || programSheetById[key] || `Programme ${key}`),
+      Date_Demarrage: null,
+      Date_Fin: null,
+      Statut: '',
     };
-    progColors[r.id] = LEVEL1_COLOR;
-    if (!collapsed.hasOwnProperty(r.id)) collapsed[r.id] = true;
-    programs.push(prog);
-    projsByProg[r.id] = [];
-    tasksByProg[r.id] = [];
+    projectsByProgram[prog.id] = [];
+    tasksByProg[prog.id] = [];
+    progColors[prog.id] = '#1e3a5f';
+    setDefaultCollapsed(prog.id);
+    return prog;
+  }).sort((a,b) => String(a.Libelle || '').localeCompare(String(b.Libelle || ''), 'fr'));
+
+  const programByInitiative = new Map(programs.map(p => [String(p._initiativeId || '__sans_programme__'), p]));
+  const projects = [];
+  const tasks = [];
+  const subs = [];
+
+  rows.forEach(a => {
+    const kind = levelKind(a);
+    if (kind === 'project') projects.push(a);
+    else if (kind === 'subtask') subs.push(a);
+    else tasks.push(a);
+
+    const prevRaw = a.Tache_precedente || a['Tache_précédente'] || a.Tache_prev || null;
+    a._prevId = refIdOf(prevRaw) || null;
   });
 
-  // Fallback si pas de Fiches_Programmes
-  if (programs.length === 0) {
-    lvl1.forEach(a => {
-      const fakeId = 'prog_' + a.id;
-      programs.push({ id: fakeId, Libelle: a.Libelle||`Projet ${a.id}`, Statut: a.Statut||'' });
-      projsByProg[fakeId] = [a];
-      tasksByProg[fakeId] = [];
-      progColors[fakeId] = LEVEL1_COLOR;
-      if (!collapsed.hasOwnProperty(fakeId)) collapsed[fakeId] = true;
-    });
-  } else {
-    // Mapper les projets (lvl1) vers leur programme via Initiative_ID
-    lvl1.forEach(a => {
-      const progId = directInitiativeIdOf(a);
-      if (progId != null && projsByProg[progId] !== undefined) {
-        progColors[a.id] = '#2563eb'; // couleur projet
-        if (!collapsed.hasOwnProperty(a.id)) collapsed[a.id] = true;
-        projsByProg[progId].push(a);
-        tasksByProg[progId].push(a);
-      }
-    });
-  }
-
-  // Mapper les tâches (lvl2) vers leur projet via Action_Parent
-  // Si pas d'Action_Parent → rattacher directement au Programme via Initiative_ID
-  const projMap = {};
-  lvl1.forEach(a => { projMap[a.id] = a; });
-
-  // Créer un "pseudo-projet" par programme pour accueillir les tâches orphelines
-  const orphanProjByProg = {}; // progId → pseudo-projet
-
-  lvl2.forEach(t => {
-    const parentId = refIdOf(t.Action_Parent);
-    const prevRaw  = t.Tache_precedente || t['Tache_précédente'] || null;
-    t._prevId      = refIdOf(prevRaw) || null;
-
-    if (parentId && projMap[parentId]) {
-      // Cas normal : tâche rattachée à un projet
-      if (!tasksByProj[parentId]) tasksByProj[parentId] = [];
-      tasksByProj[parentId].push(t);
-      const progId = directInitiativeIdOf(projMap[parentId]);
-      if (progId && tasksByProg[progId]) tasksByProg[progId].push(t);
-
-    } else {
-      // Pas d'Action_Parent → rattacher au Programme via Initiative_ID
-      const progId = directInitiativeIdOf(t);
-      if (progId != null && tasksByProg[progId] !== undefined) {
-        // Créer un pseudo-projet "Actions directes" si besoin
-        if (!orphanProjByProg[progId]) {
-          const pseudoId = 'orphan_' + progId;
-          const pseudoProj = {
-            id: pseudoId,
-            Libelle: 'Actions directes',
-            Programme_Nom: 'Actions directes',
-            Statut: '',
-            _isOrphan: true,
-          };
-          progColors[pseudoId] = '#6366f1'; // violet pour distinguer
-          if (!collapsed.hasOwnProperty(pseudoId)) collapsed[pseudoId] = false; // ouvert par défaut
-          projsByProg[progId].push(pseudoProj);
-          tasksByProj[pseudoId] = [];
-          orphanProjByProg[progId] = pseudoId;
-        }
-        const pseudoId = orphanProjByProg[progId];
-        tasksByProj[pseudoId].push(t);
-        tasksByProg[progId].push(t);
-      }
-    }
+  // Projets par programme.
+  projects.forEach(project => {
+    const pid = directInitiativeIdOf(project) || linkedProgramIdForAction(project) || '__sans_programme__';
+    const prog = programByInitiative.get(String(pid)) || programByInitiative.get('__sans_programme__');
+    if (!prog) return;
+    projectsByProgram[prog.id].push(project);
+    tasksByProject[project.id] = tasksByProject[project.id] || [];
+    setDefaultCollapsed(project.id);
   });
 
-  // Mapper les sous-tâches (lvl3) vers leur tâche parente
-  // Si pas d'Action_Parent → rattacher directement au projet via Initiative_ID
-  const taskMap = {};
-  lvl2.forEach(t => { taskMap[t.id] = t; });
-
-  lvl3.forEach(s => {
-    const parentId = refIdOf(s.Action_Parent);
-    const prevRaw  = s.Tache_precedente || s['Tache_précédente'] || null;
-    s._prevId      = refIdOf(prevRaw) || null;
-
-    if (parentId && taskMap[parentId]) {
-      if (!subsByTask[parentId]) subsByTask[parentId] = [];
-      subsByTask[parentId].push(s);
-    } else {
-      // Sous-tâche orpheline → la traiter comme une tâche niveau 2
-      const progId = directInitiativeIdOf(s);
-      if (progId != null && tasksByProg[progId] !== undefined) {
-        if (!orphanProjByProg[progId]) {
-          const pseudoId = 'orphan_' + progId;
-          const pseudoProj = {
-            id: pseudoId, Libelle: 'Actions directes',
-            Programme_Nom: 'Actions directes', Statut: '', _isOrphan: true,
-          };
-          progColors[pseudoId] = '#6366f1';
-          if (!collapsed.hasOwnProperty(pseudoId)) collapsed[pseudoId] = false;
-          projsByProg[progId].push(pseudoProj);
-          tasksByProj[pseudoId] = [];
-          orphanProjByProg[progId] = pseudoId;
-        }
-        tasksByProj[orphanProjByProg[progId]].push(s);
-        tasksByProg[progId].push(s);
-      }
+  // Tâches par projet. Si le parent est absent ou n'est pas un projet, on crée un regroupement virtuel "Sans projet" par programme.
+  const ensureVirtualProject = (prog, label='Sans projet') => {
+    const id = `${prog.id}:sans-projet`;
+    let vp = (projectsByProgram[prog.id] || []).find(p => String(p.id) === id);
+    if (!vp) {
+      vp = { id, _virtualProject:true, Libelle:label, Initiative_ID: prog._initiativeId || null, Date_Demarrage:null, Date_Fin:null, Statut:'' };
+      projectsByProgram[prog.id].push(vp);
+      tasksByProject[vp.id] = [];
+      setDefaultCollapsed(vp.id);
     }
+    return vp;
+  };
+
+  tasks.forEach(task => {
+    const parentId = refIdOf(task.Action_Parent);
+    const parent = parentId != null ? actionById.get(String(parentId)) : null;
+    let project = parent && levelKind(parent) === 'project' ? parent : null;
+    if (!project) {
+      const pid = directInitiativeIdOf(task) || linkedProgramIdForAction(task) || '__sans_programme__';
+      const prog = programByInitiative.get(String(pid)) || programByInitiative.get('__sans_programme__');
+      project = prog ? ensureVirtualProject(prog) : null;
+    }
+    if (!project) return;
+    tasksByProject[project.id] = tasksByProject[project.id] || [];
+    tasksByProject[project.id].push(task);
+    subsByTask[task.id] = subsByTask[task.id] || [];
+    setDefaultCollapsed(task.id);
+  });
+
+  // Sous-tâches par tâche. Si le parent n'est pas une tâche, on la rattache au projet parent ou au regroupement virtuel.
+  subs.forEach(sub => {
+    const parentId = refIdOf(sub.Action_Parent);
+    const parent = parentId != null ? actionById.get(String(parentId)) : null;
+    if (parent && levelKind(parent) === 'task') {
+      subsByTask[parent.id] = subsByTask[parent.id] || [];
+      subsByTask[parent.id].push(sub);
+      return;
+    }
+    const pid = directInitiativeIdOf(sub) || linkedProgramIdForAction(sub) || '__sans_programme__';
+    const prog = programByInitiative.get(String(pid)) || programByInitiative.get('__sans_programme__');
+    const project = parent && levelKind(parent) === 'project' ? parent : (prog ? ensureVirtualProject(prog) : null);
+    if (!project) return;
+    tasksByProject[project.id] = tasksByProject[project.id] || [];
+    const virtualTaskId = `${project.id}:sans-tache`;
+    let virtualTask = tasksByProject[project.id].find(t => String(t.id) === virtualTaskId);
+    if (!virtualTask) {
+      virtualTask = { id: virtualTaskId, _virtualTask:true, Libelle:'Sans tâche parente', Initiative_ID: project.Initiative_ID || null, Action_Parent: project.id };
+      tasksByProject[project.id].push(virtualTask);
+      subsByTask[virtualTask.id] = [];
+      setDefaultCollapsed(virtualTask.id);
+    }
+    subsByTask[virtualTask.id].push(sub);
+  });
+
+  // Tri + liste à plat par programme, utile pour les dépendances, dates et anciens helpers.
+  programs.forEach(prog => {
+    const projs = (projectsByProgram[prog.id] || []).sort(actionSort);
+    projectsByProgram[prog.id] = projs;
+    const flat = [];
+    projs.forEach(project => {
+      tasksByProject[project.id] = (tasksByProject[project.id] || []).sort(actionSort);
+      tasksByProject[project.id].forEach(task => {
+        if (!task._virtualTask) flat.push(task);
+        subsByTask[task.id] = (subsByTask[task.id] || []).sort(actionSort);
+        subsByTask[task.id].forEach(sub => flat.push(sub));
+      });
+    });
+    tasksByProg[prog.id] = flat;
   });
 
   populateProgFilter();
@@ -1203,128 +1234,251 @@ function buildProgramStructure(rawActions) {
   if (!hasAutoFittedView) initViewStart();
 }
 
-/* ══════════════════════════════════════════════
-   FILTER AUTOCOMPLETE SYSTEM (FAC)
-══════════════════════════════════════════════ */
-const FAC_OPTIONS = { status: [], prog: [], pilot: [] };
-
-const FAC_STATIC_STATUS = [
-  { value: 'En Cours',  label: 'En Cours'  },
-  { value: 'A faire',   label: 'À faire'   },
-  { value: 'Terminé',   label: 'Terminé'   },
-  { value: 'Planifié',  label: 'Planifié'  },
-];
+function getFilteredProjects(progId) {
+  const projs = projectsByProgram[progId] || [];
+  return projs.filter(project => {
+    if (!filterStatus && !filterPilot) return true;
+    return childrenMatchFilters(allChildrenOfProject(project.id));
+  });
+}
 
 function populateProgFilter() {
-  FAC_OPTIONS.prog = programs.map(p => ({
-    value: String(p.id),
-    label: p.Libelle || p.Programme_Nom || `Programme ${p.id}`
-  }));
-  // Ne pas réinitialiser la valeur actuelle
+  facInit('program', buildFilterProgramOptions(), filterProgram, (val) => {
+    filterProgram = val;
+    render();
+  });
 }
 
 function populatePilotFilter() {
-  const pilots = [...new Set(allActions.map(a => pilotNameOf(a)).filter(Boolean))]
-    .sort((a,b) => a.localeCompare(b,'fr'));
-  FAC_OPTIONS.pilot = pilots.map(name => ({ value: name, label: name }));
+  populateStatusFilter();
+  facInit('pilot', buildFilterPilotOptions(), filterPilot, (val) => {
+    filterPilot = val;
+    render();
+  });
 }
 
-function facOptions(id) {
-  if (id === 'status') return FAC_STATIC_STATUS;
-  return FAC_OPTIONS[id] || [];
+function populateStatusFilter() {
+  facInit('status', buildFilterStatusOptions(), filterStatus, (val) => {
+    filterStatus = val;
+    render();
+  });
+}
+
+function getFilteredPrograms() {
+  return programs.filter(p => {
+    if (filterProgram) {
+      const pid = p._initiativeId != null ? p._initiativeId : (linkedProgramIdForAction(p) || directInitiativeIdOf(p));
+      if (String(pid || '') !== String(filterProgram)) return false;
+    }
+    // Si statut/pilote est filtré, on garde seulement les programmes qui contiennent au moins une tâche/sous-tâche visible.
+    if (filterStatus || filterPilot) return getFilteredProjects(p.id).length > 0;
+    return true;
+  });
+}
+
+function getFilteredTasks(progId) {
+  // Compatibilité avec les anciens helpers : retourne à plat les tâches/sous-tâches du programme, déjà filtrées.
+  const out = [];
+  getFilteredProjects(progId).forEach(project => {
+    filteredTasksForProject(project.id).forEach(task => {
+      if (!task._virtualTask && actionMatchesFilters(task)) out.push(task);
+      filteredSubsForTask(task.id).forEach(sub => out.push(sub));
+    });
+  });
+  return out;
+}
+
+/* ════════════════════════════════════════════
+   SEARCHABLE FILTERS
+════════════════════════════════════════════ */
+const FAC_CONFIGS = {}; // status/program/pilot → { options, currentValue, onSelect }
+
+function normalizeText(s) {
+  return String(s || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function statusFilterValueOf(status) {
+  const n = normalizeText(status);
+  if (!n) return '';
+  if (n.includes('cours')) return 'en_cours';
+  if (n.includes('termine') || n.includes('terminee') || n.includes('fait')) return 'termine';
+  if (n.includes('faire') || n.includes('todo') || n.includes('a faire')) return 'a_faire';
+  return n;
+}
+
+function pilotFilterValueOf(item) {
+  const id = pilotRefIdOf(item);
+  if (id != null && id !== '') return `id:${id}`;
+  const name = pilotNameOf(item);
+  return name ? `name:${normalizeText(name)}` : '';
+}
+
+function buildFilterStatusOptions() {
+  const opts = new Map([
+    ['en_cours', { value:'en_cours', label:'En cours' }],
+    ['a_faire',  { value:'a_faire',  label:'À faire' }],
+    ['termine',  { value:'termine',  label:'Terminé' }],
+  ]);
+  allActions.forEach(a => {
+    const val = statusFilterValueOf(a.Statut);
+    if (!val) return;
+    const label = String(a.Statut || '').trim() || val;
+    if (!opts.has(val)) opts.set(val, { value: val, label });
+  });
+  return [{ value:'', label:'Tous' }, ...Array.from(opts.values()).sort((a,b)=>a.label.localeCompare(b.label,'fr'))];
+}
+
+function buildFilterProgramOptions() {
+  return [{ value:'', label:'Tous' }, ...getInitiativeChoices().map(r => ({
+    value: String(r.id),
+    label: r.label || `Programme ${r.id}`
+  }))];
+}
+
+function buildFilterPilotOptions() {
+  const seen = new Map();
+  allActions.forEach(a => {
+    const value = pilotFilterValueOf(a);
+    const label = pilotNameOf(a);
+    if (value && label && !seen.has(value)) seen.set(value, { value, label });
+  });
+  return [{ value:'', label:'Tous' }, ...Array.from(seen.values()).sort((a,b)=>a.label.localeCompare(b.label,'fr'))];
+}
+
+function facIds(id) {
+  const suffix = id === 'program' ? 'Prog' : id.charAt(0).toUpperCase() + id.slice(1);
+  return {
+    inp:  document.getElementById(`filter${suffix}_text`),
+    hid:  document.getElementById(`filter${suffix}`),
+    drop: document.getElementById(`facDrop_${id}`),
+    clr:  document.getElementById(`facClear_${id}`),
+  };
+}
+
+function facInit(id, options, currentValue, onSelect) {
+  FAC_CONFIGS[id] = { options, currentValue: currentValue || '', onSelect };
+  const {inp, hid, clr} = facIds(id);
+  if (!inp || !hid) return;
+  const cur = options.find(o => String(o.value) === String(currentValue || '')) || options[0];
+  hid.value = currentValue || '';
+  inp.value = currentValue ? (cur ? cur.label : String(currentValue)) : '';
+  inp.classList.toggle('has-value', !!currentValue);
+  if (clr) clr.classList.toggle('visible', !!currentValue);
+}
+
+
+function facPositionDropdown(id) {
+  const {inp, drop} = facIds(id);
+  if (!inp || !drop) return;
+  // Seulement pour les filtres de la toolbar : évite le clipping dans Grist.
+  if (!inp.closest('.toolbar')) return;
+  const r = inp.getBoundingClientRect();
+  const minW = id === 'program' ? 280 : 220;
+  const w = Math.max(minW, r.width);
+  let left = r.left;
+  if (left + w > window.innerWidth - 8) left = Math.max(8, window.innerWidth - w - 8);
+  drop.style.left = `${left}px`;
+  drop.style.top = `${r.bottom + 4}px`;
+  drop.style.width = `${w}px`;
 }
 
 function facFilter(id) {
-  const inp = document.getElementById(`filter${cap(id)}Input`);
-  if (!inp) return;
-  const q = inp.value.trim().toLowerCase();
-  const opts = facOptions(id).filter(o => !q || o.label.toLowerCase().includes(q));
-  facRender(id, opts, q);
-  document.getElementById(`facDrop_${id}`).classList.add('open');
-  // Vider la valeur filtre si le texte ne correspond plus
-  const exact = facOptions(id).find(o => o.label.toLowerCase() === q);
-  if (!exact) {
-    if (id === 'status')  { filterStatus  = ''; }
-    if (id === 'prog')    { filterProgram = ''; }
-    if (id === 'pilot')   { filterPilot   = ''; }
+  const cfg = FAC_CONFIGS[id]; if (!cfg) return;
+  const {inp, hid, drop, clr} = facIds(id);
+  if (!inp || !drop) return;
+  const q = normalizeText(inp.value);
+  const filtered = q ? cfg.options.filter(o => normalizeText(o.label).includes(q)) : cfg.options;
+  facRenderDropdown(id, filtered, q, hid ? String(hid.value) : '');
+  drop.classList.add('open');
+  facPositionDropdown(id);
+  const exact = cfg.options.find(o => normalizeText(o.label) === q);
+  if (!exact && hid) {
+    hid.value = '';
+    inp.classList.remove('has-value');
   }
-  const clr = document.getElementById(`facClear_${id}`);
   if (clr) clr.classList.toggle('visible', inp.value.length > 0);
 }
 
 function facOpen(id) {
-  // Fermer les autres
-  ['status','prog','pilot'].forEach(k => {
-    if (k !== id) document.getElementById(`facDrop_${k}`)?.classList.remove('open');
-  });
-  const inp = document.getElementById(`filter${cap(id)}Input`);
-  const q   = inp ? inp.value.trim().toLowerCase() : '';
-  const opts = facOptions(id).filter(o => !q || o.label.toLowerCase().includes(q));
-  facRender(id, opts, q);
-  document.getElementById(`facDrop_${id}`).classList.add('open');
-}
-
-function facRender(id, opts, q) {
-  const drop = document.getElementById(`facDrop_${id}`);
+  const cfg = FAC_CONFIGS[id]; if (!cfg) return;
+  const {inp, hid, drop} = facIds(id);
   if (!drop) return;
-  const currentVal = id==='status' ? filterStatus : id==='prog' ? String(filterProgram) : filterPilot;
-  let html = '<div class="fac-item" data-val="" onclick="facSelect(''+id+'','','Tous')">Tous</div>';
-  html += opts.map(o => {
-    const label = q
-      ? o.label.replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\]/g,'\$&')})`, 'gi'), '<mark>$1</mark>')
-      : o.label;
-    const sel = String(o.value) === String(currentVal) ? ' selected' : '';
-    return `<div class="fac-item${sel}" data-val="${esc(String(o.value))}" onclick="facSelect('${id}','${esc(String(o.value))}','${esc(o.label)}')">${label}</div>`;
-  }).join('');
-  drop.innerHTML = html;
+  const q = inp ? normalizeText(inp.value) : '';
+  const filtered = q ? cfg.options.filter(o => normalizeText(o.label).includes(q)) : cfg.options;
+  facRenderDropdown(id, filtered, q, hid ? String(hid.value) : '');
+  drop.classList.add('open');
+  facPositionDropdown(id);
+  document.querySelectorAll('.ac-dropdown').forEach(d => {
+    if (d.id !== `facDrop_${id}`) d.classList.remove('open');
+  });
 }
 
-function facSelect(id, value, label) {
-  if (id === 'status')  filterStatus  = value;
-  if (id === 'prog')    filterProgram = value ? Number(value)||value : '';
-  if (id === 'pilot')   filterPilot   = value;
+function facRenderDropdown(id, options, q, selectedVal) {
+  const {drop} = facIds(id);
+  if (!drop) return;
+  if (!options.length) {
+    drop.innerHTML = `<div class="ac-empty">Aucun résultat</div>`;
+    return;
+  }
+  drop.innerHTML = options.map((o, i) => {
+    const isSel = String(o.value) === String(selectedVal);
+    const safeLabel = esc(o.label);
+    const label = q ? safeLabel.replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi'), '<mark>$1</mark>') : safeLabel;
+    return `<div class="ac-option${isSel?' selected':''}" data-value="${esc(o.value)}" data-label="${esc(o.label)}" data-index="${i}"
+      onmousedown="facSelect('${id}', this)">
+      <span class="ac-opt-label">${label}</span>
+      ${isSel ? '<span class="ac-opt-check">✓</span>' : ''}
+    </div>`;
+  }).join('');
+}
 
-  const inp = document.getElementById(`filter${cap(id)}Input`);
-  if (inp) inp.value = value ? label : '';
-  document.getElementById(`facDrop_${id}`)?.classList.remove('open');
-  const clr = document.getElementById(`facClear_${id}`);
-  if (clr) clr.classList.toggle('visible', !!value);
-  render();
+function facSelect(id, optEl) {
+  const cfg = FAC_CONFIGS[id]; if (!cfg) return;
+  const {inp, hid, drop, clr} = facIds(id);
+  const val = optEl.dataset.value || '';
+  const label = optEl.dataset.label || '';
+  if (inp) { inp.value = val ? label : ''; inp.classList.toggle('has-value', !!val); }
+  if (hid) hid.value = val;
+  if (clr) clr.classList.toggle('visible', !!val);
+  if (drop) drop.classList.remove('open');
+  cfg.currentValue = val;
+  if (cfg.onSelect) cfg.onSelect(val, label);
 }
 
 function facClear(id) {
-  facSelect(id, '', '');
+  const cfg = FAC_CONFIGS[id]; if (!cfg) return;
+  const {inp, hid, drop, clr} = facIds(id);
+  if (inp) { inp.value = ''; inp.classList.remove('has-value'); inp.focus(); }
+  if (hid) hid.value = '';
+  if (clr) clr.classList.remove('visible');
+  cfg.currentValue = '';
+  if (cfg.onSelect) cfg.onSelect('', '');
+  if (drop) drop.classList.remove('open');
 }
 
-function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
-
-// Fermer dropdowns au clic extérieur
-document.addEventListener('mousedown', e => {
-  if (!e.target.closest('.filter-ac-wrap')) {
-    document.querySelectorAll('.filter-ac-dropdown').forEach(d => d.classList.remove('open'));
+function facKeydown(e, id) {
+  const {drop} = facIds(id);
+  if (!drop || !drop.classList.contains('open')) return;
+  const opts = drop.querySelectorAll('.ac-option');
+  const cur  = drop.querySelector('.ac-option.focused');
+  let idx = cur ? parseInt(cur.dataset.index) : -1;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault(); idx = Math.min(idx + 1, opts.length - 1);
+    opts.forEach(o => o.classList.remove('focused'));
+    if (opts[idx]) { opts[idx].classList.add('focused'); opts[idx].scrollIntoView({block:'nearest'}); }
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault(); idx = Math.max(idx - 1, 0);
+    opts.forEach(o => o.classList.remove('focused'));
+    if (opts[idx]) { opts[idx].classList.add('focused'); opts[idx].scrollIntoView({block:'nearest'}); }
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    const focused = drop.querySelector('.ac-option.focused') || opts[0];
+    if (focused) facSelect(id, focused);
+  } else if (e.key === 'Escape') {
+    drop.classList.remove('open');
   }
-});
-
-function getFilteredPrograms() {
-  return programs.filter(p => {
-    if (filterProgram && String(p.id) !== String(filterProgram)) return false;
-    return true;
-  });
-}
-function getFilteredTasks(progId) {
-  const tks = tasksByProg[progId]||[];
-  return tks.filter(t => {
-    if (filterStatus) {
-      const s = String(t.Statut||'');
-      // Comparaison flexible
-      if (filterStatus === 'En Cours' && !s.toLowerCase().includes('cours')) return false;
-      if (filterStatus === 'A faire'  && !s.toLowerCase().includes('fair'))  return false;
-      if (filterStatus === 'Terminé'  && !s.toLowerCase().includes('termin')) return false;
-      if (filterStatus === 'Planifié' && !s.toLowerCase().includes('planif')) return false;
-    }
-    if (filterPilot && pilotNameOf(t) !== filterPilot) return false;
-    return true;
-  });
 }
 
 /* ════════════════════════════════════════════
@@ -1333,7 +1487,6 @@ function getFilteredTasks(progId) {
 function getTimelineBounds() {
   let earliest = null;
   let latest = null;
-  // Inclure toutes les actions (niveaux 2 et 3 qui ont des barres)
   allActions.forEach(a => {
     const s = gristTs(a.Date_Demarrage);
     const e = gristTs(a.Date_Fin);
@@ -1405,21 +1558,38 @@ function updatePeriodLabel() {
 /* ════════════════════════════════════════════
    PROG BAR METRICS
 ════════════════════════════════════════════ */
-function computeProgDates(progId) {
-  const p = programs.find(x=>x.id===progId);
-  if (!p) return null;
-  const tks = tasksByProg[progId]||[];
-  let minS = gristTs(p.Date_Demarrage);
-  let maxE = gristTs(p.Date_Fin);
-  tks.forEach(t => {
+function computeDateRange(items) {
+  let minS = null, maxE = null;
+  (items || []).forEach(t => {
     const s = gristTs(t.Date_Demarrage);
     const e = gristTs(t.Date_Fin);
-    if (s && (!minS||s<minS)) minS=s;
-    if (e && (!maxE||e>maxE)) maxE=e;
+    if (s && (!minS || s < minS)) minS = s;
+    if (e && (!maxE || e > maxE)) maxE = e;
   });
+  return { start:minS, end:maxE };
+}
+
+function computeProgDates(progId) {
+  const p = programs.find(x=>String(x.id)===String(progId));
+  if (!p) return null;
+  const items = [];
+  (projectsByProgram[progId] || []).forEach(project => {
+    items.push(project);
+    allChildrenOfProject(project.id).forEach(x => items.push(x));
+  });
+  const range = computeDateRange(items);
   const progEnd = gristTs(p.Date_Fin);
-  const overdue = progEnd && maxE && maxE > progEnd;
-  return { start:minS, end:maxE, overdue };
+  const overdue = progEnd && range.end && range.end > progEnd;
+  return { start:range.start || gristTs(p.Date_Demarrage), end:range.end || gristTs(p.Date_Fin), overdue };
+}
+
+function computeProjectDates(projectId) {
+  const project = findProject(projectId);
+  const items = [project, ...allChildrenOfProject(projectId)].filter(Boolean);
+  const range = computeDateRange(items);
+  const projectEnd = gristTs(project && project.Date_Fin);
+  const overdue = projectEnd && range.end && range.end > projectEnd;
+  return { start:range.start || gristTs(project && project.Date_Demarrage), end:range.end || gristTs(project && project.Date_Fin), overdue };
 }
 
 function taskDurationDays(task) {
@@ -1565,15 +1735,6 @@ function renderHeader() {
 /* ════════════════════════════════════════════
    RENDER ROWS (LEFT + GRID)
 ════════════════════════════════════════════ */
-function toggleCollapse(id, e) {
-  if (e) e.stopPropagation();
-  const key = String(id);
-  collapsed[key] = !collapsed[key];
-  // Aussi gérer les ids numériques
-  if (!isNaN(id)) collapsed[Number(id)] = collapsed[key];
-  render();
-}
-
 function render() {
   renderHeader();
   const leftEl  = document.getElementById('ganttLeft');
@@ -1584,10 +1745,9 @@ function render() {
   const days  = visibleDays();
   const cw    = cellWidth();
   const totalW = days * cw;
-  gridEl.style.width  = totalW+'px';
-  const rowH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--row-h'))||42;
+  const rowH  = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--row-h')) || 42;
+  gridEl.style.width = totalW+'px';
 
-  // Today line
   const todayOff = daysDiff(viewStart, new Date());
   if (todayOff>=0 && todayOff<days) {
     const tl = document.createElement('div');
@@ -1610,237 +1770,208 @@ function render() {
   gridEl.appendChild(svgEl);
 
   let rowIndex = 0;
-  let rowPositions = {};
+  const rowPositions = {};
 
-  // ── Couleur selon niveau ──
-  const COLOR_PROG = '#1e3a5f';
-  const COLOR_PROJ = '#2563eb';
-  const COLOR_TASK = '#4f7cff';
-  const COLOR_SUB  = '#94a3b8';
+  const addSummaryBar = (gridRow, item, type, color, dates, label, rows) => {
+    if (!dates || !dates.start || !dates.end) return;
+    const left = leftPx(dates.start);
+    const w = widthPx(dates.start, dates.end);
+    const bar = document.createElement('div');
+    bar.className = 'prog-bar summary-bar'+(dates.overdue?' overdue':'');
+    bar.style.cssText = `left:${left}px;width:${w}px;background:${color};`;
+    bar.innerHTML = `<span class="prog-bar-label">${esc(label)}</span>${dates.overdue?'<span class="prog-bar-warn">⚠</span>':''}`;
+    bar.setAttribute('data-type', type);
+    bar.setAttribute('data-id', item.id);
+    bar.onclick = (e) => { e.stopPropagation(); panelMode='view'; selectedId=item.id; renderSidePanel(); render(); };
+    setupTooltip(bar, { name:label, rows, status:item.Statut, color });
+    gridRow.appendChild(bar);
+  };
 
-  // ────────────────────────────────────────────
-  // Niveau 1 : PROGRAMMES
-  // ────────────────────────────────────────────
-  progs.forEach(prog => {
-    const isProgOpen = !(collapsed[prog.id] ?? collapsed[String(prog.id)] ?? true);
-    const projets    = (projsByProg[prog.id]||[]);
-    const pName      = prog.Libelle || prog.Programme_Nom || 'Programme '+prog.id;
+  const addTaskBar = (gridRow, task, progId, color, isSubtask=false) => {
+    const tStart = gristTs(task.Date_Demarrage);
+    const tEnd = gristTs(task.Date_Fin);
+    if (!tStart || !tEnd || task._virtualTask) return;
+    const left = leftPx(tStart);
+    const w = widthPx(tStart, tEnd);
+    const tName = task.Libelle || (isSubtask ? 'Sous-tâche ' : 'Tâche ') + task.id;
+    const bar = document.createElement('div');
+    bar.className = 'task-bar'+(isSubtask?' subtask-bar':'');
+    bar.style.cssText = `left:${left}px;width:${w}px;background:${color};`;
+    bar.setAttribute('data-type','task');
+    bar.setAttribute('data-id',task.id);
+    bar.setAttribute('data-progid',progId);
+    bar.setAttribute('data-start',tStart.getTime());
+    bar.setAttribute('data-end',tEnd.getTime());
+    const prog_pct = task.PDCA || 0;
+    bar.innerHTML = `
+      <div class="task-bar-fill" style="width:${prog_pct}%"></div>
+      <div class="resize-handle left" data-type="task" data-id="${task.id}" data-side="left"></div>
+      <span class="task-bar-label">${esc(tName)}</span>
+      <div class="resize-handle right" data-type="task" data-id="${task.id}" data-side="right"></div>
+    `;
+    bar.onclick = (e) => { e.stopPropagation(); panelMode='view'; selectedId=task.id; renderSidePanel(); render(); };
+    setupTooltip(bar, {
+      name:tName,
+      rows:[['Début',fmtFull(tStart)], ['Fin',fmtFull(tEnd)], ['Pilote',task.Pilote_Nom||task.Pilote||'—'], ['Avancement',(prog_pct||0)+'%']],
+      status:task.Statut,
+      color,
+    });
+    setupTaskDrag(bar, task.id, progId);
+    gridRow.appendChild(bar);
+    rowPositions[task.id] = { y: rowIndex * rowH + rowH/2, barLeft:left, barRight:left+w };
+  };
 
-    // Calculer l'étendue temporelle du programme
-    let minS = null, maxE = null;
-    projets.forEach(pr => {
-      (tasksByProj[pr.id]||[]).forEach(t => {
-        const s = gristTs(t.Date_Demarrage), e = gristTs(t.Date_Fin);
-        if (s && (!minS||s<minS)) minS=s;
-        if (e && (!maxE||e>maxE)) maxE=e;
-        // Sous-tâches
-        (subsByTask[t.id]||[]).forEach(st => {
-          const ss = gristTs(st.Date_Demarrage), se = gristTs(st.Date_Fin);
-          if (ss && (!minS||ss<minS)) minS=ss;
-          if (se && (!maxE||se>maxE)) maxE=se;
+  progs.forEach((prog) => {
+    const progColor = '#1e3a5f';
+    const projects = getFilteredProjects(prog.id);
+    const progOpen = !collapsed[prog.id];
+    const pDates = computeProgDates(prog.id);
+    const pName = prog.Libelle || 'Programme '+prog.id;
+    const flatCount = getFilteredTasks(prog.id).length;
+
+    const pLeft = document.createElement('div');
+    pLeft.className = 'prog-row level-program'+(selectedId===prog.id?' selected':'');
+    pLeft.style.borderLeft = '3px solid '+progColor;
+    pLeft.innerHTML = `
+      <span class="collapse-btn ${progOpen?'open':''}">▶</span>
+      <span class="prog-dot" style="background:#93c5fd"></span>
+      <span class="prog-name">📁 ${esc(pName)}</span>
+      <span class="prog-count">${projects.length}/${flatCount}</span>
+    `;
+    pLeft.querySelector('.collapse-btn').onclick = (event) => toggleCollapse(prog.id, event);
+    pLeft.onclick = () => { panelMode='view'; selectedId=prog.id; render(); };
+    leftEl.appendChild(pLeft);
+
+    const pGrid = buildGridRow(days, cw, true);
+    pGrid.classList.add('level-program-bg');
+    gridEl.appendChild(pGrid);
+    addSummaryBar(pGrid, prog, 'program', progColor, pDates, pName, [
+      ['Début', pDates?.start ? fmtFull(pDates.start) : '—'],
+      ['Fin', pDates?.end ? fmtFull(pDates.end) : '—'],
+      ['Projets', projects.length],
+      ['Tâches/sous-tâches', flatCount],
+    ]);
+    rowIndex++;
+    if (!progOpen) return;
+
+    projects.forEach(project => {
+      const projectColor = '#2563eb';
+      const tasks = filteredTasksForProject(project.id);
+      const projectOpen = !collapsed[project.id];
+      const prDates = computeProjectDates(project.id);
+      const prName = project.Libelle || 'Projet '+project.id;
+      const childCount = tasks.reduce((n,t) => n + (t._virtualTask ? 0 : 1) + filteredSubsForTask(t.id).length, 0);
+
+      const prLeft = document.createElement('div');
+      prLeft.className = 'prog-row level-project'+(selectedId===project.id?' selected':'');
+      prLeft.style.borderLeft = '3px solid '+projectColor;
+      prLeft.innerHTML = `
+        <span class="collapse-btn ${projectOpen?'open':''}">▶</span>
+        <span class="prog-dot" style="background:${projectColor}"></span>
+        <span class="prog-name">📋 ${esc(prName)}</span>
+        <span class="prog-count">${childCount}</span>
+      `;
+      prLeft.querySelector('.collapse-btn').onclick = (event) => toggleCollapse(project.id, event);
+      prLeft.onclick = () => { panelMode='view'; selectedId=project.id; render(); };
+      leftEl.appendChild(prLeft);
+
+      const prGrid = buildGridRow(days, cw, true);
+      prGrid.classList.add('level-project-bg');
+      gridEl.appendChild(prGrid);
+      addSummaryBar(prGrid, project, 'project', projectColor, prDates, prName, [
+        ['Début', prDates?.start ? fmtFull(prDates.start) : '—'],
+        ['Fin', prDates?.end ? fmtFull(prDates.end) : '—'],
+        ['Tâches/sous-tâches', childCount],
+      ]);
+      rowIndex++;
+      if (!projectOpen) return;
+
+      tasks.forEach(task => {
+        const subs = filteredSubsForTask(task.id);
+        const hasSubs = subs.length > 0;
+        const taskOpen = !collapsed[task.id];
+        const taskColor = '#16a34a';
+        const tStart = gristTs(task.Date_Demarrage);
+        const tName = task.Libelle || 'Tâche '+task.id;
+
+        if (!task._virtualTask) {
+          const tLeft = document.createElement('div');
+          tLeft.className = 'task-left-row level-task'+(selectedId===task.id?' selected':'');
+          tLeft.innerHTML = `
+            ${hasSubs ? `<span class="collapse-btn ${taskOpen?'open':''}">▶</span>` : '<span style="width:16px;flex-shrink:0"></span>'}
+            <span class="task-status-dot" style="background:${taskColor}"></span>
+            <span class="task-left-name">✅ ${esc(tName)}</span>
+            <span class="task-left-dates">${tStart?fmtSh(tStart):''}</span>
+          `;
+          const taskCollapse = tLeft.querySelector('.collapse-btn');
+          if (taskCollapse) taskCollapse.onclick = (event) => toggleCollapse(task.id, event);
+          tLeft.onclick = () => { panelMode='view'; selectedId=task.id; render(); };
+          leftEl.appendChild(tLeft);
+
+          const tGrid = buildGridRow(days, cw, false);
+          tGrid.classList.add('level-task-bg');
+          gridEl.appendChild(tGrid);
+          addTaskBar(tGrid, task, prog.id, taskColor, false);
+          rowIndex++;
+        }
+
+        if (!taskOpen && !task._virtualTask) return;
+        subs.forEach(sub => {
+          const subColor = '#64748b';
+          const sStart = gristTs(sub.Date_Demarrage);
+          const sName = sub.Libelle || 'Sous-tâche '+sub.id;
+          const sLeft = document.createElement('div');
+          sLeft.className = 'task-left-row level-subtask'+(selectedId===sub.id?' selected':'');
+          sLeft.innerHTML = `
+            <span class="task-status-dot" style="background:${subColor}"></span>
+            <span class="task-left-name">🔹 ${esc(sName)}</span>
+            <span class="task-left-dates">${sStart?fmtSh(sStart):''}</span>
+          `;
+          sLeft.onclick = () => { panelMode='view'; selectedId=sub.id; render(); };
+          leftEl.appendChild(sLeft);
+
+          const sGrid = buildGridRow(days, cw, false);
+          sGrid.classList.add('level-subtask-bg');
+          gridEl.appendChild(sGrid);
+          addTaskBar(sGrid, sub, prog.id, subColor, true);
+          rowIndex++;
         });
       });
     });
-
-    // ── Ligne Programme (gauche) ──
-    const pLeft = document.createElement('div');
-    pLeft.className = 'prog-row'+(selectedId===prog.id?' selected':'');
-    pLeft.style.borderLeft = '4px solid '+COLOR_PROG;
-    const nbProj = projets.length;
-    pLeft.innerHTML = `
-      <span class="collapse-btn ${isProgOpen?'open':''}" onclick="toggleCollapse(${JSON.stringify(prog.id)},event)">▶</span>
-      <span class="prog-dot" style="background:${COLOR_PROG}"></span>
-      <span class="prog-name">${esc(pName)}</span>
-      <span class="prog-count">${nbProj} projet${nbProj!==1?'s':''}</span>
-    `;
-    pLeft.onclick = () => { panelMode='view'; selectedId=prog.id; renderSidePanel(); render(); };
-    leftEl.appendChild(pLeft);
-
-    // ── Ligne Programme (grille) ──
-    const pGrid = buildGridRow(days, cw, true);
-    gridEl.appendChild(pGrid);
-    if (minS && maxE) {
-      const bar = document.createElement('div');
-      bar.className = 'prog-bar';
-      bar.style.cssText = `left:${leftPx(minS)}px;width:${widthPx(minS,maxE)}px;background:${COLOR_PROG};opacity:0.7;`;
-      bar.innerHTML = `<span class="prog-bar-label">${esc(pName)}</span>`;
-      pGrid.appendChild(bar);
-    }
-    rowIndex++;
-
-    if (!isProgOpen) return;
-
-    // ────────────────────────────────────────────
-    // Niveau 2 : PROJETS
-    // ────────────────────────────────────────────
-    projets.forEach(proj => {
-      const isProjOpen = !(collapsed[proj.id] ?? collapsed[String(proj.id)] ?? true);
-      const taches     = getFilteredTasks_proj(proj.id);
-      const projName   = proj.Libelle || 'Projet '+proj.id;
-
-      // Étendue temporelle du projet
-      let pminS = null, pmaxE = null;
-      taches.forEach(t => {
-        const s = gristTs(t.Date_Demarrage), e = gristTs(t.Date_Fin);
-        if (s && (!pminS||s<pminS)) pminS=s;
-        if (e && (!pmaxE||e>pmaxE)) pmaxE=e;
-        (subsByTask[t.id]||[]).forEach(st => {
-          const ss=gristTs(st.Date_Demarrage), se=gristTs(st.Date_Fin);
-          if (ss && (!pminS||ss<pminS)) pminS=ss;
-          if (se && (!pmaxE||se>pmaxE)) pmaxE=se;
-        });
-      });
-
-      // ── Ligne Projet (gauche) ──
-      const prLeft = document.createElement('div');
-      prLeft.className = 'proj-row prog-row'+(selectedId===proj.id?' selected':'');
-      prLeft.style.borderLeft = '3px solid '+COLOR_PROJ;
-      prLeft.style.paddingLeft = '14px';
-      prLeft.innerHTML = `
-        <span class="collapse-btn ${isProjOpen?'open':''}" onclick="toggleCollapse(${proj.id},event)">▶</span>
-        <span class="prog-dot" style="background:${COLOR_PROJ}"></span>
-        <span class="prog-name" style="color:#1d4ed8">${esc(projName)}</span>
-        <span class="prog-count" style="color:#3b82f6">${taches.length}</span>
-      `;
-      prLeft.onclick = () => { panelMode='view'; selectedId=proj.id; renderSidePanel(); render(); };
-      leftEl.appendChild(prLeft);
-
-      // ── Ligne Projet (grille) ──
-      const prGrid = buildGridRow(days, cw, true);
-      gridEl.appendChild(prGrid);
-      if (pminS && pmaxE) {
-        const bar = document.createElement('div');
-        bar.className = 'prog-bar';
-        bar.style.cssText = `left:${leftPx(pminS)}px;width:${widthPx(pminS,pmaxE)}px;background:${COLOR_PROJ};opacity:0.5;`;
-        bar.innerHTML = `<span class="prog-bar-label" style="color:white">${esc(projName)}</span>`;
-        prGrid.appendChild(bar);
-      }
-      rowIndex++;
-
-      if (!isProjOpen) return;
-
-      // ────────────────────────────────────────────
-      // Niveau 3 : TÂCHES + SOUS-TÂCHES
-      // ────────────────────────────────────────────
-      taches.forEach(task => {
-        const rowTop = rowIndex * rowH;
-        const tStart = gristTs(task.Date_Demarrage);
-        const tEnd   = gristTs(task.Date_Fin);
-
-        // ── Ligne Tâche (gauche) ──
-        const tLeft = document.createElement('div');
-        tLeft.className = 'task-left-row'+(selectedId===task.id?' selected':'');
-        const tName = task.Libelle||'Tâche '+task.id;
-        tLeft.style.paddingLeft = '28px';
-        tLeft.innerHTML = `
-          <span class="task-status-dot" style="background:${COLOR_TASK}"></span>
-          <span class="task-left-name">${esc(tName)}</span>
-          <span class="task-left-dates">${tStart?fmtSh(tStart):''}</span>
-        `;
-        tLeft.onclick = () => { panelMode='view'; selectedId=task.id; renderSidePanel(); render(); };
-        leftEl.appendChild(tLeft);
-
-        // ── Ligne Tâche (grille) ──
-        const tGrid = buildGridRow(days, cw, false);
-        gridEl.appendChild(tGrid);
-        if (tStart && tEnd) {
-          const bar = document.createElement('div');
-          bar.className = 'task-bar';
-          const st = task.Statut||'';
-          const barColor = st.toLowerCase().includes('termin') ? 'var(--done)'
-            : st.toLowerCase().includes('cours') ? 'var(--inprog)' : 'var(--todo)';
-          const pct = Math.min(100,Math.max(0,task.PDCA||0));
-          bar.style.cssText = `left:${leftPx(tStart)}px;width:${widthPx(tStart,tEnd)}px;background:${barColor};`;
-          bar.innerHTML = `<div class="task-bar-progress" style="width:${pct}%"></div><span class="task-bar-label">${esc(tName)}</span>`;
-          bar.setAttribute('data-type','task');
-          bar.setAttribute('data-id',task.id);
-          bar.onclick = (e) => { e.stopPropagation(); panelMode='view'; selectedId=task.id; renderSidePanel(); render(); };
-          setupTooltip(bar, {
-            name: tName,
-            rows: [
-              ['Début', fmtFull(tStart)],
-              ['Fin',   fmtFull(tEnd)],
-              ['Pilote', pilotNameOf(task)||'—'],
-              ['Avancement', (task.PDCA||0)+'%'],
-            ],
-            status: task.Statut,
-            color: barColor,
-          });
-          setupTaskDrag(bar, task.id);
-          tGrid.appendChild(bar);
-          rowPositions[task.id] = { y: rowTop+rowH/2, barLeft: leftPx(tStart), barRight: leftPx(tStart)+widthPx(tStart,tEnd), rowTop };
-        }
-        rowIndex++;
-
-        // ── Sous-tâches ──
-        const subs = (subsByTask[task.id]||[]).filter(s => {
-          if (filterStatus) {
-            const st = String(s.Statut||'');
-            if (filterStatus==='En Cours' && !st.toLowerCase().includes('cours')) return false;
-            if (filterStatus==='A faire'  && !st.toLowerCase().includes('fair')) return false;
-            if (filterStatus==='Terminé'  && !st.toLowerCase().includes('termin')) return false;
-          }
-          if (filterPilot && pilotNameOf(s)!==filterPilot) return false;
-          return true;
-        });
-
-        subs.forEach(sub => {
-          const sStart = gristTs(sub.Date_Demarrage);
-          const sEnd   = gristTs(sub.Date_Fin);
-          const sName  = sub.Libelle||'Sous-tâche '+sub.id;
-
-          // Ligne sous-tâche gauche
-          const sLeft = document.createElement('div');
-          sLeft.className = 'task-left-row subtask-left-row'+(selectedId===sub.id?' selected':'');
-          sLeft.style.paddingLeft = '42px';
-          sLeft.innerHTML = `
-            <span class="task-status-dot" style="background:${COLOR_SUB}"></span>
-            <span class="task-left-name" style="font-size:11px;color:var(--text3)">${esc(sName)}</span>
-            <span class="task-left-dates">${sStart?fmtSh(sStart):''}</span>
-          `;
-          sLeft.onclick = () => { panelMode='view'; selectedId=sub.id; renderSidePanel(); render(); };
-          leftEl.appendChild(sLeft);
-
-          // Grille sous-tâche
-          const sGrid = buildGridRow(days, cw, false);
-          sGrid.style.background = '#f8fafc';
-          gridEl.appendChild(sGrid);
-          if (sStart && sEnd) {
-            const bar = document.createElement('div');
-            bar.className = 'subtask-bar';
-            const pct = Math.min(100,Math.max(0,sub.PDCA||0));
-            bar.style.cssText = `left:${leftPx(sStart)}px;width:${widthPx(sStart,sEnd)}px;background:${COLOR_SUB};top:20%;height:60%;border-radius:3px;position:absolute;`;
-            bar.innerHTML = `<span style="font-size:10px;color:white;padding:0 4px;white-space:nowrap;overflow:hidden">${esc(sName)}</span>`;
-            bar.onclick = (e) => { e.stopPropagation(); panelMode='view'; selectedId=sub.id; renderSidePanel(); render(); };
-            sGrid.appendChild(bar);
-          }
-          rowIndex++;
-        });
-      }); // fin taches
-    }); // fin projets
-  }); // fin progs
-
-  // Dépendances (flèches)
-  try { renderDependencyArrows(svgEl, rowPositions, days, cw, rowH); } catch(e){}
-  svgEl.setAttribute('height', rowIndex * rowH + 'px');
-}
-
-function getFilteredTasks_proj(projId) {
-  const tks = tasksByProj[projId]||[];
-  return tks.filter(t => {
-    if (filterStatus) {
-      const s = String(t.Statut||'');
-      if (filterStatus==='En Cours' && !s.toLowerCase().includes('cours')) return false;
-      if (filterStatus==='A faire'  && !s.toLowerCase().includes('fair')) return false;
-      if (filterStatus==='Terminé'  && !s.toLowerCase().includes('termin')) return false;
-      if (filterStatus==='Planifié' && !s.toLowerCase().includes('planif')) return false;
-    }
-    if (filterPilot && pilotNameOf(t)!==filterPilot) return false;
-    return true;
   });
+
+  // Dépendances visibles entre tâches/sous-tâches.
+  Object.values(tasksByProg).flat().forEach(t => {
+    if (!t._prevId) return;
+    const from = rowPositions[t._prevId];
+    const to = rowPositions[t.id];
+    if (!from || !to) return;
+    drawArrow(svgEl, from.barRight, from.y, to.barLeft, to.y, '#16a34a');
+  });
+
+  const totalH = rowIndex * rowH;
+  gridEl.style.height = totalH+'px';
+  svgEl.setAttribute('height', totalH);
+  svgEl.style.height = totalH+'px';
+
+  syncScroll();
+
+  if (!hasAutoFittedView) {
+    requestAnimationFrame(() => {
+      const scrollEl = document.getElementById('ganttScroll');
+      const leftEl = document.getElementById('ganttLeft');
+      scrollEl.scrollTop = 0;
+      leftEl.scrollTop = 0;
+      scrollEl.scrollLeft = 0;
+    });
+    hasAutoFittedView = true;
+  }
+  renderSidePanel();
 }
 
-
+/* ════════════════════════════════════════════
+   HELPERS
+════════════════════════════════════════════ */
 function buildGridRow(days, cw, isProg) {
   const row = document.createElement('div');
   row.className = 'grid-row'+(isProg?' prog-bg':'');
@@ -2137,15 +2268,22 @@ function linkedProgramLabelForAction(action) {
 }
 
 function getParentProjectOptions(selectedProgramId='') {
-  return programs.filter(p => {
+  // Pour la création d'action, le parent reste une ligne Actions potentielle,
+  // pas la ligne virtuelle Fiches Programmes affichée dans le Gantt.
+  return allActions.filter(a => {
+    const niv = normalizeText(a.Niveau || '');
+    const looksLikeParent = niv.includes('1') || niv.includes('projet') || niv.includes('project') || !refIdOf(a.Action_Parent);
+    if (!looksLikeParent) return false;
     if (!selectedProgramId) return true;
-    const projectInitiativeId = directInitiativeIdOf(p);
-    return String(projectInitiativeId || '') === String(selectedProgramId);
+    const pid = linkedProgramIdForAction(a) || directInitiativeIdOf(a);
+    return String(pid || '') === String(selectedProgramId);
   }).sort((a,b)=> String(a.Libelle||'').localeCompare(String(b.Libelle||''), 'fr'));
 }
 
 function getTaskPredecessorOptions(parentId, excludeId=null) {
   if (!parentId) return [];
+  const direct = (tasksByProject[parentId] || []).filter(t => !t._virtualTask);
+  if (direct.length) return direct.filter(t => String(t.id) !== String(excludeId));
   return (tasksByProg[parentId] || []).filter(t => String(t.id) !== String(excludeId));
 }
 
@@ -2208,12 +2346,22 @@ function resolvePilotFieldForSave(obj, pilotLabel) {
   return null;
 }
 
+function findProject(id) {
+  for (const arr of Object.values(projectsByProgram)) {
+    const p = arr.find(x => String(x.id) === String(id));
+    if (p) return p;
+  }
+  return null;
+}
+
 function selectedItem() {
   if (selectedId == null) return null;
   const prog = programs.find(p => String(p.id) === String(selectedId));
   if (prog) return { type:'prog', item: prog };
+  const project = findProject(selectedId);
+  if (project) return { type:'project', item: project };
   const task = findTask(selectedId);
-  if (task) return { type:'task', item: task };
+  if (task) return { type: levelKind(task) === 'subtask' ? 'subtask' : 'task', item: task };
   return null;
 }
 
@@ -2280,7 +2428,8 @@ function renderSidePanel() {
     const selected = selectedItem();
     const selectedProg = selected?.type === 'prog' ? selected.item : null;
     const selectedTask = selected?.type === 'task' ? selected.item : null;
-    const defaultParent = selectedProg?.id || refIdOf(selectedTask?.Action_Parent) || filterProgram || (programs[0] ? programs[0].id : '');
+    const firstParentForFilteredProgram = filterProgram ? (getParentProjectOptions(filterProgram)[0]?.id || '') : '';
+    const defaultParent = selectedProg?.id || refIdOf(selectedTask?.Action_Parent) || firstParentForFilteredProgram || (programs[0] ? programs[0].id : '');
     const defaultParentObj = programs.find(p => String(p.id) === String(defaultParent)) || {};
     const defaultInitiative = selectedProg ? (directInitiativeIdOf(selectedProg) || linkedProgramIdForAction(selectedProg)) : (selectedTask ? (directInitiativeIdOf(selectedTask) || linkedProgramIdForAction(selectedTask)) : (defaultParent ? (directInitiativeIdOf(defaultParentObj) || linkedProgramIdForAction(defaultParentObj)) : ''));
 
@@ -2305,10 +2454,26 @@ function renderSidePanel() {
 
   panel.classList.add('open');
   const item = sel.item;
-  title.textContent = sel.type === 'prog' ? 'Programme' : 'Tâche';
-  meta.innerHTML = `<span>ID ${item.id}</span><span>${esc(sel.type === 'prog' ? 'Projet' : 'Action')}</span>`;
-  body.innerHTML = formHtml(item, sel.type);
-  setTimeout(() => initFormAC(item, sel.type, false), 0);
+  const titleByType = { prog:'Programme', project:'Projet', task:'Tâche', subtask:'Sous-tâche' };
+  title.textContent = titleByType[sel.type] || 'Détails';
+  meta.innerHTML = `<span>ID ${item.id}</span><span>${esc(titleByType[sel.type] || 'Action')}</span>`;
+
+  if (sel.type === 'prog' && item._virtualProgram) {
+    const projects = getFilteredProjects(item.id);
+    const dates = computeProgDates(item.id);
+    body.innerHTML = `
+      <div class="panel-empty">
+        <strong>${esc(item.Libelle || 'Programme')}</strong><br>
+        Programme issu de Fiches Programmes.<br><br>
+        Projets : ${projects.length}<br>
+        Tâches / sous-tâches : ${getFilteredTasks(item.id).length}<br>
+        Période : ${dates?.start ? fmtFull(dates.start) : '—'} → ${dates?.end ? fmtFull(dates.end) : '—'}
+      </div>`;
+    return;
+  }
+
+  body.innerHTML = formHtml(item, sel.type === 'project' ? 'prog' : sel.type);
+  setTimeout(() => initFormAC(item, sel.type === 'project' ? 'prog' : sel.type, false), 0);
 }
 
 function formHtml(item, mode) {
@@ -2351,8 +2516,9 @@ function formHtml(item, mode) {
     <div class="form-row">
       <label class="form-label">Niveau</label>
       <select class="form-select" id="panelNiveau" onchange="syncCreateLevelFields()">
-        <option value="1 - Action" ${(item.Niveau||'')==='1 - Action'?'selected':''}>1 - Action</option>
+        <option value="1 - Projet" ${(item.Niveau||'')==='1 - Projet' || (item.Niveau||'')==='1 - Action'?'selected':''}>1 - Projet</option>
         <option value="2 - Tâche" ${(item.Niveau||'')==='2 - Tâche' || !(item.Niveau||'')?'selected':''}>2 - Tâche</option>
+        <option value="3 - Sous Tâche" ${(item.Niveau||'')==='3 - Sous Tâche'?'selected':''}>3 - Sous Tâche</option>
       </select>
     </div>` : ''}
     <div class="form-grid-2">
@@ -2604,15 +2770,18 @@ async function saveFullRecord(obj) {
   }
 }
 
-// toggleCollapse défini plus haut
-
-function applyFilters() {
-  filterStatus  = document.getElementById('filterStatus').value;
-  filterProgram = document.getElementById('filterProg').value;
-  filterPilot   = document.getElementById('filterPilot').value;
+function toggleCollapse(progId, e) {
+  if (e) e.stopPropagation();
+  collapsed[progId] = !collapsed[progId];
   render();
 }
 
+function applyFilters() {
+  filterStatus  = document.getElementById('filterStatus')?.value || '';
+  filterProgram = document.getElementById('filterProg')?.value || '';
+  filterPilot   = document.getElementById('filterPilot')?.value || '';
+  render();
+}
 
 /* ════════════════════════════════════════════
    SCROLL SYNC
@@ -2695,13 +2864,15 @@ function setupProgDrag(bar, progId) {
   bar.addEventListener('mousedown', e => {
     if (e.button!==0) return;
     e.preventDefault();
-    const prog = programs.find(p=>p.id===progId);
+    const prog = programs.find(p=>String(p.id)===String(progId));
     if (!prog) return;
     const tks = tasksByProg[progId]||[];
+    const dates = computeProgDates(progId);
+    if (!dates || !dates.start || !dates.end) return;
     startDrag(e, { type:'prog', progId, bar,
-      origProgStart: gristTs(prog.Date_Demarrage),
-      origProgEnd:   gristTs(prog.Date_Fin),
-      taskSnapshots: tks.map(t=>({ id:t.id, start:gristTs(t.Date_Demarrage), end:gristTs(t.Date_Fin) })),
+      origProgStart: dates.start,
+      origProgEnd:   dates.end,
+      taskSnapshots: tks.map(t=>({ id:t.id, start:gristTs(t.Date_Demarrage), end:gristTs(t.Date_Fin) })).filter(x=>x.start&&x.end),
     });
   });
 }
@@ -2788,7 +2959,7 @@ function onDragEnd(e) {
       scheduleSave(task.id, 'task');
     }
   } else if (dragCtx.type==='prog') {
-    const prog = programs.find(p=>p.id===dragCtx.progId);
+    const prog = programs.find(p=>String(p.id)===String(dragCtx.progId));
     if (prog) {
       prog.Date_Demarrage = toGristTs(addDays(dragCtx.origProgStart, days));
       prog.Date_Fin       = toGristTs(addDays(dragCtx.origProgEnd,   days));
@@ -2899,7 +3070,7 @@ async function doSave(id, type) {
           Date_Fin: t.Date_Fin,
         }
       ]));
-      const prog_actions = programs.map(p=>([
+      const prog_actions = programs.filter(p => !p._virtualProgram).map(p=>([
         'UpdateRecord','Actions',p.id,{
           Date_Demarrage: p.Date_Demarrage,
           Date_Fin: p.Date_Fin,
@@ -2908,10 +3079,10 @@ async function doSave(id, type) {
       await grist.docApi.applyUserActions([...actions_grist, ...prog_actions]);
     } else {
       // prog move: update prog + tasks
-      const prog = programs.find(p=>p.id===id);
+      const prog = programs.find(p=>String(p.id)===String(id));
       const tks  = tasksByProg[id]||[];
       const acts = [
-        ['UpdateRecord','Actions',prog.id,{Date_Demarrage:prog.Date_Demarrage, Date_Fin:prog.Date_Fin}],
+        ...(prog && !prog._virtualProgram ? [['UpdateRecord','Actions',prog.id,{Date_Demarrage:prog.Date_Demarrage, Date_Fin:prog.Date_Fin}]] : []),
         ...tks.map(t=>(['UpdateRecord','Actions',t.id,{Date_Demarrage:t.Date_Demarrage, Date_Fin:t.Date_Fin}]))
       ];
       await grist.docApi.applyUserActions(acts);
@@ -2940,8 +3111,16 @@ function setSavePill(state, message='') {
    HELPERS
 ════════════════════════════════════════════ */
 function findTask(id) {
+  for (const arr of Object.values(tasksByProject)) {
+    const t = arr.find(x => String(x.id) === String(id));
+    if (t) return t;
+  }
+  for (const arr of Object.values(subsByTask)) {
+    const t = arr.find(x => String(x.id) === String(id));
+    if (t) return t;
+  }
   for (const arr of Object.values(tasksByProg)) {
-    const t = arr.find(x=>x.id===id);
+    const t = arr.find(x => String(x.id) === String(id));
     if (t) return t;
   }
   return null;
@@ -3216,13 +3395,10 @@ function currentActionsTable() {
   return resolvedTableNames.Actions || ACTIONS_TABLE_CANDIDATES[0];
 }
 
-async function refreshFromGrist(keepActions = false) {
-  // keepActions=true → ne pas recharger les actions (déjà fourni par onRecords)
-  if (!keepActions) {
-    const actionsResult = await fetchFirstAvailableTable(ACTIONS_TABLE_CANDIDATES);
-    resolvedTableNames.Actions = actionsResult.name || ACTIONS_TABLE_CANDIDATES[0];
-    allActions = actionsResult.rows;
-  }
+async function refreshFromGrist() {
+  const actionsResult = await fetchFirstAvailableTable(ACTIONS_TABLE_CANDIDATES);
+  resolvedTableNames.Actions = actionsResult.name || ACTIONS_TABLE_CANDIDATES[0];
+  allActions = actionsResult.rows;
 
   const membersResult = await fetchFirstAvailableTable(MEMBERS_TABLE_CANDIDATES);
   resolvedTableNames.Membres = membersResult.name;
@@ -3234,7 +3410,6 @@ async function refreshFromGrist(keepActions = false) {
   rebuildProgramSheetIndex();   // reconstruit id→nom depuis la colonne "Programme"
 
   buildProgramStructure(allActions);
-  populatePilotFilter();
   if (!hasAutoFittedView) fitTimelineToAll();
   render();
 }
@@ -3252,10 +3427,8 @@ async function initGrist() {
       }
       if (records && Array.isArray(records) && records.length) {
         allActions = records;
-        // Toujours recharger programSheetRows + membersRows avant de construire
-        // la structure — sinon le groupement par Initiative_ID échoue
-        // Toujours recharger members + programs pour garantir l'index
-        await refreshFromGrist(true);  // keepActions=true, on garde allActions déjà mis à jour
+        buildProgramStructure(allActions);
+        render();
       } else {
         await refreshFromGrist();
       }
@@ -3340,6 +3513,50 @@ initGrist();
   } catch(e) {}
 })();
 /* ────────────────────────────────── */
+</script>
+
+<script>
+/* ── RESTRICTION VIEWERS ── */
+(function() {
+  function redirectViewer() {
+    try {
+      window.top.location.href = 'https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/12';
+    } catch(e) {
+      window.location.href = 'https://grist.numerique.gouv.fr/o/docs/15oDBrVdEDCJ/Maison-SPS/p/12';
+    }
+  }
+
+  // Attendre que grist soit disponible
+  function checkAccess() {
+    if (typeof grist === 'undefined') {
+      setTimeout(checkAccess, 200);
+      return;
+    }
+    grist.getUserInfo().then(function(user) {
+      if (!user) return; // pas d'info → laisser passer
+      var access = String(user.access || user.role || '').toLowerCase();
+      // viewer = lecture seule → rediriger
+      if (access === 'viewer' || access === 'read only' || access === 'readonly') {
+        // Masquer la nav immédiatement
+        var nav = document.getElementById('spsNav');
+        if (nav) nav.style.display = 'none';
+        // Rediriger vers Visualisation
+        redirectViewer();
+      }
+      // editor / owner → ne rien faire, accès normal
+    }).catch(function() {
+      // En cas d'erreur → laisser passer (fail open)
+    });
+  }
+
+  // Lancer la vérification dès que possible
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkAccess);
+  } else {
+    checkAccess();
+  }
+})();
+/* ─────────────────────────── */
 </script>
 </body>
 </html>
