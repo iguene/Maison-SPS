@@ -162,6 +162,35 @@ button{font-family:var(--font);cursor:pointer;}
 .gantt-bar span{color:white;font-size:10px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .today-line{position:absolute;top:0;bottom:0;width:2px;background:#ef4444;opacity:.5;pointer-events:none;z-index:5;}
 
+
+/* ── GANTT LECTURE SEULE — 4 NIVEAUX ── */
+.gantt-row.gantt-program{background:#1e3a5f;color:white;border-bottom:1px solid #162b46;}
+.gantt-row.gantt-program .gantt-row-label{color:white;font-weight:800;}
+.gantt-row.gantt-program .gantt-row-label span{color:white;}
+.gantt-row.gantt-project{background:#dbeafe;border-bottom:1px solid #bfdbfe;}
+.gantt-row.gantt-project .gantt-row-label span{font-weight:700;color:#1e3a5f;}
+.gantt-row.gantt-task{background:white;}
+.gantt-row.gantt-subtask{background:#f8fafc;}
+.gantt-row.gantt-subtask .gantt-row-label span{color:#475569;}
+.gantt-toggle.on-dark{color:#e2e8f0;}
+.gantt-toggle.on-dark:hover{background:rgba(255,255,255,.16);color:white;}
+.gantt-level-icon{width:18px;text-align:center;margin-right:5px;flex-shrink:0;font-size:12px;}
+.gantt-summary-bar{opacity:.9;cursor:default;}
+.gantt-real-bar{cursor:default;}
+
+
+.act-tree-table .act-program td{background:#1e3a5f;color:white;font-weight:700;}
+.act-tree-table .act-project td{background:#dbeafe;color:#1e3a5f;font-weight:700;}
+.act-tree-table .act-task td{background:white;}
+.act-tree-table .act-subtask td{background:#f8fafc;color:#475569;}
+.act-tree-table .act-program:hover td{background:#244a78;}
+.act-tree-table .act-project:hover td{background:#bfdbfe;}
+.act-tree-table td:first-child{display:flex;align-items:center;gap:5px;}
+.act-tree-table .act-level-icon{width:18px;display:inline-flex;justify-content:center;flex-shrink:0;}
+.act-tree-table .table-toggle{margin-right:0;}
+.act-tree-table .table-empty-toggle{margin-right:0;}
+.act-tree-table .act-program .gantt-toggle{color:#e2e8f0;}
+.act-tree-table .act-program .gantt-toggle:hover{background:rgba(255,255,255,.16);color:white;}
 /* ── LOADING / ERROR ── */
 .loading-screen{display:flex;align-items:center;justify-content:center;flex:1;flex-direction:column;gap:12px;color:var(--text3);}
 .spinner{width:32px;height:32px;border:3px solid #e2e8f0;border-top-color:var(--sps);border-radius:50%;animation:spin .7s linear infinite;}
@@ -506,7 +535,7 @@ function renderPilier(list, bodyId) {
       var a = document.createElement('a');
       a.textContent = ind.label;
       a.href        = ind.url;
-      a.target      = '_blank';
+      a.target      = '_top';
       a.style.cssText = 'font-size:14px;font-weight:700;color:'+color+';white-space:nowrap;text-decoration:none;cursor:pointer;transition:opacity .15s;';
       a.addEventListener('mouseenter', function(){ this.style.opacity='.7'; });
       a.addEventListener('mouseleave', function(){ this.style.opacity='1'; });
@@ -628,121 +657,458 @@ function renderFiche(f) {
 /* ══════════════════════════════════════
    VUE 3 — PLANNING
 ══════════════════════════════════════ */
-function renderActionsTable(f) {
-  var linked = allActions.filter(a => {
-    var raw=a.Initiative_ID;
-    var id=typeof raw==='number'?raw:(Array.isArray(raw)?raw.find(v=>typeof v==='number'&&v>0):null)||null;
-    return id===f.id;
+function buildPlanningHierarchy(f) {
+  function refId(v) {
+    if (v === null || v === undefined || v === '') return null;
+    if (typeof v === 'number') return v > 0 ? v : null;
+    if (Array.isArray(v)) {
+      for (var i = 0; i < v.length; i++) if (typeof v[i] === 'number' && v[i] > 0) return v[i];
+      for (var j = 0; j < v.length; j++) { var n = Number(v[j]); if (!isNaN(n) && n > 0) return n; }
+      return null;
+    }
+    if (typeof v === 'object' && v.id) return Number(v.id) || null;
+    var n = Number(v);
+    return (!isNaN(n) && n > 0) ? n : null;
+  }
+  function actionId(a) { return refId(a && (a.id || a.Id || a.ID)); }
+  function parentId(a) { return refId(a && (a.Action_Parent || a.Action_parent || a.action_parent)); }
+  function initiativeId(a) { return refId(a && (a.Initiative_ID || a['Fiches Programmes'] || a.Fiches_Programmes)); }
+  function normLevel(a) {
+    var s = String((a && a.Niveau) || '').toLowerCase();
+    if (s.includes('sous') || s.startsWith('3')) return 'subtask';
+    if (s.includes('projet') || s.startsWith('1')) return 'project';
+    if (s.includes('tâche') || s.includes('tache') || s.startsWith('2')) return 'task';
+    return 'task';
+  }
+
+  var byId = {};
+  allActions.forEach(function(a) { var id = actionId(a); if (id !== null) byId[String(id)] = a; });
+
+  function rootInitiativeId(a) {
+    var direct = initiativeId(a);
+    if (direct !== null) return direct;
+    var seen = {}, cur = a;
+    for (var depth = 0; depth < 12; depth++) {
+      var pid = parentId(cur);
+      if (pid === null || seen[String(pid)]) break;
+      seen[String(pid)] = true;
+      cur = byId[String(pid)];
+      if (!cur) break;
+      var inherited = initiativeId(cur);
+      if (inherited !== null) return inherited;
+    }
+    return null;
+  }
+
+  var linked = allActions.filter(function(a) { return String(rootInitiativeId(a)) === String(f.id); });
+  var projects = [], tasks = [], subs = [];
+  linked.forEach(function(a) {
+    var lvl = normLevel(a);
+    if (lvl === 'project') projects.push(a);
+    else if (lvl === 'subtask') subs.push(a);
+    else tasks.push(a);
   });
+
+  var tasksByProject = {}, subsByTask = {};
+  tasks.forEach(function(t) {
+    var pid = parentId(t);
+    var key = pid !== null ? String(pid) : '__orphans__';
+    if (!tasksByProject[key]) tasksByProject[key] = [];
+    tasksByProject[key].push(t);
+  });
+  subs.forEach(function(st) {
+    var pid = parentId(st);
+    var key = pid !== null ? String(pid) : '__orphan_subtasks__';
+    if (!subsByTask[key]) subsByTask[key] = [];
+    subsByTask[key].push(st);
+  });
+
+  var projectIds = {};
+  projects.forEach(function(p) { var id = actionId(p); if (id !== null) projectIds[String(id)] = true; });
+  var orphanTasks = [];
+  Object.keys(tasksByProject).forEach(function(k) {
+    if (k === '__orphans__' || !projectIds[k]) {
+      orphanTasks = orphanTasks.concat(tasksByProject[k] || []);
+      if (k !== '__orphans__') delete tasksByProject[k];
+    }
+  });
+  if (orphanTasks.length) {
+    projects.push({ id: '__virtual_orphans__', Libelle: 'Actions sans projet', Niveau: '1 - Projet', _virtual: true });
+    tasksByProject['__virtual_orphans__'] = orphanTasks;
+  }
+
+  function descendantsOfProject(p) {
+    var pid = String(actionId(p) || p.id);
+    var list = [p];
+    (tasksByProject[pid] || []).forEach(function(t) {
+      list.push(t);
+      var tid = String(actionId(t) || t.id);
+      (subsByTask[tid] || []).forEach(function(st) { list.push(st); });
+    });
+    return list;
+  }
+  function descendantsOfTask(t) {
+    var tid = String(actionId(t) || t.id);
+    return [t].concat(subsByTask[tid] || []);
+  }
+
+  var programKey = 'programme_' + f.id;
+  var visible = [];
+  visible.push({ type:'program', key:programKey, label:f.Programme || 'Programme', items:linked, childCount:projects.length });
+  if (ganttExpanded[programKey]) {
+    projects.forEach(function(p, pi) {
+      var pid = String(actionId(p) || p.id || ('project_' + pi));
+      var pKey = 'project_' + pid;
+      var ptasks = tasksByProject[pid] || [];
+      visible.push({ type:'project', key:pKey, action:p, items:descendantsOfProject(p), childCount:ptasks.length });
+      if (ganttExpanded[pKey]) {
+        ptasks.forEach(function(t, ti) {
+          var tid = String(actionId(t) || t.id || ('task_' + pi + '_' + ti));
+          var tKey = 'task_' + tid;
+          var tsubs = subsByTask[tid] || [];
+          visible.push({ type:'task', key:tKey, action:t, items:descendantsOfTask(t), childCount:tsubs.length });
+          if (ganttExpanded[tKey]) {
+            tsubs.forEach(function(st) { visible.push({ type:'subtask', action:st, key:'subtask_' + (actionId(st) || st.id), childCount:0 }); });
+          }
+        });
+      }
+    });
+  }
+
+  return { linked:linked, projects:projects, tasksByProject:tasksByProject, subsByTask:subsByTask, visible:visible, actionId:actionId };
+}
+
+function renderActionsTable(f) {
+  var h = buildPlanningHierarchy(f);
   var wrap=document.getElementById('actionsWrap');
-  if(!linked.length) { wrap.innerHTML='<div style="padding:10px 16px;color:var(--text3);font-size:12px">Aucune action liée.</div>';return; }
-  var rows=linked.map(a=>{
-    var late=isLate(a), sc=stCls(a.Statut,late);
-    return '<tr><td style="font-weight:600">'+esc(a.Libelle||'—')+'</td>'
-      +'<td>'+esc(a.Niveau||'—')+'</td>'
-      +'<td>'+esc(refLabel(a.Pilote) || refLabel(a.Pilote_Nom) || '—')+'</td>'
-      +'<td style="font-family:var(--mono)">'+fmtD(a.Date_Demarrage)+'</td>'
-      +'<td style="font-family:var(--mono)">'+fmtD(a.Date_Fin)+'</td>'
-      +'<td><span class="sbadge '+sc+'">'+stLabel(a.Statut,late)+'</span></td></tr>';
+  if(!h.linked.length) { wrap.innerHTML='<div style="padding:10px 16px;color:var(--text3);font-size:12px">Aucune action liée.</div>';return; }
+
+  function iconFor(type) {
+    if (type === 'program') return '📁';
+    if (type === 'project') return '📋';
+    if (type === 'task') return '✅';
+    return '🔹';
+  }
+  function indentFor(type) {
+    if (type === 'program') return 10;
+    if (type === 'project') return 30;
+    if (type === 'task') return 52;
+    return 76;
+  }
+  function levelLabel(type, a) {
+    if (type === 'program') return 'Programme';
+    if (type === 'project') return '1 - Projet';
+    if (type === 'task') return (a && a.Niveau) || '2 - Tâche';
+    return (a && a.Niveau) || '3 - Sous Tâche';
+  }
+  function labelOf(item) { return item.label || (item.action && (item.action.Libelle || item.action.Programme || item.action.Nom)) || '—'; }
+
+  // Dans le tableau, on affiche au minimum les actions de niveau 1
+  // par défaut : Programme + Projets visibles. Les tâches restent repliées
+  // derrière chaque Projet, puis les sous-tâches derrière chaque Tâche.
+  var tableVisible = [];
+  var programKey = 'programme_' + f.id;
+  tableVisible.push({ type:'program', key:programKey, label:f.Programme || 'Programme', items:h.linked, childCount:h.projects.length });
+  h.projects.forEach(function(p, pi) {
+    var pid = String(h.actionId(p) || p.id || ('project_' + pi));
+    var pKey = 'project_' + pid;
+    var ptasks = h.tasksByProject[pid] || [];
+    tableVisible.push({ type:'project', key:pKey, action:p, items:[p].concat(ptasks), childCount:ptasks.length });
+    if (ganttExpanded[pKey]) {
+      ptasks.forEach(function(t, ti) {
+        var tid = String(h.actionId(t) || t.id || ('task_' + pi + '_' + ti));
+        var tKey = 'task_' + tid;
+        var tsubs = h.subsByTask[tid] || [];
+        tableVisible.push({ type:'task', key:tKey, action:t, items:[t].concat(tsubs), childCount:tsubs.length });
+        if (ganttExpanded[tKey]) {
+          tsubs.forEach(function(st) { tableVisible.push({ type:'subtask', action:st, key:'subtask_' + (h.actionId(st) || st.id), childCount:0 }); });
+        }
+      });
+    }
+  });
+
+  function dateRangeFor(item) {
+    var a = item.action || {};
+    var dates = [];
+    (item.items || [a]).forEach(function(x) {
+      var sd = gristTs(x.Date_Demarrage), ed = gristTs(x.Date_Fin);
+      if (sd) dates.push({kind:'start', d:sd});
+      if (ed) dates.push({kind:'end', d:ed});
+    });
+    var starts = dates.filter(function(x){return x.kind==='start';}).map(function(x){return x.d;});
+    var ends = dates.filter(function(x){return x.kind==='end';}).map(function(x){return x.d;});
+    return {
+      start: starts.length ? new Date(Math.min.apply(null, starts.map(function(d){return d.getTime();}))) : gristTs(a.Date_Demarrage),
+      end: ends.length ? new Date(Math.max.apply(null, ends.map(function(d){return d.getTime();}))) : gristTs(a.Date_Fin)
+    };
+  }
+
+  var rows=tableVisible.map(function(item){
+    var a = item.action || {};
+    var type = item.type;
+    var label = labelOf(item);
+    var hasChildren = item.childCount > 0;
+    var open = type === 'program' ? true : !!ganttExpanded[item.key];
+    var toggle = hasChildren
+      ? '<button class="gantt-toggle table-toggle '+(open?'open':'')+'" onclick="toggleGanttGroup(\''+esc(String(item.key))+'\')" title="Afficher / masquer">▶</button>'
+      : '<span class="gantt-empty-toggle table-empty-toggle"></span>';
+    var late = (type === 'task' || type === 'subtask' || type === 'project') ? isLate(a) : false;
+    var sc = stCls(a.Statut,late);
+    var status = type === 'program' ? '<span class="sbadge af">Synthèse</span>' : '<span class="sbadge '+sc+'">'+stLabel(a.Statut,late)+'</span>';
+    var pilot = type === 'program' ? '—' : esc(refLabel(a.Pilote) || refLabel(a.Pilote_Nom) || '—');
+    var range = dateRangeFor(item);
+    var start = type === 'program' ? '—' : (range.start ? fmtD(range.start) : '—');
+    var end = type === 'program' ? '—' : (range.end ? fmtD(range.end) : '—');
+    return '<tr class="act-row act-'+type+'"><td style="font-weight:'+(type==='program'||type==='project'?'700':'600')+';padding-left:'+indentFor(type)+'px">'
+      + toggle + '<span class="act-level-icon">'+iconFor(type)+'</span><span>'+esc(label)+'</span></td>'
+      +'<td>'+esc(levelLabel(type,a))+'</td>'
+      +'<td>'+pilot+'</td>'
+      +'<td style="font-family:var(--mono)">'+start+'</td>'
+      +'<td style="font-family:var(--mono)">'+end+'</td>'
+      +'<td>'+status+'</td></tr>';
   }).join('');
-  wrap.innerHTML='<table class="act-table"><thead><tr><th>Libellé</th><th>Niveau</th><th>Pilote</th><th>Début</th><th>Fin</th><th>Statut</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  wrap.innerHTML='<table class="act-table act-tree-table"><thead><tr><th>Libellé</th><th>Niveau</th><th>Pilote</th><th>Début</th><th>Fin</th><th>Statut</th></tr></thead><tbody>'+rows+'</tbody></table>';
 }
 
 function renderGantt(f) {
-  var linked = allActions.filter(a => {
-    var raw=a.Initiative_ID;
-    var id=typeof raw==='number'?raw:(Array.isArray(raw)?raw.find(v=>typeof v==='number'&&v>0):null)||null;
-    return id===f.id;
-  });
-  var monthsEl=document.getElementById('ganttMonths');
-  var rowsEl  =document.getElementById('ganttRows');
-  if(!linked.length) { monthsEl.innerHTML=''; rowsEl.innerHTML='<div style="padding:20px;color:var(--text3);font-size:12px;text-align:center">Aucune action à afficher</div>';return; }
+  var monthsEl = document.getElementById('ganttMonths');
+  var rowsEl   = document.getElementById('ganttRows');
 
-  function isLevelOne(a){ return String(a.Niveau||'').trim().startsWith('1'); }
-  function makeKey(a,i){ return (a.id||a.Id||a.ID||('idx_'+i)); }
-
-  var groups=[];
-  var current=null;
-  linked.forEach(function(a,i){
-    if(isLevelOne(a) || !current){
-      if(isLevelOne(a)){
-        current={project:a, children:[], key:makeKey(a,i)};
-        groups.push(current);
-      } else {
-        current={project:null, children:[a], key:'orphans'};
-        groups.push(current);
+  function refId(v) {
+    if (v === null || v === undefined || v === '') return null;
+    if (typeof v === 'number') return v > 0 ? v : null;
+    if (Array.isArray(v)) {
+      for (var i = 0; i < v.length; i++) {
+        if (typeof v[i] === 'number' && v[i] > 0) return v[i];
       }
-    } else {
-      current.children.push(a);
+      for (var j = 0; j < v.length; j++) {
+        var n = Number(v[j]);
+        if (!isNaN(n) && n > 0) return n;
+      }
+      return null;
     }
+    if (typeof v === 'object' && v.id) return Number(v.id) || null;
+    var n = Number(v);
+    return (!isNaN(n) && n > 0) ? n : null;
+  }
+  function actionId(a) { return refId(a && (a.id || a.Id || a.ID)); }
+  function parentId(a) { return refId(a && (a.Action_Parent || a.Action_parent || a.action_parent)); }
+  function initiativeId(a) { return refId(a && (a.Initiative_ID || a['Fiches Programmes'] || a.Fiches_Programmes)); }
+  function normLevel(a) {
+    var s = String((a && a.Niveau) || '').toLowerCase();
+    if (s.includes('sous')) return 'subtask';
+    if (s.startsWith('3')) return 'subtask';
+    if (s.includes('projet') || s.startsWith('1')) return 'project';
+    if (s.includes('tâche') || s.includes('tache') || s.startsWith('2')) return 'task';
+    return 'task';
+  }
+  function labelOf(a) { return (a && (a.Libelle || a.Programme || a.Nom || a.name)) || '—'; }
+  function startOf(a) { return gristTs(a && a.Date_Demarrage); }
+  function endOf(a) { return gristTs(a && a.Date_Fin); }
+
+  var byId = {};
+  allActions.forEach(function(a) { var id = actionId(a); if (id !== null) byId[String(id)] = a; });
+
+  // Inclure les actions directement rattachées au programme, mais aussi celles qui héritent du programme via leur parent.
+  function rootInitiativeId(a) {
+    var direct = initiativeId(a);
+    if (direct !== null) return direct;
+    var seen = {};
+    var cur = a;
+    for (var depth = 0; depth < 12; depth++) {
+      var pid = parentId(cur);
+      if (pid === null || seen[String(pid)]) break;
+      seen[String(pid)] = true;
+      cur = byId[String(pid)];
+      if (!cur) break;
+      var inherited = initiativeId(cur);
+      if (inherited !== null) return inherited;
+    }
+    return null;
+  }
+
+  var linked = allActions.filter(function(a) { return String(rootInitiativeId(a)) === String(f.id); });
+  if (!linked.length) {
+    monthsEl.innerHTML = '';
+    rowsEl.innerHTML = '<div style="padding:20px;color:var(--text3);font-size:12px;text-align:center">Aucune action à afficher</div>';
+    return;
+  }
+
+  var projects = [];
+  var tasks = [];
+  var subs = [];
+  linked.forEach(function(a) {
+    var lvl = normLevel(a);
+    if (lvl === 'project') projects.push(a);
+    else if (lvl === 'subtask') subs.push(a);
+    else tasks.push(a);
   });
 
-  var visible=[];
-  groups.forEach(function(g,gi){
-    if(g.project){
-      visible.push({type:'project', action:g.project, group:g, groupIndex:gi});
-      if(ganttExpanded[g.key]) g.children.forEach(function(c){ visible.push({type:'child', action:c, group:g, groupIndex:gi}); });
-    } else {
-      g.children.forEach(function(c){ visible.push({type:'child', action:c, group:g, groupIndex:gi}); });
-    }
+  var tasksByProject = {};
+  var subsByTask = {};
+  tasks.forEach(function(t) {
+    var pid = parentId(t);
+    var key = pid !== null ? String(pid) : '__orphans__';
+    if (!tasksByProject[key]) tasksByProject[key] = [];
+    tasksByProject[key].push(t);
+  });
+  subs.forEach(function(s) {
+    var pid = parentId(s);
+    var key = pid !== null ? String(pid) : '__orphan_subtasks__';
+    if (!subsByTask[key]) subsByTask[key] = [];
+    subsByTask[key].push(s);
   });
 
-  var dates=linked.flatMap(a=>[gristTs(a.Date_Demarrage),gristTs(a.Date_Fin)]).filter(Boolean);
-  if(!dates.length) { monthsEl.innerHTML=''; rowsEl.innerHTML='<div style="padding:20px;color:var(--text3);font-size:12px;text-align:center">Pas de dates définies</div>';return; }
-  var minD=new Date(Math.min(...dates.map(d=>d.getTime())));
-  var maxD=new Date(Math.max(...dates.map(d=>d.getTime())));
-  minD.setDate(minD.getDate()-7); maxD.setDate(maxD.getDate()+14);
-  var totalDays=Math.max(1,Math.round((maxD-minD)/86400000));
-  var today=new Date();today.setHours(0,0,0,0);
-  var todayPct=Math.round(((today-minD)/86400000)/totalDays*100);
-  var LW=260, ROW_H=34, BAR_H=18;
+  // Si des tâches n'ont pas de projet parent réel, on les range dans un groupe de lecture seule.
+  var projectIds = {};
+  projects.forEach(function(p) { var id = actionId(p); if (id !== null) projectIds[String(id)] = true; });
+  var orphanTasks = [];
+  Object.keys(tasksByProject).forEach(function(k) {
+    if (k === '__orphans__' || !projectIds[k]) {
+      orphanTasks = orphanTasks.concat(tasksByProject[k] || []);
+      if (k !== '__orphans__') delete tasksByProject[k];
+    }
+  });
+  if (orphanTasks.length) {
+    projects.push({ id: '__virtual_orphans__', Libelle: 'Actions sans projet', Niveau: '1 - Projet', _virtual: true });
+    tasksByProject['__virtual_orphans__'] = orphanTasks;
+  }
 
-  var months=''; var cur=new Date(minD);cur.setDate(1);
-  while(cur<=maxD){
-    var pct=Math.max(0,Math.round(((cur-minD)/86400000)/totalDays*100));
-    months+='<div style="position:absolute;left:'+pct+'%;font-size:9px;color:var(--text3);font-weight:600;white-space:nowrap;padding-top:5px;border-left:1px solid var(--border);padding-left:3px">'+cur.toLocaleDateString('fr-FR',{month:'short',year:'2-digit'})+'</div>';
+  function descendantsOfProject(p) {
+    var pid = String(actionId(p) || p.id);
+    var list = [p];
+    (tasksByProject[pid] || []).forEach(function(t) {
+      list.push(t);
+      var tid = String(actionId(t) || t.id);
+      (subsByTask[tid] || []).forEach(function(s) { list.push(s); });
+    });
+    return list;
+  }
+  function descendantsOfTask(t) {
+    var tid = String(actionId(t) || t.id);
+    return [t].concat(subsByTask[tid] || []);
+  }
+  function extent(items) {
+    var ds = [];
+    items.forEach(function(a) {
+      var s = startOf(a), e = endOf(a);
+      if (s) ds.push(s);
+      if (e) ds.push(e);
+    });
+    if (!ds.length) return {start:null, end:null};
+    return {start:new Date(Math.min.apply(null, ds.map(function(d){return d.getTime();}))), end:new Date(Math.max.apply(null, ds.map(function(d){return d.getTime();})))};
+  }
+
+  var programKey = 'programme_' + f.id;
+  var visible = [];
+  visible.push({ type:'program', key:programKey, label:f.Programme || 'Programme', items:linked });
+  if (ganttExpanded[programKey]) {
+    projects.forEach(function(p, pi) {
+      var pid = String(actionId(p) || p.id || ('project_' + pi));
+      var pKey = 'project_' + pid;
+      var ptasks = tasksByProject[pid] || [];
+      visible.push({ type:'project', key:pKey, action:p, items:descendantsOfProject(p), childCount:ptasks.length });
+      if (ganttExpanded[pKey]) {
+        ptasks.forEach(function(t, ti) {
+          var tid = String(actionId(t) || t.id || ('task_' + pi + '_' + ti));
+          var tKey = 'task_' + tid;
+          var tsubs = subsByTask[tid] || [];
+          visible.push({ type:'task', key:tKey, action:t, items:descendantsOfTask(t), childCount:tsubs.length });
+          if (ganttExpanded[tKey]) {
+            tsubs.forEach(function(s) { visible.push({ type:'subtask', action:s, key:'subtask_' + (actionId(s) || s.id) }); });
+          }
+        });
+      }
+    });
+  }
+
+  var allDates = linked.flatMap(function(a){ return [startOf(a), endOf(a)]; }).filter(Boolean);
+  if (!allDates.length) {
+    monthsEl.innerHTML = '';
+    rowsEl.innerHTML = '<div style="padding:20px;color:var(--text3);font-size:12px;text-align:center">Pas de dates définies</div>';
+    return;
+  }
+  var minD = new Date(Math.min.apply(null, allDates.map(function(d){return d.getTime();})));
+  var maxD = new Date(Math.max.apply(null, allDates.map(function(d){return d.getTime();})));
+  minD.setDate(minD.getDate() - 7);
+  maxD.setDate(maxD.getDate() + 14);
+  var totalDays = Math.max(1, Math.round((maxD - minD) / 86400000));
+  var today = new Date(); today.setHours(0,0,0,0);
+  var todayPct = Math.round(((today - minD) / 86400000) / totalDays * 100);
+  var LW = 300, ROW_H = 34, BAR_H = 18;
+
+  var months = '';
+  var cur = new Date(minD); cur.setDate(1);
+  while (cur <= maxD) {
+    var pct = Math.max(0, Math.round(((cur - minD) / 86400000) / totalDays * 100));
+    months += '<div style="position:absolute;left:'+pct+'%;font-size:9px;color:var(--text3);font-weight:600;white-space:nowrap;padding-top:5px;border-left:1px solid var(--border);padding-left:3px">'
+      + cur.toLocaleDateString('fr-FR',{month:'short',year:'2-digit'}) + '</div>';
     cur.setMonth(cur.getMonth()+1);
   }
-  if(todayPct>=0 && todayPct<=100) months+='<div class="today-line" style="left:'+todayPct+'%"></div>';
-  monthsEl.innerHTML=months;
-  document.getElementById('ganttLabelHdr').style.width=LW+'px';
+  if (todayPct >= 0 && todayPct <= 100) months += '<div class="today-line" style="left:'+todayPct+'%"></div>';
+  monthsEl.innerHTML = months;
+  document.getElementById('ganttLabelHdr').style.width = LW + 'px';
 
-  function levelColor(a){
-    var n = String(a.Niveau || '').trim().toLowerCase();
-    if(n.startsWith('1')) return '#2563eb';   // Niveau 1 - Projet : bleu
-    if(n.startsWith('2')) return '#16a34a';   // Niveau 2 - Tâche : vert
-    return '#d97706';                         // Autres niveaux : orange
+  function colorFor(type) {
+    if (type === 'program') return '#1e3a5f';
+    if (type === 'project') return '#2563eb';
+    if (type === 'task') return '#16a34a';
+    return '#d97706';
   }
-  var rowsHtml=visible.map(function(item){
-    var a=item.action;
-    var isProj=item.type==='project';
-    var sd=gristTs(a.Date_Demarrage),ed=gristTs(a.Date_Fin);
-    var color=levelColor(a);
-    var bar='';
-    if(sd&&ed){
-      var left=Math.round(((sd-minD)/86400000)/totalDays*100);
-      var width=Math.max(0.5,Math.round(((ed-sd)/86400000)/totalDays*100));
-      bar='<div class="gantt-bar" style="left:'+left+'%;width:'+width+'%;top:'+((ROW_H-BAR_H)/2)+'px;height:'+BAR_H+'px;background:'+color+';opacity:'+(isProj?1:.82)+';" title="'+esc(a.Libelle||'')+'"><span>'+esc(a.Libelle||'')+'</span></div>';
-    }
-    var open=!!ganttExpanded[item.group.key];
-    var hasChildren=item.group && item.group.children && item.group.children.length;
-    var toggle=isProj
-      ? (hasChildren?'<button class="gantt-toggle '+(open?'open':'')+'" onclick="toggleGanttGroup(\''+esc(String(item.group.key))+'\')" title="Afficher / masquer les sous-actions">▶</button>':'<span class="gantt-empty-toggle"></span>')
-      : '<span class="gantt-child-dot"></span>';
-    var labelColor=isProj?'var(--text)':'var(--text2)';
-    var labelWeight=isProj?'700':'400';
-    return '<div class="gantt-row '+(isProj?'gantt-project':'gantt-child')+'" style="height:'+ROW_H+'px">'
-      +'<div class="gantt-row-label" style="width:'+LW+'px">'+toggle+'<span style="font-weight:'+labelWeight+';color:'+labelColor+'">'+esc(a.Libelle||'—')+'</span></div>'
-      +'<div class="gantt-row-bars" style="position:relative">'+bar
-      +(todayPct>=0&&todayPct<=100?'<div class="today-line" style="left:'+todayPct+'%"></div>':'')
-      +'</div></div>';
+  function iconFor(type) {
+    if (type === 'program') return '📁';
+    if (type === 'project') return '📋';
+    if (type === 'task') return '✅';
+    return '🔹';
+  }
+  function indentFor(type) {
+    if (type === 'program') return 10;
+    if (type === 'project') return 28;
+    if (type === 'task') return 48;
+    return 70;
+  }
+  function barHtml(s, e, color, label, summary, rowH, barH) {
+    if (!s || !e) return '';
+    var left = Math.round(((s - minD) / 86400000) / totalDays * 100);
+    var width = Math.max(0.5, Math.round(((e - s) / 86400000) / totalDays * 100));
+    return '<div class="gantt-bar '+(summary?'gantt-summary-bar':'gantt-real-bar')+'" style="left:'+left+'%;width:'+width+'%;top:'+((rowH-barH)/2)+'px;height:'+barH+'px;background:'+color+';" title="'+esc(label||'')+'"><span>'+esc(label||'')+'</span></div>';
+  }
+
+  var rowsHtml = visible.map(function(item) {
+    var type = item.type;
+    var label = item.label || labelOf(item.action);
+    var childCount = item.childCount || 0;
+    var hasChildren = type === 'program' ? projects.length > 0 : childCount > 0;
+    var open = !!ganttExpanded[item.key];
+    var isSummary = type === 'program' || type === 'project';
+    var ex = isSummary ? extent(item.items || []) : {start:startOf(item.action), end:endOf(item.action)};
+    var color = colorFor(type);
+    var barH = type === 'subtask' ? 14 : BAR_H;
+    var bar = barHtml(ex.start, ex.end, color, label, isSummary, ROW_H, barH);
+    var toggle = hasChildren
+      ? '<button class="gantt-toggle '+(type==='program'?'on-dark ':'')+(open?'open':'')+'" onclick="toggleGanttGroup(\''+esc(String(item.key))+'\')" title="Afficher / masquer">▶</button>'
+      : '<span class="gantt-empty-toggle"></span>';
+    var count = (type === 'project' && childCount) ? '<span style="margin-left:6px;color:#64748b;font-size:10px">'+childCount+'</span>' : '';
+    var rowClass = 'gantt-' + type;
+    var weight = (type === 'program' || type === 'project') ? '700' : '500';
+    var rowLabel = '<div class="gantt-row-label" style="width:'+LW+'px;padding-left:'+indentFor(type)+'px">'
+      + toggle + '<span class="gantt-level-icon">'+iconFor(type)+'</span>'
+      + '<span style="font-weight:'+weight+'">'+esc(label)+'</span>' + count + '</div>';
+    return '<div class="gantt-row '+rowClass+'" style="height:'+ROW_H+'px">'
+      + rowLabel
+      + '<div class="gantt-row-bars" style="position:relative">' + bar
+      + (todayPct>=0 && todayPct<=100 ? '<div class="today-line" style="left:'+todayPct+'%"></div>' : '')
+      + '</div></div>';
   }).join('');
-  rowsEl.innerHTML=rowsHtml || '<div style="padding:20px;color:var(--text3);font-size:12px;text-align:center">Aucune action à afficher</div>';
+  rowsEl.innerHTML = rowsHtml || '<div style="padding:20px;color:var(--text3);font-size:12px;text-align:center">Aucune action à afficher</div>';
 }
 
 function toggleGanttGroup(key) {
   ganttExpanded[key] = !ganttExpanded[key];
-  if(selectedFiche) renderGantt(selectedFiche);
+  if (selectedFiche) {
+    renderActionsTable(selectedFiche);
+    renderGantt(selectedFiche);
+  }
 }
 
 /* ══════════════════════════════════════
