@@ -1074,6 +1074,52 @@ function render() {
   renderPilier(fiches.filter(f => getPublicPilierKey(f.Pilier) === 'cul'), 'body-cul');
 }
 
+
+async function showMaison() {
+  // Résoudre le nom réel de la table avant d'afficher.
+  try {
+    if (grist.docApi && grist.docApi.listTables) {
+      const allTables = await grist.docApi.listTables();
+      const norm  = s => String(s).toLowerCase().replace(/[\s_]/g, '');
+      const match = allTables.find(t => FICHES_TABLE_CANDIDATES.map(norm).includes(norm(t)))
+                  || allTables.find(t => norm(t).includes('fiche') || norm(t).includes('programme'));
+      if (match) resolvedFichesTable = match;
+    }
+  } catch(e) {
+    console.warn('[Maison] listTables failed:', e && e.message);
+  }
+
+  // Recharger les positions complètes, même si Position_X/Y ne sont pas visibles dans le widget.
+  try {
+    if (grist.docApi && grist.docApi.fetchTable) {
+      const rawFiches = await grist.docApi.fetchTable(resolvedFichesTable);
+      const cols = Object.keys(rawFiches || {});
+      const n = cols.length ? ((rawFiches[cols[0]] || []).length) : 0;
+      const fetchedFiches = Array.from({length: n}, (_, i) => {
+        const r = {}; cols.forEach(c => r[c] = rawFiches[c][i]); return r;
+      });
+      fiches = fiches.map(f => {
+        const full = fetchedFiches.find(ff => ff.id === f.id);
+        if (!full) return f;
+        const posX = (full.Position_X != null && full.Position_X !== 0) ? full.Position_X : (f.Position_X ?? 0);
+        const posY = (full.Position_Y != null && full.Position_Y !== 0) ? full.Position_Y : (f.Position_Y ?? 0);
+        return { ...f, Position_X: posX, Position_Y: posY };
+      });
+    }
+  } catch(e) {
+    console.warn('[Maison] fetchTable positions failed:', e && e.message);
+  }
+
+  const loading = document.getElementById('app-loading');
+  if (loading) loading.style.display = 'none';
+  const maison = document.getElementById('maison');
+  if (maison) maison.style.display = 'flex';
+  scaleToFit();
+  updateEditModeBtn();
+  updateUserPill();
+  render();
+}
+
 /* ═══════════════════════════════════════════════════════
    CHARGEMENT DONNÉES ANNEXES (Membres + droits)
    Appelé après le premier onRecords
