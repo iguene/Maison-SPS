@@ -46,7 +46,7 @@
 var allActions=[], allProgrammes=[], membresRows=[];
 var resolvedTable='Actions', selectedId=null, panelMode=null;
 var dateFields=['Date_Demarrage','Date_Fin'];
-var actionFields=['Libelle','Initiative_ID','Niveau','Action_Parent','Tache_precedente','Pilote','Date_Demarrage','Date_Fin','Montant_EUR','PDCA','Statut','Description','Tags','Est_Projet'];
+var actionFields=['Libelle','Initiative_ID','Niveau','Action_Parent','Tache_precedente','Pilote','Date_Demarrage','Date_Fin','Montant_EUR','PDCA','Statut','Description','Tags'];
 var esc=function(t){var d=document.createElement('div');d.textContent=String(t==null?'':t);return d.innerHTML};
 var toast_t;function toast(msg){var el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toast_t);toast_t=setTimeout(function(){el.classList.remove('show')},2600)}
 function savePill(){var el=document.getElementById('savePill');el.classList.add('show');setTimeout(function(){el.classList.remove('show')},2000)}
@@ -95,19 +95,18 @@ function renderEditForm(d,excludeId){
       datalistInput('ef_Statut','Statut',String(d.Statut||'A faire'),'dl_Statut',fixedDatalistOptions(statuts),'Tapez ou choisissez le statut…',true)+
     '</div>'+ 
     '<div class="field-grid"><div class="field-group"><div class="field-label">PDCA (%)</div><input class="field-input" id="ef_PDCA" type="number" min="0" max="100" step="1" value="'+esc(Math.round(pctValue(d)))+'"></div><div class="field-group"><div class="field-label">Montant EUR</div><input class="field-input" id="ef_Montant_EUR" type="number" step="0.01" value="'+esc(d.Montant_EUR||'')+'"></div></div>'+ 
-    '<div class="field-group"><label style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--text2)"><input type="checkbox" id="ef_Est_Projet" '+(d.Est_Projet?'checked':'')+'> Est un projet</label></div>'+ 
     '<div class="field-group"><div class="field-label">Description</div><textarea class="field-textarea" id="ef_Description" placeholder="Description de l’action…">'+esc(d.Description||'')+'</textarea></div>'+ 
     '<div class="field-group"><div class="field-label">Tags</div><input class="field-input" id="ef_Tags" value="'+esc(d.Tags||'')+'" placeholder="tag1, tag2…"></div>'
 }
 function openEdit(id){selectedId=id;panelMode='edit';var a=allActions.find(function(x){return x.id===id});if(!a)return;document.getElementById('panelTitle').textContent='✏️ Modifier l’action';document.getElementById('panelBtns').innerHTML='<button class="btn-save" onclick="saveEdit()">💾 Enregistrer</button><button class="btn-cancel" onclick="openView('+id+')">Annuler</button>';renderEditForm(a,id);openPanel()}
 function openCreate(){selectedId=null;panelMode='create';document.querySelectorAll('.action-row').forEach(function(r){r.classList.remove('selected')});document.getElementById('panelTitle').textContent='✨ Nouvelle action';document.getElementById('panelBtns').innerHTML='<button class="btn-save" onclick="saveCreate()">✨ Créer l’action</button><button class="btn-cancel" onclick="closePanel()">Annuler</button>';renderEditForm({Libelle:'',Statut:'A faire',Niveau:'2 - Tâche',PDCA:0,Est_Projet:false});openPanel()}
 function showFormError(msg){var e=document.getElementById('formError');if(e){e.textContent=msg;e.classList.add('show')}toast('⚠ '+msg)}
-function collectFormData(){var data={};actionFields.forEach(function(f){var el=document.getElementById('ef_'+f);if(!el)return;if(f==='Est_Projet')data[f]=!!el.checked;else data[f]=el.value});
+function collectFormData(){var data={};actionFields.forEach(function(f){var el=document.getElementById('ef_'+f);if(!el)return;data[f]=el.value});
   data.Initiative_ID=resolveLookup(data.Initiative_ID,allProgrammes,function(p){return p.Programme||p.Programme_No||p.Nom||p.name||p.id});
   data.Pilote=resolveLookup(data.Pilote,membresRows,function(m){return m.Nom||m.name||m.Prenom||m.Prénom||m.id});
   data.Action_Parent=resolveLookup(data.Action_Parent,allActions,function(a){return a.Libelle||a.name||a.id});
   data.Tache_precedente=resolveLookup(data.Tache_precedente,allActions,function(a){return a.Libelle||a.name||a.id});
-  dateFields.forEach(function(f){if(data[f]!==undefined)data[f]=toGristDate(data[f])});if(data.Montant_EUR!==undefined)data.Montant_EUR=data.Montant_EUR===''?null:(parseFloat(data.Montant_EUR)||0);if(data.PDCA!==undefined)data.PDCA=Math.min(100,Math.max(0,parseFloat(data.PDCA)||0));Object.keys(data).forEach(function(k){if(data[k]==='')data[k]=null});return data}
+  dateFields.forEach(function(f){if(data[f]!==undefined)data[f]=toGristDate(data[f])});if(data.Montant_EUR!==undefined)data.Montant_EUR=data.Montant_EUR===''?null:(parseFloat(data.Montant_EUR)||0);if(data.PDCA!==undefined)data.PDCA=Math.min(100,Math.max(0,parseFloat(data.PDCA)||0));Object.keys(data).forEach(function(k){if(data[k]==='')data[k]=null});delete data.Est_Projet;return data}
 function validateData(data){
   if(!data.Libelle){showFormError('Le libellé est obligatoire');return false}
   if(!data.Date_Demarrage){showFormError('La date de début est obligatoire');return false}
