@@ -260,7 +260,14 @@ button{font-family:var(--font);cursor:pointer;}
   </div>
 
   <!-- BAS -->
-  <div class="m-bottom">EXCELLENCE — ENTREPRENEURIAT — SOLIDARITÉ — CRÉATION DE VALEUR</div>
+  <div class="m-bottom"
+       role="button"
+       tabindex="0"
+       title="Voir les valeurs et la vision SPS"
+       onclick="window.location.href='https://iguene.github.io/Maison-SPS/indicateur.html?id=valeurs-vision'"
+       onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
+    EXCELLENCE — ENTREPRENEURIAT — SOLIDARITÉ — CRÉATION DE VALEUR
+  </div>
 
 </div>
   </div>
@@ -393,6 +400,19 @@ async function loadData() {
 ══════════════════════════════════════ */
 function esc(t) { var d=document.createElement('div');d.textContent=String(t||'');return d.innerHTML; }
 function splitBullets(t) { if(!t) return [];return String(t).split(/[\n;]+/).map(s=>s.trim()).filter(Boolean); }
+// ── Tri des actions par date de démarrage (chronologique) ──
+function actionStartTs(a) {
+  var v = a && a.Date_Demarrage;
+  if (v == null || v === '') return Infinity;       // sans date → en fin
+  if (typeof v === 'number') return v;               // timestamp Grist (secondes)
+  if (typeof v === 'string') {
+    var n = Number(v); if (!isNaN(n)) return n;
+    var t = Date.parse(v); return isNaN(t) ? Infinity : t / 1000;
+  }
+  if (v instanceof Date) return v.getTime() / 1000;
+  return Infinity;
+}
+function sortByStartDate(a, b) { return actionStartTs(a) - actionStartTs(b); }
 function gristTs(ts) { if(!ts) return null;var n=Number(ts);if(isNaN(n)) return null;if(Math.abs(n)>=1e12) return new Date(n);if(Math.abs(n)>=1e8) return new Date(n*1000);return null; }
 function fmtD(ts) { var d=gristTs(ts);return d?d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short'}):'—'; }
 function refLabel(val) {
@@ -645,7 +665,7 @@ function renderFiche(f) {
     var id=typeof raw==='number'?raw:(Array.isArray(raw)?raw.find(v=>typeof v==='number'&&v>0):null)||null;
     return id===f.id;
   });
-  if(linked.length) renderList('fActions', linked.map(a=>a.Libelle||'—'));
+  if(linked.length) { linked.sort(sortByStartDate); renderList('fActions', linked.map(a=>a.Libelle||'—')); }
   else renderList('fActions', splitBullets(f.Actions));
   document.getElementById('fLeader').innerHTML = '<span>'+esc(refLabel(f.Leader)||'—')+'</span>';
   var res=splitBullets(f.Ressources);
@@ -722,6 +742,11 @@ function buildPlanningHierarchy(f) {
     if (!subsByTask[key]) subsByTask[key] = [];
     subsByTask[key].push(st);
   });
+
+  // Tri chronologique par date de démarrage
+  projects.sort(sortByStartDate);
+  Object.keys(tasksByProject).forEach(function(k){ tasksByProject[k].sort(sortByStartDate); });
+  Object.keys(subsByTask).forEach(function(k){ subsByTask[k].sort(sortByStartDate); });
 
   var projectIds = {};
   projects.forEach(function(p) { var id = actionId(p); if (id !== null) projectIds[String(id)] = true; });
@@ -958,6 +983,11 @@ function renderGantt(f) {
     if (!subsByTask[key]) subsByTask[key] = [];
     subsByTask[key].push(s);
   });
+
+  // Tri chronologique par date de démarrage
+  projects.sort(sortByStartDate);
+  Object.keys(tasksByProject).forEach(function(k){ tasksByProject[k].sort(sortByStartDate); });
+  Object.keys(subsByTask).forEach(function(k){ subsByTask[k].sort(sortByStartDate); });
 
   // Si des tâches n'ont pas de projet parent réel, on les range dans un groupe de lecture seule.
   var projectIds = {};
