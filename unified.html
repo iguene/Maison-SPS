@@ -243,7 +243,7 @@ button,input,select,textarea{font-family:var(--font);}
     <option value="">Tous les piliers</option>
     <option value="dev">Développement Business</option>
     <option value="imp">Impact</option>
-    <option value="cul">Notre Cultre d'Entreprise</option>
+    <option value="cul">Notre Culture d'Entreprise</option>
   </select>
   <select class="filter-sel" id="filterStatut" onchange="applyFilters()">
     <option value="">Tous les statuts</option>
@@ -312,7 +312,7 @@ function getPilierKey(p){
   if(s.includes('culture')||s.includes('manag')) return 'cul';
   return 'dev';
 }
-function getPilierLabel(k){ return k==='imp'?'Impact':k==='cul'?'Notre Culture d'Entreprise':'Dév. Business'; }
+function getPilierLabel(k){ return k==='imp'?'Impact':k==='cul'?"Notre Culture d'Entreprise":'Dév. Business'; }
 function getPilierColor(k){ return k==='imp'?'#16a34a':k==='cul'?'#dc2626':'#2563eb'; }
 function getStatutClass(s){
   if(!s) return 'af'; var sl=s.toLowerCase();
@@ -500,7 +500,7 @@ function renderEditForm(d){
   var pilierOptions = [
     {v:'Développement Business',k:'dev'},
     {v:'Impact',k:'imp'},
-    {v:'Notre Culture d'Entreprise',k:'cul'}
+    {v:"Notre Culture d'Entreprise",k:'cul'}
   ].map(function(o){
     var sel = getPilierKey(d.Pilier)===o.k;
     return '<option value="'+o.v+'"'+(sel?' selected':'')+'>'+o.v+'</option>';
